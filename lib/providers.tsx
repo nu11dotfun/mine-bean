@@ -20,6 +20,7 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
             accentColorForeground: '#000',
             borderRadius: 'medium',
             fontStack: 'system',
+            overlayBlur: 'small',
           })}
           modalSize="compact"
         >

@@ -116,7 +116,7 @@ export default function MinersPanel({
                                 </span>
                                 <span style={styles.plusSign}>+</span>
                                 <span style={styles.bnbAmount}>
-                                    ⛓️ {miner.bnbAmount.toFixed(4)}
+                                    <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public" alt="BNB" style={{width: 14, height: 14, marginRight: 4}} /> {miner.bnbAmount.toFixed(4)}
                                 </span>
                             </div>
                         </div>

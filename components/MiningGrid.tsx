@@ -34,7 +34,7 @@ export default function MiningGrid({
         }
     }
 
-    const [cells, setCells] = useState<CellData[]>(() => generateCells())
+    const [cells, setCells] = useState<CellData[]>(() => Array.from({ length: 25 }, () => ({ participants: 130, amount: 0.4000 })))
 
     function generateCells(): CellData[] {
         return Array.from({ length: 25 }, () => ({
@@ -43,6 +43,8 @@ export default function MiningGrid({
         }))
     }
 
+
+    useEffect(() => { setCells(generateCells()) }, [])
     useEffect(() => {
         const handlePhaseChange = (event: CustomEvent) => {
             const { phase: newPhase } = event.detail

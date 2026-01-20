@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import WalletButton from './WalletButton'
 import Link from 'next/link'
 
 interface HeaderProps {
@@ -166,14 +167,7 @@ export default function Header({
           </a>
         </div>
 
-        <ConnectButton 
-          chainStatus="icon"
-          showBalance={true}
-          accountStatus={{
-            smallScreen: 'avatar',
-            largeScreen: 'full',
-          }}
-        />
+        <WalletButton />
       </div>
     </header>
   )

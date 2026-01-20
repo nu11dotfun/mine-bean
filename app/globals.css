@@ -120,3 +120,76 @@ input[type="number"] {
     font-size: 10px !important;
   }
 }
+
+/* Custom Connect Wallet button styling */
+[data-rk] button[data-testid="rk-connect-button"] {
+  background: transparent !important;
+  border: 1px solid #333 !important;
+  color: #fff !important;
+  font-weight: 500 !important;
+  padding: 10px 20px !important;
+  border-radius: 50px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-rk] button[data-testid="rk-connect-button"]:hover {
+  border-color: #F0B90B !important;
+  background: rgba(240, 185, 11, 0.1) !important;
+}
+
+/* Connected wallet button styling */
+[data-rk] button[data-testid="rk-account-button"] {
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
+  border-radius: 50px !important;
+  padding: 4px 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+[data-rk] button[data-testid="rk-account-button"]:hover {
+  border-color: #444 !important;
+  background: #222 !important;
+}
+
+
+/* Hide the chain button (BNB dropdown) */
+[data-rk] button[data-testid="rk-chain-button"] {
+  display: none !important;
+}
+
+/* Hide only the avatar image */
+[data-rk] button[data-testid="rk-account-button"] img {
+  display: none !important;
+}
+
+/* Hide avatar container */
+[data-rk] button[data-testid="rk-account-button"] > div > div:has(img) {
+  display: none !important;
+}
+
+/* Alternative: hide by size */
+[data-rk] button[data-testid="rk-account-button"] [style*="width: 24px"] {
+  display: none !important;
+}
+
+/* Force smaller button size */
+[data-rk] button[data-testid="rk-account-button"] {
+  height: 36px !important;
+  min-height: unset !important;
+}
+
+[data-rk] button[data-testid="rk-account-button"] > div {
+  height: 100% !important;
+  padding: 0 !important;
+}
+
+/* Smaller text in wallet button */
+[data-rk] button[data-testid="rk-account-button"] {
+  font-size: 13px !important;
+}
+
+/* Taller navbar */
+header {
+  padding-top: 24px !important;
+  padding-bottom: 24px !important;
+}

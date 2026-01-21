@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import BeanLogo from './BeanLogo'
 
 interface StakePageProps {
     userBalance?: number
@@ -11,14 +12,6 @@ interface StakePageProps {
     onDeposit?: (amount: number) => void
     onWithdraw?: (amount: number) => void
 }
-
-// Bean icon component - SVG version
-const BeansIcon = ({ size = 18, color = "#F0B90B" }: { size?: number; color?: string }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill={color}>
-        <ellipse cx="9" cy="12" rx="5" ry="7" />
-        <ellipse cx="15" cy="12" rx="5" ry="7" />
-    </svg>
-)
 
 export default function StakePage({
     userBalance = 0,
@@ -30,17 +23,15 @@ export default function StakePage({
 }: StakePageProps) {
     const { openConnectModal } = useConnectModal()
     const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
-    const [amount, setAmount] = useState("1.0")
+    const [amount, setAmount] = useState("0")
     const [beansPrice, setBeansPrice] = useState<number>(0.0264)
     const [showCalculator, setShowCalculator] = useState(false)
     const [calcAmount, setCalcAmount] = useState("1000")
 
-    // Stats
     const [totalDeposits] = useState(277606)
     const [apr] = useState(15.27)
     const [tvl] = useState(39213198)
 
-    // Fetch BEANS price from DexScreener
     useEffect(() => {
         const fetchBeansPrice = async () => {
             try {
@@ -82,7 +73,6 @@ export default function StakePage({
 
     const currentBalance = activeTab === "deposit" ? userBalance : userStaked
 
-    // APR calculations
     const calcBeansAmount = parseFloat(calcAmount) || 0
     const dailyRate = apr / 365
     const weeklyRate = apr / 52
@@ -94,7 +84,6 @@ export default function StakePage({
     return (
         <div style={isMobile ? styles.containerMobile : styles.container}>
             <div style={isMobile ? styles.contentMobile : styles.content}>
-                {/* Header */}
                 <div style={isMobile ? styles.headerMobile : styles.header}>
                     <h1 style={isMobile ? styles.titleMobile : styles.title}>Stake</h1>
                     <p style={isMobile ? styles.subtitleMobile : styles.subtitle}>
@@ -102,9 +91,7 @@ export default function StakePage({
                     </p>
                 </div>
 
-                {/* Stake Card */}
                 <div style={isMobile ? styles.cardMobile : styles.card}>
-                    {/* Tabs */}
                     <div style={isMobile ? styles.tabsMobile : styles.tabs}>
                         <button
                             style={{
@@ -126,7 +113,6 @@ export default function StakePage({
                         </button>
                     </div>
 
-                    {/* Balance Row */}
                     <div style={isMobile ? styles.balanceRowMobile : styles.balanceRow}>
                         <div style={styles.balanceLeft}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="#666">
@@ -146,10 +132,9 @@ export default function StakePage({
                         </div>
                     </div>
 
-                    {/* Amount Input */}
                     <div style={isMobile ? styles.inputRowMobile : styles.inputRow}>
                         <div style={styles.inputLeft}>
-                            <BeansIcon size={isMobile ? 20 : 24} />
+                            <BeanLogo size={isMobile ? 20 : 24} />
                             <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>BEANS</span>
                         </div>
                         <input
@@ -161,7 +146,6 @@ export default function StakePage({
                         />
                     </div>
 
-                    {/* Action Button */}
                     {isConnected ? (
                         <button
                             style={{
@@ -186,7 +170,6 @@ export default function StakePage({
                     )}
                 </div>
 
-                {/* Summary */}
                 <div style={isMobile ? styles.summaryMobile : styles.summary}>
                     <h2 style={isMobile ? styles.summaryTitleMobile : styles.summaryTitle}>Summary</h2>
 
@@ -198,7 +181,7 @@ export default function StakePage({
                             </svg>
                         </div>
                         <div style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
-                            <BeansIcon size={14} />
+                            <BeanLogo size={14} />
                             <span>{totalDeposits.toLocaleString()}</span>
                         </div>
                     </div>
@@ -226,7 +209,6 @@ export default function StakePage({
                     </div>
                 </div>
 
-                {/* APR Calculator Button */}
                 <button
                     style={isMobile ? styles.calculatorBtnMobile : styles.calculatorBtn}
                     onClick={() => setShowCalculator(true)}
@@ -238,7 +220,6 @@ export default function StakePage({
                 </button>
             </div>
 
-            {/* APR Calculator Modal */}
             {showCalculator && (
                 <>
                     <div style={styles.overlay} onClick={() => setShowCalculator(false)} />
@@ -251,7 +232,7 @@ export default function StakePage({
                         <div style={styles.calcInputRow}>
                             <span style={styles.calcLabel}>BEANS to stake</span>
                             <div style={styles.calcInputWrapper}>
-                                <BeansIcon size={18} />
+                                <BeanLogo size={18} />
                                 <input
                                     type="text"
                                     style={styles.calcInput}
@@ -266,7 +247,7 @@ export default function StakePage({
                             <div style={styles.calcResultRow}>
                                 <span style={styles.calcResultLabel}>Daily</span>
                                 <div style={styles.calcResultValue}>
-                                    <BeansIcon size={14} />
+                                    <BeanLogo size={14} />
                                     <span>{dailyEarnings.toFixed(4)}</span>
                                     <span style={styles.calcUsd}>(${(dailyEarnings * beansPrice).toFixed(2)})</span>
                                 </div>
@@ -274,7 +255,7 @@ export default function StakePage({
                             <div style={styles.calcResultRow}>
                                 <span style={styles.calcResultLabel}>Weekly</span>
                                 <div style={styles.calcResultValue}>
-                                    <BeansIcon size={14} />
+                                    <BeanLogo size={14} />
                                     <span>{weeklyEarnings.toFixed(4)}</span>
                                     <span style={styles.calcUsd}>(${(weeklyEarnings * beansPrice).toFixed(2)})</span>
                                 </div>
@@ -282,7 +263,7 @@ export default function StakePage({
                             <div style={styles.calcResultRow}>
                                 <span style={styles.calcResultLabel}>Monthly</span>
                                 <div style={styles.calcResultValue}>
-                                    <BeansIcon size={14} />
+                                    <BeanLogo size={14} />
                                     <span>{monthlyEarnings.toFixed(4)}</span>
                                     <span style={styles.calcUsd}>(${(monthlyEarnings * beansPrice).toFixed(2)})</span>
                                 </div>
@@ -290,7 +271,7 @@ export default function StakePage({
                             <div style={styles.calcResultRow}>
                                 <span style={styles.calcResultLabel}>Yearly</span>
                                 <div style={styles.calcResultValue}>
-                                    <BeansIcon size={14} />
+                                    <BeanLogo size={14} />
                                     <span>{(monthlyEarnings * 12).toFixed(4)}</span>
                                     <span style={styles.calcUsd}>(${(monthlyEarnings * 12 * beansPrice).toFixed(2)})</span>
                                 </div>

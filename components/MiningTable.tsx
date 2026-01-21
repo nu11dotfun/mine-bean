@@ -1,6 +1,7 @@
 'use client'
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
+import BeanLogo from './BeanLogo'
 
 interface Round {
     round: number
@@ -18,60 +19,12 @@ interface MiningTableProps {
     rounds?: Round[]
 }
 
-// Generate mock data
-const generateMockRounds = (
-    count: number,
-    goldenBeanOnly: boolean = false
-): Round[] => {
-    const rounds: Round[] = []
-    const baseRound = 122346
-
-    for (let i = 0; i < count; i++) {
-        const hasGoldenBean = goldenBeanOnly ? true : Math.random() < 0.01
-        const round: Round = {
-            round: baseRound - i,
-            block: Math.floor(Math.random() * 25) + 1,
-            winner:
-                Math.random() > 0.15
-                    ? `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`
-                    : "Split",
-            winners: Math.floor(Math.random() * 50) + 130,
-            deployed: 8 + Math.random() * 5,
-            vaulted: 0.8 + Math.random() * 0.5,
-            winnings: 7 + Math.random() * 4,
-            goldenBean: hasGoldenBean
-                ? Math.floor(Math.random() * 200) + 10
-                : null,
-            time:
-                i === 0
-                    ? "39 sec ago"
-                    : i < 10
-                      ? `${i} min ago`
-                      : `${Math.floor(i / 6)} hours ago`,
-        }
-
-        if (!goldenBeanOnly || hasGoldenBean) {
-            rounds.push(round)
-        }
-    }
-
-    return goldenBeanOnly ? rounds.slice(0, 50) : rounds
-}
-
-// SVG Icons
 const BnbIcon = () => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
         alt="BNB"
         style={{ width: 16, height: 16, objectFit: "contain" as const }}
     />
-)
-
-const BeansIcon = ({ color = "#888" }: { color?: string }) => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill={color}>
-        <ellipse cx="9" cy="12" rx="5" ry="7" />
-        <ellipse cx="15" cy="12" rx="5" ry="7" />
-    </svg>
 )
 
 const ChevronLeft = () => (
@@ -86,14 +39,54 @@ const ChevronRight = () => (
     </svg>
 )
 
-export default function MiningTable({
-    rounds = generateMockRounds(50),
-}: MiningTableProps) {
+// Seeded random number generator for consistent values
+const seededRandom = (seed: number) => {
+    const x = Math.sin(seed) * 10000
+    return x - Math.floor(x)
+}
+
+const generateMockRounds = (count: number, goldenBeanOnly: boolean = false): Round[] => {
+    const rounds: Round[] = []
+    const baseRound = 122346
+
+    for (let i = 0; i < count; i++) {
+        const seed = baseRound - i
+        const hasGoldenBean = goldenBeanOnly ? true : seededRandom(seed * 7) < 0.01
+        
+        const round: Round = {
+            round: baseRound - i,
+            block: Math.floor(seededRandom(seed * 1) * 25) + 1,
+            winner: seededRandom(seed * 2) > 0.15
+                ? `0x${(seed * 1234).toString(16).slice(0, 4)}...${(seed * 5678).toString(16).slice(0, 4)}`
+                : "Split",
+            winners: Math.floor(seededRandom(seed * 3) * 50) + 130,
+            deployed: 8 + seededRandom(seed * 4) * 5,
+            vaulted: 0.8 + seededRandom(seed * 5) * 0.5,
+            winnings: 7 + seededRandom(seed * 6) * 4,
+            goldenBean: hasGoldenBean ? Math.floor(seededRandom(seed * 8) * 200) + 10 : null,
+            time: i === 0 ? "39 sec ago" : i < 10 ? `${i} min ago` : `${Math.floor(i / 6)} hours ago`,
+        }
+
+        if (!goldenBeanOnly || hasGoldenBean) {
+            rounds.push(round)
+        }
+    }
+
+    return goldenBeanOnly ? rounds.slice(0, 50) : rounds
+}
+
+export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
     const [activeTab, setActiveTab] = useState<"rounds" | "goldenbeans">("rounds")
     const [currentPage, setCurrentPage] = useState(0)
+    const [rounds, setRounds] = useState<Round[]>([])
+    const [goldenBeanRounds, setGoldenBeanRounds] = useState<Round[]>([])
     const rowsPerPage = 12
 
-    const goldenBeanRounds = generateMockRounds(100, true)
+    useEffect(() => {
+        setRounds(propRounds || generateMockRounds(50))
+        setGoldenBeanRounds(generateMockRounds(100, true))
+    }, [propRounds])
+
     const allRounds = activeTab === "rounds" ? rounds : goldenBeanRounds
     const totalPages = Math.ceil(allRounds.length / rowsPerPage)
     
@@ -114,17 +107,19 @@ export default function MiningTable({
         }
     }
 
-    // Reset page when switching tabs
     const handleTabChange = (tab: "rounds" | "goldenbeans") => {
         setActiveTab(tab)
         setCurrentPage(0)
+    }
+
+    if (rounds.length === 0 || typeof window === "undefined") {
+        return <div style={styles.container}>Loading...</div>
     }
 
     return (
         <div style={styles.container}>
             <h2 style={styles.title}>Mining</h2>
 
-            {/* Tabs */}
             <div style={styles.tabs}>
                 <button
                     style={{
@@ -133,12 +128,7 @@ export default function MiningTable({
                     }}
                     onClick={() => handleTabChange("rounds")}
                 >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z" />
                     </svg>
                     Rounds
@@ -150,26 +140,19 @@ export default function MiningTable({
                     }}
                     onClick={() => handleTabChange("goldenbeans")}
                 >
-                    <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="currentColor"
-                    >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                         <path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z" />
                     </svg>
-                    Golden Beans
+                    Beanpot
                 </button>
             </div>
 
-            {/* Description */}
             <p style={styles.description}>
                 {activeTab === "rounds"
                     ? "Recent mining rounds and winners."
-                    : "Recent mining rounds where the Golden Bean was hit."}
+                    : "Recent mining rounds where the Beanpot was hit."}
             </p>
 
-            {/* Table */}
             <div style={styles.tableWrapper}>
                 <table style={styles.table}>
                     <thead>
@@ -181,22 +164,18 @@ export default function MiningTable({
                             <th style={styles.thRight}>Deployed</th>
                             <th style={styles.thRight}>Vaulted</th>
                             <th style={styles.thRight}>Winnings</th>
-                            <th style={styles.thRight}>Golden Bean</th>
+                            <th style={styles.thRight}>Beanpot</th>
                             <th style={styles.thRight}>Time</th>
                         </tr>
                     </thead>
                     <tbody>
                         {displayRounds.map((round, index) => (
                             <tr key={index} style={styles.tr}>
-                                <td style={styles.td}>
-                                    #{round.round.toLocaleString()}
-                                </td>
+                                <td style={styles.td}>#{round.round.toLocaleString()}</td>
                                 <td style={styles.td}>#{round.block}</td>
                                 <td style={styles.td}>
                                     {round.winner === "Split" ? (
-                                        <span style={styles.splitBadge}>
-                                            Split
-                                        </span>
+                                        <span style={styles.splitBadge}>Split</span>
                                     ) : (
                                         <span>{round.winner}</span>
                                     )}
@@ -223,7 +202,7 @@ export default function MiningTable({
                                 <td style={styles.tdRight}>
                                     {round.goldenBean ? (
                                         <span style={styles.valueWithIcon}>
-                                            <BeansIcon />
+                                            <BeanLogo size={16} />
                                             {round.goldenBean}
                                         </span>
                                     ) : (
@@ -237,7 +216,6 @@ export default function MiningTable({
                 </table>
             </div>
 
-            {/* Pagination */}
             <div style={styles.pagination}>
                 <button
                     style={{

@@ -2,7 +2,7 @@
 
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useState, useRef, useEffect } from 'react'
-import { useBalance, useReadContract } from 'wagmi'
+import { useBalance, useReadContract, useDisconnect } from 'wagmi'
 
 const BEANS_ADDRESS = '0x000Ae314E2A2172a039B26378814C252734f556A'
 
@@ -26,8 +26,8 @@ const erc20Abi = [
 export default function WalletButton() {
   const [isOpen, setIsOpen] = useState(false)
   const popupRef = useRef<HTMLDivElement>(null)
+  const { disconnect } = useDisconnect()
 
-  // Close popup when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
@@ -50,12 +50,10 @@ export default function WalletButton() {
         const ready = mounted
         const connected = ready && account && chain
 
-        // Fetch BNB balance
         const { data: bnbBalance } = useBalance({
           address: account?.address as `0x${string}` | undefined,
         })
 
-        // Fetch BEANS balance
         const { data: beansBalanceRaw } = useReadContract({
           address: BEANS_ADDRESS,
           abi: erc20Abi,
@@ -65,7 +63,6 @@ export default function WalletButton() {
 
         const beansBalance = beansBalanceRaw ? Number(beansBalanceRaw) / 1e18 : 0
 
-        // Mock staked/rewards data - replace with real contract reads later
         const portfolio = {
           wallet: beansBalance,
           staked: 0,
@@ -121,7 +118,6 @@ export default function WalletButton() {
 
                   {isOpen && (
                     <div style={styles.popup}>
-                      {/* Header */}
                       <div style={styles.popupHeader}>
                         <span style={styles.popupTitle}>Account</span>
                         <button onClick={() => setIsOpen(false)} style={styles.closeButton}>
@@ -129,7 +125,6 @@ export default function WalletButton() {
                         </button>
                       </div>
 
-                      {/* Wallet Address */}
                       <div style={styles.addressSection}>
                         <span style={styles.label}>Wallet Address</span>
                         <div style={styles.addressRow}>
@@ -146,7 +141,6 @@ export default function WalletButton() {
                         </div>
                       </div>
 
-                      {/* BNB Balance */}
                       <div style={styles.addressSection}>
                         <span style={styles.label}>BNB Balance</span>
                         <div style={styles.addressRow}>
@@ -161,7 +155,6 @@ export default function WalletButton() {
                         </div>
                       </div>
 
-                      {/* Portfolio */}
                       <div style={styles.portfolioSection}>
                         <span style={styles.sectionTitle}>Portfolio</span>
                         
@@ -194,11 +187,10 @@ export default function WalletButton() {
                         </div>
                       </div>
 
-                      {/* Disconnect */}
                       <button
                         onClick={() => {
                           setIsOpen(false)
-                          window.location.reload()
+                          disconnect()
                         }}
                         style={styles.disconnectButton}
                       >

@@ -3,10 +3,10 @@ import { Web3Provider } from '@/lib/providers'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'BEANS Protocol',
+  title: 'MineBean',
   description: 'Decentralized mining protocol on BSC',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
   },
 }
 

@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react"
+import BeanLogo from "./BeanLogo"
 
 interface BuybackEntry {
     time: string
@@ -188,13 +189,13 @@ export default function RevenueTable({
                                         </td>
                                         <td style={styles.tdRight}>
                                             <span style={styles.valueWithIcon}>
-                                                <BeansIcon />
+                                                <BeanLogo size={16} />
                                                 {entry.burned.toFixed(4)}
                                             </span>
                                         </td>
                                         <td style={styles.tdRight}>
                                             <span style={styles.valueWithIcon}>
-                                                <BeansIcon />
+                                                <BeanLogo size={16} />
                                                 {entry.yieldGenerated.toFixed(4)}
                                             </span>
                                         </td>
@@ -243,13 +244,13 @@ export default function RevenueTable({
                                         <td style={styles.td}>{isMobile ? formatTimeShort(entry.time) : entry.time}</td>
                                         <td style={styles.tdRight}>
                                             <span style={styles.valueWithIcon}>
-                                                <BeansIcon />
+                                                <BeanLogo size={16} />
                                                 {entry.burned.toFixed(4)}
                                             </span>
                                         </td>
                                         <td style={styles.tdRight}>
                                             <span style={styles.valueWithIcon}>
-                                                <BeansIcon />
+                                                <BeanLogo size={16} />
                                                 {entry.yieldGenerated.toFixed(4)}
                                             </span>
                                         </td>

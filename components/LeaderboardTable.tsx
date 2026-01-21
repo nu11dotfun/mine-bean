@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from "react"
+import BeanLogo from "./BeanLogo"
 
 interface LeaderboardEntry {
     rank: number
@@ -207,7 +208,7 @@ export default function LeaderboardTable({
                                         </span>
                                     ) : (
                                         <span style={styles.valueWithIcon}>
-                                            <BeansIcon />
+                                            <BeanLogo size={16} />
                                             {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                                         </span>
                                     )}

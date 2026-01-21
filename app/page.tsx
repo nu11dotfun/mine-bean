@@ -7,6 +7,7 @@ import SidebarControls from '@/components/SidebarControls'
 import MobileStatsBar from '@/components/MobileStatsBar'
 import MobileControls from '@/components/MobileControls'
 import BottomNav from '@/components/BottomNav'
+import LandingPage from '@/components/LandingPage'
 import { useAccount, useBalance } from 'wagmi'
 import { useState, useEffect } from 'react'
 
@@ -14,6 +15,7 @@ export default function Home() {
   const { address, isConnected } = useAccount()
   const { data: balance } = useBalance({ address })
   const [isMobile, setIsMobile] = useState(false)
+  const [showMining, setShowMining] = useState(false)
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -23,6 +25,10 @@ export default function Home() {
   }, [])
 
   const userBalance = balance ? parseFloat(balance.formatted) : 0
+
+  if (!showMining) {
+    return <LandingPage onStartMining={() => setShowMining(true)} />
+  }
 
   if (isMobile) {
     return (

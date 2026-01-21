@@ -1,6 +1,7 @@
 'use client'
 
 import React from "react"
+import BeanLogo from './BeanLogo'
 
 interface GlobalStatsProps {
     maxSupply?: number
@@ -40,28 +41,19 @@ export default function GlobalStats({
         },
     ]
 
-    const BeansIcon = ({ size = 18 }: { size?: number }) => (
-        <svg width={size} height={size} viewBox="0 0 24 24" fill="#F0B90B">
-            <ellipse cx="9" cy="12" rx="5" ry="7" />
-            <ellipse cx="15" cy="12" rx="5" ry="7" />
-        </svg>
-    )
-
     if (isMobile) {
         return (
             <div style={styles.mobileWrapper}>
-                {/* Header */}
                 <div style={styles.mobileHeader}>
                     <h1 style={styles.mobileTitle}>Global</h1>
                     <p style={styles.mobileSubtitle}>Review protocol stats and activity.</p>
                 </div>
 
-                {/* 2x2 Grid */}
                 <div style={styles.mobileGrid}>
                     {stats.map((stat, index) => (
                         <div key={index} style={styles.mobileStatBox}>
                             <div style={styles.mobileStatValue}>
-                                {stat.iconType === "beans" && <BeansIcon size={14} />}
+                                {stat.iconType === "beans" && <BeanLogo size={14} />}
                                 {stat.iconType === "bnb" && (
                                     <img
                                         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
@@ -81,7 +73,6 @@ export default function GlobalStats({
 
     return (
         <div style={styles.wrapper}>
-            {/* Header */}
             <div style={styles.header}>
                 <h1 style={styles.title}>Global</h1>
                 <p style={styles.subtitle}>
@@ -89,12 +80,11 @@ export default function GlobalStats({
                 </p>
             </div>
 
-            {/* Stats Grid */}
             <div style={styles.container}>
                 {stats.map((stat, index) => (
                     <div key={index} style={styles.statBox}>
                         <div style={styles.statValue}>
-                            {stat.iconType === "beans" && <BeansIcon size={20} />}
+                            {stat.iconType === "beans" && <BeanLogo size={20} />}
                             {stat.iconType === "bnb" && (
                                 <img
                                     src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
@@ -113,7 +103,6 @@ export default function GlobalStats({
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
-    // Desktop styles
     wrapper: {
         paddingTop: "40px",
         paddingBottom: "20px",
@@ -165,8 +154,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: "14px",
         color: "#666",
     },
-
-    // Mobile styles - 2x2 grid
     mobileWrapper: {
         paddingBottom: "16px",
     },

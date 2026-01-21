@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import WalletButton from './WalletButton'
+import BeanLogo, { BeansTextLogo } from './BeanLogo'
 import Link from 'next/link'
 
 interface HeaderProps {
@@ -64,17 +65,15 @@ export default function Header({
     { id: 'stake', label: 'Stake', href: '/stake' },
   ]
 
-  // Mobile Header - simplified with socials, no hamburger
   if (isMobile) {
     return (
       <header style={styles.mobileHeader}>
         <Link href="/" style={styles.logo}>
-          <span style={styles.logoIcon}>🫘</span>
-          <span style={styles.logoTextMobile}>{logoText}</span>
+          <BeanLogo size={24} />
+          <BeansTextLogo height={20} />
         </Link>
         
         <div style={styles.mobileRight}>
-          {/* Socials */}
           <div style={styles.mobileSocials}>
             <a href="#" style={styles.socialLink}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -93,7 +92,6 @@ export default function Header({
             </a>
           </div>
 
-          {/* Wallet - no chain, no balance, just avatar */}
           <ConnectButton 
             chainStatus="none"
             showBalance={false}
@@ -104,37 +102,46 @@ export default function Header({
     )
   }
 
-  // Desktop Header
   return (
     <header style={styles.header}>
       <div style={styles.logoSection}>
         <Link href="/" style={styles.logo}>
-          <span style={styles.logoIcon}>🫘</span>
-          <span style={styles.logoText}>{logoText}</span>
+          <BeanLogo size={24} />
+          <BeansTextLogo height={22} />
         </Link>
 
         <nav style={styles.nav}>
-          {tabs.map((tab) => (
-            <Link
-              key={tab.id}
-              href={tab.href}
-              style={{
-                ...styles.navItem,
-                ...(currentPage === tab.id ? styles.navItemActive : {}),
-                ...(hoveredTab === tab.id && currentPage !== tab.id ? styles.navItemHover : {}),
-              }}
-              onMouseEnter={() => setHoveredTab(tab.id)}
-              onMouseLeave={() => setHoveredTab(null)}
-            >
-              <span>{tab.label}</span>
-            </Link>
-          ))}
+          {tabs.map((tab) => {
+            const isHovered = hoveredTab === tab.id
+            const isActive = currentPage === tab.id
+            return (
+              <Link
+                key={tab.id}
+                href={tab.href}
+                style={{
+                  ...styles.navItem,
+                  color: isHovered || isActive ? '#fff' : '#666',
+                }}
+                onMouseEnter={() => setHoveredTab(tab.id)}
+                onMouseLeave={() => setHoveredTab(null)}
+              >
+                <span>{tab.label}</span>
+                <div
+                  style={{
+                    ...styles.navUnderline,
+                    opacity: isHovered || isActive ? 1 : 0,
+                    boxShadow: isHovered || isActive ? '0 0 8px 2px rgba(240, 185, 11, 0.5)' : 'none',
+                  }}
+                />
+              </Link>
+            )
+          })}
         </nav>
       </div>
 
       <div style={styles.headerRight}>
         <div style={styles.priceTag}>
-          <span style={styles.priceIcon}>🫘</span>
+          <BeanLogo size={18} />
           <span style={styles.priceSymbol}>BEANS</span>
           <span style={styles.priceValue}>${beansPrice}</span>
         </div>
@@ -213,48 +220,29 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '10px',
     textDecoration: 'none',
   },
-  logoIcon: {
-    fontSize: '24px',
-  },
-  logoText: {
-    fontSize: '20px',
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    color: '#fff',
-  },
-  logoTextMobile: {
-    fontSize: '18px',
-    fontWeight: 700,
-    letterSpacing: '0.1em',
-    color: '#fff',
-  },
   nav: {
     display: 'flex',
     gap: '8px',
   },
   navItem: {
     display: 'flex',
+    flexDirection: 'column',
     alignItems: 'center',
     gap: '6px',
     padding: '8px 16px',
-    borderRadius: '6px',
-    color: '#666',
-    background: 'transparent',
-    border: 'none',
     fontSize: '14px',
     fontWeight: 500,
     cursor: 'pointer',
-    transition: 'all 0.15s',
-    fontFamily: 'inherit',
+    transition: 'color 0.2s',
     textDecoration: 'none',
+    position: 'relative',
   },
-  navItemHover: {
-    color: '#fff',
-  },
-  navItemActive: {
-    color: '#fff',
-    textDecoration: 'underline',
-    textUnderlineOffset: '4px',
+  navUnderline: {
+    width: '100%',
+    height: '2px',
+    background: '#F0B90B',
+    borderRadius: '1px',
+    transition: 'opacity 0.2s, box-shadow 0.2s',
   },
   headerRight: {
     display: 'flex',
@@ -267,9 +255,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: '8px',
     fontSize: '14px',
     color: '#fff',
-  },
-  priceIcon: {
-    fontSize: '14px',
   },
   bnbLogo: {
     width: '18px',

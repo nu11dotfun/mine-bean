@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import BeanLogo from './BeanLogo'
 
 interface SidebarControlsProps {
     beanpotAmount?: number
@@ -29,31 +30,25 @@ export default function SidebarControls({
     const [hoveredMode, setHoveredMode] = useState<string | null>(null)
     const [amount, setAmount] = useState("0")
 
-    // Block selection state (synced with grid)
     const [selectedBlockCount, setSelectedBlockCount] = useState(0)
 
-    // Auto mode state
     const [autoBlocks, setAutoBlocks] = useState(1)
     const [autoRounds, setAutoRounds] = useState(1)
     const [autoReload, setAutoReload] = useState(false)
     const [blockSelection, setBlockSelection] = useState<"all" | "random">("all")
 
-    // Timer state
     const [timer, setTimer] = useState(60)
     const [currentRound, setCurrentRound] = useState(122168)
     const [phase, setPhase] = useState<"counting" | "eliminating" | "winner" | "miners">("counting")
 
-    // Hover states
     const [isHoveringTimer, setIsHoveringTimer] = useState(false)
     const [isHoveringBeanpot, setIsHoveringBeanpot] = useState(false)
     const [isHoveringTotalDeployed, setIsHoveringTotalDeployed] = useState(false)
     const [isHoveringYouDeployed, setIsHoveringYouDeployed] = useState(false)
 
-    // Prices
     const [bnbPrice, setBnbPrice] = useState<number>(580)
     const [beansPrice, setBeansPrice] = useState<number>(0.0264)
 
-    // Listen for block changes from grid
     useEffect(() => {
         const handleBlocksChanged = (event: CustomEvent) => {
             const { count } = event.detail
@@ -67,7 +62,6 @@ export default function SidebarControls({
         return () => window.removeEventListener("blocksChanged" as any, handleBlocksChanged)
     }, [mode, blockSelection])
 
-    // Fetch live BNB price from Binance API
     useEffect(() => {
         const fetchBnbPrice = async () => {
             try {
@@ -86,7 +80,6 @@ export default function SidebarControls({
         return () => clearInterval(interval)
     }, [])
 
-    // Fetch BEANS price from DexScreener
     useEffect(() => {
         const fetchBeansPrice = async () => {
             try {
@@ -105,7 +98,6 @@ export default function SidebarControls({
         return () => clearInterval(interval)
     }, [])
 
-    // Main game loop
     useEffect(() => {
         let interval: NodeJS.Timeout
 
@@ -173,7 +165,6 @@ export default function SidebarControls({
         setAmount((current + value).toFixed(2))
     }
 
-    // Handle "All" button click - toggle select all 25 blocks
     const handleAllClick = () => {
         if (blockSelection === "all") {
             setBlockSelection("random")
@@ -189,7 +180,6 @@ export default function SidebarControls({
         }
     }
 
-    // Calculate totals
     const baseAmount = parseFloat(amount) || 0
     const effectiveBlocks = mode === "auto"
         ? blockSelection === "all" ? autoBlocks : autoBlocks
@@ -197,7 +187,6 @@ export default function SidebarControls({
     const totalPerRound = baseAmount * effectiveBlocks
     const totalAmount = mode === "auto" ? totalPerRound * autoRounds : totalPerRound
 
-    // BNB Logo component
     const BnbLogo = ({ size = 18 }: { size?: number }) => (
         <img
             src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
@@ -206,7 +195,6 @@ export default function SidebarControls({
         />
     )
 
-    // Icons
     const WalletIcon = () => (
         <svg width="18" height="18" viewBox="0 0 24 24" fill="#666">
             <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
@@ -236,26 +224,16 @@ export default function SidebarControls({
         </svg>
     )
 
-    // Bean Icon SVG
-    const BeanIcon = () => (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#F0B90B">
-            <ellipse cx="12" cy="10" rx="7" ry="5" />
-            <ellipse cx="12" cy="14" rx="7" ry="5" />
-        </svg>
-    )
-
     return (
         <div style={styles.container}>
-            {/* Section 1: Stats Grid */}
             <div style={styles.statsGrid}>
-                {/* Beanpot */}
                 <div
                     style={{ ...styles.statBox, ...styles.beanpotBox }}
                     onMouseEnter={() => setIsHoveringBeanpot(true)}
                     onMouseLeave={() => setIsHoveringBeanpot(false)}
                 >
                     <div style={styles.statValue}>
-                        <BeanIcon />
+                        <BeanLogo size={20} />
                         <span style={styles.beanpotValue}>
                             {beanpotAmount.toFixed(1)}
                         </span>
@@ -267,7 +245,6 @@ export default function SidebarControls({
                     </div>
                 </div>
 
-                {/* Time Remaining */}
                 <div
                     style={styles.statBox}
                     onMouseEnter={() => setIsHoveringTimer(true)}
@@ -281,7 +258,6 @@ export default function SidebarControls({
                     </div>
                 </div>
 
-                {/* Total Deployed */}
                 <div
                     style={styles.statBox}
                     onMouseEnter={() => setIsHoveringTotalDeployed(true)}
@@ -300,7 +276,6 @@ export default function SidebarControls({
                     </div>
                 </div>
 
-                {/* You Deployed */}
                 <div
                     style={styles.statBox}
                     onMouseEnter={() => setIsHoveringYouDeployed(true)}
@@ -318,9 +293,7 @@ export default function SidebarControls({
                 </div>
             </div>
 
-            {/* Section 2: Controls Card */}
             <div style={styles.controlsCard}>
-                {/* Mode Toggle */}
                 <div style={styles.modeToggle}>
                     <button
                         style={{
@@ -339,7 +312,6 @@ export default function SidebarControls({
                             ...styles.modeBtn,
                             ...(mode === "auto" ? styles.modeBtnActive : {}),
                             ...(hoveredMode === "auto" && mode !== "auto" ? styles.modeBtnHover : {}),
-                            
                         }}
                         onClick={() => setMode("auto")}
                         onMouseEnter={() => setHoveredMode("auto")}
@@ -349,7 +321,6 @@ export default function SidebarControls({
                     </button>
                 </div>
 
-                {/* Balance Row */}
                 <div style={styles.balanceRow}>
                     <div style={styles.balanceLeft}>
                         <WalletIcon />
@@ -362,7 +333,6 @@ export default function SidebarControls({
                     </div>
                 </div>
 
-                {/* Amount Input */}
                 <div style={styles.inputRow}>
                     <div style={styles.inputLeft}>
                         <BnbLogo size={20} />
@@ -376,7 +346,6 @@ export default function SidebarControls({
                     />
                 </div>
 
-                {/* Manual Mode Controls */}
                 {mode === "manual" && (
                     <>
                         <div style={styles.row}>
@@ -410,10 +379,8 @@ export default function SidebarControls({
                     </>
                 )}
 
-                {/* Auto Mode Controls */}
                 {mode === "auto" && (
                     <>
-                        {/* Blocks Input */}
                         <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
                                 <BlocksIcon />
@@ -429,7 +396,6 @@ export default function SidebarControls({
                             />
                         </div>
 
-                        {/* Rounds Input */}
                         <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
                                 <RoundsIcon />
@@ -445,7 +411,6 @@ export default function SidebarControls({
                             />
                         </div>
 
-                        {/* Auto-reload Toggle */}
                         <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
                                 <ReloadIcon />
@@ -466,7 +431,6 @@ export default function SidebarControls({
                             </button>
                         </div>
 
-                        {/* Block Selection */}
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Blocks</span>
                             <div style={styles.blockSelectionToggle}>
@@ -485,13 +449,11 @@ export default function SidebarControls({
                             </div>
                         </div>
 
-                        {/* Total Per Round */}
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Total per round</span>
                             <span style={styles.totalValue}>{totalPerRound.toFixed(2)} BNB</span>
                         </div>
 
-                        {/* Total */}
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total</span>
                             <span style={styles.totalValue}>{totalAmount.toFixed(2)} BNB</span>
@@ -499,7 +461,6 @@ export default function SidebarControls({
                     </>
                 )}
 
-                {/* Deploy Button */}
                 {isConnected ? (
                     <button
                         style={{
@@ -529,8 +490,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "'Inter', -apple-system, sans-serif",
         width: "100%",
     },
-
-    // Stats Grid
     statsGrid: {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
@@ -572,8 +531,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: "#666",
         fontWeight: 500,
     },
-
-    // Controls Card
     controlsCard: {
         background: "#111",
         border: "1px solid #222",
@@ -583,8 +540,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         flexDirection: "column",
         gap: "12px",
     },
-
-    // Mode Toggle
     modeToggle: {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
@@ -609,15 +564,10 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: "#222",
         color: "#fff",
     },
-    modeBtnAutoActive: {
-        border: "1px solid #3b82f6",
-    },
     modeBtnHover: {
         background: "#1a1a1a",
         color: "#888",
     },
-
-    // Balance Row
     balanceRow: {
         display: "flex",
         alignItems: "center",
@@ -650,8 +600,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         cursor: "pointer",
         fontFamily: "inherit",
     },
-
-    // Input Row
     inputRow: {
         display: "flex",
         alignItems: "center",
@@ -683,8 +631,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "inherit",
         outline: "none",
     },
-
-    // Auto Mode Rows
     autoRow: {
         display: "flex",
         alignItems: "center",
@@ -712,8 +658,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "inherit",
         outline: "none",
     },
-
-    // Checkbox Button
     checkboxBtn: {
         width: "24px",
         height: "24px",
@@ -730,8 +674,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: "#fff",
         borderColor: "#fff",
     },
-
-    // Generic Row
     row: {
         display: "flex",
         alignItems: "center",
@@ -769,20 +711,11 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 700,
         color: "#fff",
     },
-
-    // Block Selection Toggle (Auto)
     blockSelectionToggle: {
         display: "flex",
         alignItems: "center",
         gap: "12px",
     },
-    blockSelectionLabel: {
-        fontSize: "14px",
-        color: "#666",
-        fontWeight: 500,
-    },
-
-    // Total Row
     totalRow: {
         display: "flex",
         alignItems: "center",
@@ -795,8 +728,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 700,
         color: "#fff",
     },
-
-    // Buttons
     deployBtn: {
         width: "100%",
         background: "#222",

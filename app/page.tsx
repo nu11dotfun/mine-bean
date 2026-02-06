@@ -8,8 +8,11 @@ import MobileStatsBar from '@/components/MobileStatsBar'
 import MobileControls from '@/components/MobileControls'
 import BottomNav from '@/components/BottomNav'
 import LandingPage from '@/components/LandingPage'
-import { useAccount, useBalance } from 'wagmi'
-import { useState, useEffect } from 'react'
+import ClaimRewards from '@/components/ClaimRewards'
+import { useAccount, useBalance, useWriteContract } from 'wagmi'
+import { parseEther } from 'viem'
+import { useState, useEffect, useCallback } from 'react'
+import { CONTRACTS } from '@/lib/contracts'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
@@ -24,7 +27,74 @@ export default function Home() {
     return () => window.removeEventListener('resize', checkMobile)
   }, [])
 
+  const { writeContract } = useWriteContract()
   const userBalance = balance ? parseFloat(balance.formatted) : 0
+
+  const handleDeploy = useCallback((amount: number, blockIds: number[]) => {
+    if (!isConnected || blockIds.length === 0 || amount <= 0) return
+    writeContract({
+      address: CONTRACTS.GridMining.address,
+      abi: CONTRACTS.GridMining.abi,
+      functionName: 'deploy',
+      args: [blockIds],
+      value: parseEther(amount.toString()),
+    }, {
+      onSuccess: () => {
+        window.dispatchEvent(new CustomEvent("userDeployed", {
+          detail: { blockIds }
+        }))
+      }
+    })
+  }, [isConnected, writeContract])
+
+  const handleClaimBNB = useCallback(() => {
+    if (!isConnected) return
+    writeContract({
+      address: CONTRACTS.GridMining.address,
+      abi: CONTRACTS.GridMining.abi,
+      functionName: 'claimBNB',
+      args: [],
+    })
+  }, [isConnected, writeContract])
+
+  const handleClaimBEAN = useCallback(() => {
+    if (!isConnected) return
+    writeContract({
+      address: CONTRACTS.GridMining.address,
+      abi: CONTRACTS.GridMining.abi,
+      functionName: 'claimBEAN',
+      args: [],
+    })
+  }, [isConnected, writeContract])
+
+  const handleAutoActivate = useCallback((strategyId: number, numRounds: number, numBlocks: number, depositAmount: bigint) => {
+    if (!isConnected) return
+    writeContract({
+      address: CONTRACTS.AutoMiner.address,
+      abi: CONTRACTS.AutoMiner.abi,
+      functionName: 'setConfig',
+      args: [strategyId, numRounds, numBlocks],
+      value: depositAmount,
+    }, {
+      onSuccess: () => {
+        window.dispatchEvent(new CustomEvent("autoMinerActivated"))
+      }
+    })
+  }, [isConnected, writeContract])
+
+  const handleAutoStop = useCallback(() => {
+    if (!isConnected) return
+    writeContract({
+      address: CONTRACTS.AutoMiner.address,
+      abi: CONTRACTS.AutoMiner.abi,
+      functionName: 'stop',
+      args: [],
+    }, {
+      onSuccess: () => {
+        window.dispatchEvent(new CustomEvent("autoMinerStopped"))
+      }
+    })
+  }, [isConnected, writeContract])
 
   if (!showMining) {
     return <LandingPage onStartMining={() => setShowMining(true)} />
@@ -35,9 +105,10 @@ export default function Home() {
       <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: '80px' }}>
         <Header currentPage="home" isMobile={true} />
         <div style={styles.mobileContainer}>
-          <MobileStatsBar />
-          <MiningGrid />
-          <MobileControls isConnected={isConnected} userBalance={userBalance} />
+          <MobileStatsBar userAddress={address} />
+          <MiningGrid userAddress={address} />
+          <MobileControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
+          <ClaimRewards userAddress={address} onClaimBNB={handleClaimBNB} onClaimBEAN={handleClaimBEAN} />
         </div>
         <BottomNav currentPage="mine" />
       </div>
@@ -50,10 +121,11 @@ export default function Home() {
       <div style={styles.container}>
         <MinersPanel />
         <div style={styles.gridSection}>
-          <MiningGrid />
+          <MiningGrid userAddress={address} />
         </div>
         <div style={styles.controlsSection}>
-          <SidebarControls isConnected={isConnected} userBalance={userBalance} />
+          <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
+          <ClaimRewards userAddress={address} onClaimBNB={handleClaimBNB} onClaimBEAN={handleClaimBEAN} />
         </div>
       </div>
     </div>

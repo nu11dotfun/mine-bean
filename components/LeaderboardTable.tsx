@@ -2,50 +2,56 @@
 
 import React, { useState, useEffect } from "react"
 import BeanLogo from "./BeanLogo"
+import { apiFetch } from '../lib/api'
 
+// Display interface
 interface LeaderboardEntry {
     rank: number
     address: string
     value: number
-    hasAvatar?: boolean
 }
 
-interface LeaderboardTableProps {
-    miners?: LeaderboardEntry[]
-    stakers?: LeaderboardEntry[]
-    unrefined?: LeaderboardEntry[]
+// API response interfaces
+interface DeployerFromAPI {
+    address: string
+    totalDeployed: string
+    totalDeployedFormatted: string
+    roundsPlayed: number
 }
 
-// Generate mock data
-const generateLeaderboard = (
-    count: number,
-    maxValue: number
-): LeaderboardEntry[] => {
-    const names = [
-        "supercar2",
-        "blastoise",
-        "ap",
-        "radr",
-        "kin0",
-        "505",
-        "DC#",
-        "DC4",
-        "Tirith",
-        "FormerlyBean",
-    ]
-
-    return Array.from({ length: count }, (_, i) => {
-        const useCustomName = Math.random() > 0.6 && i < names.length
-        return {
-            rank: i + 1,
-            address: useCustomName
-                ? names[i % names.length]
-                : `0x${Math.random().toString(16).slice(2, 6)}...${Math.random().toString(16).slice(2, 6)}`,
-            value: maxValue * Math.pow(0.85, i) * (0.9 + Math.random() * 0.2),
-            hasAvatar: useCustomName && Math.random() > 0.5,
-        }
-    })
+interface EarnerFromAPI {
+    address: string
+    unclaimed: string
+    unclaimedFormatted: string
 }
+
+interface MinersResponse {
+    period: string
+    deployers: DeployerFromAPI[]
+}
+
+interface EarnersResponse {
+    earners: EarnerFromAPI[]
+    pagination: { page: number; limit: number; total: number; pages: number }
+}
+
+// Helper functions
+const formatAddress = (addr: string): string => {
+    if (!addr || addr.length < 10) return addr
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+}
+
+const transformDeployer = (d: DeployerFromAPI, i: number): LeaderboardEntry => ({
+    rank: i + 1,
+    address: formatAddress(d.address),
+    value: parseFloat(d.totalDeployedFormatted)
+})
+
+const transformEarner = (e: EarnerFromAPI, i: number): LeaderboardEntry => ({
+    rank: i + 1,
+    address: formatAddress(e.address),
+    value: parseFloat(e.unclaimedFormatted)
+})
 
 // SVG Icons
 const BnbIcon = () => (
@@ -56,20 +62,17 @@ const BnbIcon = () => (
     />
 )
 
-const BeansIcon = () => (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="#888">
-        <ellipse cx="9" cy="12" rx="5" ry="7" />
-        <ellipse cx="15" cy="12" rx="5" ry="7" />
-    </svg>
-)
-
-export default function LeaderboardTable({
-    miners = generateLeaderboard(12, 9886),
-    stakers = generateLeaderboard(12, 36656),
-    unrefined = generateLeaderboard(12, 1903),
-}: LeaderboardTableProps) {
+export default function LeaderboardTable() {
     const [activeTab, setActiveTab] = useState<"miners" | "stakers" | "unrefined">("miners")
+    const [miners, setMiners] = useState<LeaderboardEntry[]>([])
+    const [unrefined, setUnrefined] = useState<LeaderboardEntry[]>([])
+    const [loading, setLoading] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
+    const [mounted, setMounted] = useState(false)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
 
     useEffect(() => {
         const checkMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -77,6 +80,27 @@ export default function LeaderboardTable({
         window.addEventListener('resize', checkMobile)
         return () => window.removeEventListener('resize', checkMobile)
     }, [])
+
+    useEffect(() => {
+        if (!mounted) return
+
+        const fetchData = async () => {
+            setLoading(true)
+            try {
+                const [minersRes, earnersRes] = await Promise.all([
+                    apiFetch<MinersResponse>('/api/leaderboard/miners?period=all&limit=12'),
+                    apiFetch<EarnersResponse>('/api/leaderboard/earners?limit=12')
+                ])
+                setMiners(minersRes.deployers.map(transformDeployer))
+                setUnrefined(earnersRes.earners.map(transformEarner))
+            } catch (err) {
+                console.error('Failed to fetch leaderboard:', err)
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchData()
+    }, [mounted])
 
     const tabs = [
         {
@@ -130,12 +154,12 @@ export default function LeaderboardTable({
         }
     }
 
-    const getData = () => {
+    const getData = (): LeaderboardEntry[] => {
         switch (activeTab) {
             case "miners":
                 return miners
             case "stakers":
-                return stakers
+                return [] // Coming soon
             case "unrefined":
                 return unrefined
         }
@@ -150,6 +174,11 @@ export default function LeaderboardTable({
             case "unrefined":
                 return "beans"
         }
+    }
+
+    // Return null until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return null
     }
 
     return (
@@ -176,53 +205,55 @@ export default function LeaderboardTable({
             {/* Description */}
             <p style={isMobile ? styles.descriptionMobile : styles.description}>{getDescription()}</p>
 
-            {/* Table - horizontally scrollable */}
-            <div style={styles.tableWrapper}>
-                <table style={styles.table}>
-                    <thead>
-                        <tr>
-                            <th style={styles.th}>Rank</th>
-                            <th style={styles.th}>Address</th>
-                            <th style={styles.thRight}>{getColumnHeader()}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {getData().map((entry, index) => (
-                            <tr key={index} style={styles.tr}>
-                                <td style={styles.td}>#{entry.rank}</td>
-                                <td style={styles.td}>
-                                    <div style={styles.addressCell}>
-                                        {entry.hasAvatar && (
-                                            <div style={styles.avatar}>
-                                                {entry.address.charAt(0).toUpperCase()}
-                                            </div>
-                                        )}
-                                        <span>{entry.address}</span>
-                                    </div>
-                                </td>
-                                <td style={styles.tdRight}>
-                                    {getValueIcon() === "bnb" ? (
-                                        <span style={styles.valueWithIcon}>
-                                            <BnbIcon />
-                                            {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                                        </span>
-                                    ) : (
-                                        <span style={styles.valueWithIcon}>
-                                            <BeanLogo size={16} />
-                                            {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
-                                        </span>
-                                    )}
-                                </td>
+            {/* Table or Empty State */}
+            {activeTab === "stakers" ? (
+                <div style={styles.emptyState}>
+                    <p style={styles.emptyText}>Staking leaderboard coming soon</p>
+                </div>
+            ) : loading && getData().length === 0 ? (
+                <div style={styles.emptyState}>
+                    <p style={styles.emptyText}>Loading...</p>
+                </div>
+            ) : getData().length === 0 ? (
+                <div style={styles.emptyState}>
+                    <p style={styles.emptyText}>No data available</p>
+                </div>
+            ) : (
+                <div style={styles.tableWrapper}>
+                    <table style={styles.table}>
+                        <thead>
+                            <tr>
+                                <th style={styles.th}>Rank</th>
+                                <th style={styles.th}>Address</th>
+                                <th style={styles.thRight}>{getColumnHeader()}</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-
-            {/* Pagination hint */}
-            <div style={styles.pagination}>
-                <span style={styles.paginationArrow}>›</span>
-            </div>
+                        </thead>
+                        <tbody>
+                            {getData().map((entry, index) => (
+                                <tr key={index} style={styles.tr}>
+                                    <td style={styles.td}>#{entry.rank}</td>
+                                    <td style={styles.td}>
+                                        <span>{entry.address}</span>
+                                    </td>
+                                    <td style={styles.tdRight}>
+                                        {getValueIcon() === "bnb" ? (
+                                            <span style={styles.valueWithIcon}>
+                                                <BnbIcon />
+                                                {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                                            </span>
+                                        ) : (
+                                            <span style={styles.valueWithIcon}>
+                                                <BeanLogo size={16} />
+                                                {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                                            </span>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     )
 }
@@ -350,37 +381,23 @@ const styles: { [key: string]: React.CSSProperties } = {
         textAlign: "right" as const,
         whiteSpace: "nowrap" as const,
     },
-    addressCell: {
-        display: "flex",
-        alignItems: "center",
-        gap: "10px",
-    },
-    avatar: {
-        width: "24px",
-        height: "24px",
-        borderRadius: "50%",
-        background: "linear-gradient(135deg, #F0B90B 0%, #8B6914 100%)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        fontSize: "12px",
-        fontWeight: 600,
-        color: "#000",
-    },
     valueWithIcon: {
         display: "inline-flex",
         alignItems: "center",
         justifyContent: "flex-end",
         gap: "6px",
     },
-    pagination: {
+    emptyState: {
         display: "flex",
-        justifyContent: "flex-end",
-        marginTop: "16px",
+        alignItems: "center",
+        justifyContent: "center",
+        padding: "48px 24px",
+        background: "#111",
+        borderRadius: "8px",
     },
-    paginationArrow: {
-        fontSize: "24px",
-        color: "#444",
-        cursor: "pointer",
+    emptyText: {
+        fontSize: "14px",
+        color: "#666",
+        margin: 0,
     },
 }

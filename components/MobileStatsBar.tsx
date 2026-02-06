@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 
 // Move icons OUTSIDE component to prevent re-creation on each render
 const BeanIcon = () => (
@@ -12,19 +12,55 @@ const BeanIcon = () => (
 
 const BNB_LOGO_URL = "https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
 
-export default function MobileStatsBar() {
-    const [timer, setTimer] = useState(60)
-    const [beanpotAmount] = useState(235.4)
-    const [totalDeployed] = useState(9.8563)
-    const [userDeployed] = useState(0)
+interface MobileStatsBarProps {
+    userAddress?: string
+}
 
-    // Listen for timer updates from MobileControls
+export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
+    const [timer, setTimer] = useState(0)
+    const [motherlodePool, setMotherlodePool] = useState(0)
+    const [totalDeployed, setTotalDeployed] = useState(0)
+    const [userDeployed, setUserDeployed] = useState(0)
+    const endTimeRef = useRef(0)
+
+    // Listen for round data from MiningGrid
     useEffect(() => {
-        const handleTimerUpdate = (event: CustomEvent) => {
-            setTimer(event.detail.timer)
+        const handleRoundData = (event: CustomEvent) => {
+            const d = event.detail
+            if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
+            if (d.motherlodePoolFormatted) setMotherlodePool(parseFloat(d.motherlodePoolFormatted) || 0)
+            if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
+            if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
         }
-        window.addEventListener('timerUpdate' as any, handleTimerUpdate)
-        return () => window.removeEventListener('timerUpdate' as any, handleTimerUpdate)
+
+        const handleRoundDeployed = (event: CustomEvent) => {
+            const d = event.detail
+            if (d.totalDeployedFormatted) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
+            // Update user deployed if this deployment is from the connected user
+            if (d.user && userAddress && d.user.toLowerCase() === userAddress.toLowerCase() && d.userDeployedFormatted) {
+                setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
+            }
+        }
+
+        window.addEventListener("roundData" as any, handleRoundData)
+        window.addEventListener("roundDeployed" as any, handleRoundDeployed)
+        return () => {
+            window.removeEventListener("roundData" as any, handleRoundData)
+            window.removeEventListener("roundDeployed" as any, handleRoundDeployed)
+        }
+    }, [userAddress])
+
+    // Countdown timer from real endTime
+    useEffect(() => {
+        const tick = () => {
+            if (endTimeRef.current > 0) {
+                const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
+                setTimer(remaining)
+            }
+        }
+        tick()
+        const interval = setInterval(tick, 1000)
+        return () => clearInterval(interval)
     }, [])
 
     const formatTime = (seconds: number) => {
@@ -39,7 +75,9 @@ export default function MobileStatsBar() {
                 <div style={styles.stat}>
                     <div style={styles.valueRow}>
                         <BeanIcon />
-                        <span style={styles.value}>{beanpotAmount.toFixed(1)}</span>
+                        <span style={styles.value}>
+                            {motherlodePool > 0 ? motherlodePool.toFixed(1) : '—'}
+                        </span>
                     </div>
                     <span style={styles.label}>Beanpot</span>
                 </div>
@@ -54,14 +92,16 @@ export default function MobileStatsBar() {
                 <div style={styles.stat}>
                     <div style={styles.valueRow}>
                         <img src={BNB_LOGO_URL} alt="BNB" style={styles.bnbLogo} />
-                        <span style={styles.value}>{totalDeployed.toFixed(4)}</span>
+                        <span style={styles.value}>
+                            {totalDeployed > 0 ? totalDeployed.toFixed(4) : '—'}
+                        </span>
                     </div>
                     <span style={styles.label}>Total deployed</span>
                 </div>
                 <div style={styles.stat}>
                     <div style={styles.valueRow}>
                         <img src={BNB_LOGO_URL} alt="BNB" style={styles.bnbLogo} />
-                        <span style={styles.value}>{userDeployed}</span>
+                        <span style={styles.value}>{userDeployed > 0 ? userDeployed.toFixed(4) : '—'}</span>
                     </div>
                     <span style={styles.label}>You deployed</span>
                 </div>

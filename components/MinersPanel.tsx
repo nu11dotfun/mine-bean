@@ -1,65 +1,85 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
+import { apiFetch } from "@/lib/api"
 
 interface Miner {
     address: string
-    beansAmount: number
-    bnbAmount: number
+    bnbRewardFormatted: string
+    beanRewardFormatted: string
+    deployedFormatted: string
 }
 
-interface MinersPanelProps {
-    roundNumber?: number
+interface MinersResponse {
+    roundId: number
+    winningBlock: number
+    miners: Miner[]
 }
 
-// Mock miners data for demo
-const mockMiners: Miner[] = [
-    { address: "0x8Q4M...KJdZ", beansAmount: 0.1291, bnbAmount: 1.418094471 },
-    { address: "0x6qJ6...6ZcE", beansAmount: 0.1076, bnbAmount: 1.181745392 },
-    { address: "0x2NG3...LtBY", beansAmount: 0.0886, bnbAmount: 0.973758203 },
-    { address: "0x9Upy...zqsu", beansAmount: 0.086, bnbAmount: 0.945396314 },
-    { address: "0xGHxi...496n", beansAmount: 0.086, bnbAmount: 0.945396314 },
-    { address: "0x86tD...4TPE", beansAmount: 0.0658, bnbAmount: 0.723431346 },
-    { address: "0x4odE...P47z", beansAmount: 0.0538, bnbAmount: 0.590872696 },
-    { address: "0xDiE1...d23v", beansAmount: 0.0516, bnbAmount: 0.567237788 },
-    { address: "0xB5aV...LN8W", beansAmount: 0.043, bnbAmount: 0.472698157 },
-    { address: "0x5X7B...eupM", beansAmount: 0.0335, bnbAmount: 0.368704562 },
-    { address: "0xEgg1...WVLV", beansAmount: 0.0253, bnbAmount: 0.277832927 },
-    { address: "0xHTA4...Ucgb", beansAmount: 0.0229, bnbAmount: 0.252089927 },
-    { address: "0xJC9F...wVCh", beansAmount: 0.0215, bnbAmount: 0.236349078 },
-    { address: "0x52KM...93YH", beansAmount: 0.0215, bnbAmount: 0.236349078 },
-    { address: "0xFwny...9LA6", beansAmount: 0.0174, bnbAmount: 0.191442753 },
-]
+function truncateAddress(address: string): string {
+    if (address.length <= 13) return address
+    return `${address.slice(0, 6)}...${address.slice(-4)}`
+}
 
-export default function MinersPanel({
-    roundNumber = 122168,
-}: MinersPanelProps) {
+export default function MinersPanel() {
     const [isOpen, setIsOpen] = useState(false)
-    const [currentRound, setCurrentRound] = useState(roundNumber)
     const [isHoveringTab, setIsHoveringTab] = useState(false)
+    const [miners, setMiners] = useState<Miner[]>([])
+    const [roundId, setRoundId] = useState<number | null>(null)
+    const [winningBlock, setWinningBlock] = useState<number | null>(null)
+    const [loading, setLoading] = useState(false)
 
-    // Listen for phase change events
+    // Store settled roundId so we can fetch miners after animation completes
+    const settledRoundIdRef = useRef<string | null>(null)
+
+    const fetchMiners = useCallback((id: string) => {
+        setLoading(true)
+        apiFetch<MinersResponse>(`/api/round/${id}/miners`)
+            .then((data) => {
+                if (data.miners.length > 0) {
+                    setMiners(data.miners)
+                    setRoundId(data.roundId)
+                    setWinningBlock(data.winningBlock)
+                    setIsOpen(true)
+                }
+                // If no miners (empty round), keep showing previous round's data
+                // but don't open the panel — it stays as-is
+            })
+            .catch((err) => console.error('Failed to fetch miners:', err))
+            .finally(() => setLoading(false))
+    }, [])
+
+    // Listen for roundSettled → store the settled roundId (consumed once by settlementComplete)
     useEffect(() => {
-        const handlePhaseChange = (event: CustomEvent) => {
-            const { phase, round } = event.detail
+        const handleRoundSettled = (event: CustomEvent) => {
+            const { roundId: settledId } = event.detail
+            settledRoundIdRef.current = settledId
+        }
 
-            if (phase === "miners") {
-                setCurrentRound(round)
-                setIsOpen(true)
-            } else if (phase === "counting") {
-                setIsOpen(false)
+        window.addEventListener("roundSettled" as any, handleRoundSettled)
+        return () => window.removeEventListener("roundSettled" as any, handleRoundSettled)
+    }, [])
+
+    // Listen for settlementComplete → fetch miners for the settled round
+    useEffect(() => {
+        const handleSettlementComplete = () => {
+            if (settledRoundIdRef.current) {
+                fetchMiners(settledRoundIdRef.current)
+                settledRoundIdRef.current = null
             }
         }
 
-        window.addEventListener("phaseChange" as any, handlePhaseChange)
-        return () =>
-            window.removeEventListener("phaseChange" as any, handlePhaseChange)
-    }, [])
+        window.addEventListener("settlementComplete", handleSettlementComplete)
+        return () => window.removeEventListener("settlementComplete", handleSettlementComplete)
+    }, [fetchMiners])
+
+    // Don't show tab if no miners data yet
+    const hasData = miners.length > 0
 
     return (
         <>
             {/* Collapsed Tab - Attached to left edge */}
-            {!isOpen && (
+            {!isOpen && hasData && (
                 <div
                     style={{
                         ...styles.tab,
@@ -84,7 +104,7 @@ export default function MinersPanel({
             >
                 {/* Panel Header */}
                 <div style={styles.panelHeader}>
-                    <span style={styles.panelTitle}>Miners</span>
+                    <span style={styles.panelTitle}>Winners</span>
                     <button
                         style={styles.closeBtn}
                         onClick={() => setIsOpen(false)}
@@ -96,31 +116,42 @@ export default function MinersPanel({
                 {/* Round Info */}
                 <div style={styles.roundInfo}>
                     <span style={styles.roundLabel}>
-                        Round: #{currentRound - 1} (Previous)
+                        Round #{roundId}{winningBlock !== null ? ` · Block #${winningBlock + 1}` : ''}
                     </span>
                     <span style={styles.minerCount}>
-                        👤 {mockMiners.length}
+                        {miners.length} winner{miners.length !== 1 ? 's' : ''}
                     </span>
                 </div>
 
                 {/* Miners List */}
                 <div style={styles.minersList}>
-                    {mockMiners.map((miner, index) => (
-                        <div key={index} style={styles.minerRow}>
-                            <span style={styles.minerAddress}>
-                                {miner.address}
-                            </span>
-                            <div style={styles.minerAmounts}>
-                                <span style={styles.beansAmount}>
-                                    🫘 {miner.beansAmount.toFixed(4)}
+                    {loading ? (
+                        <div style={styles.emptyState}>Loading...</div>
+                    ) : miners.length === 0 ? (
+                        <div style={styles.emptyState}>No miners data</div>
+                    ) : (
+                        miners.map((miner, index) => (
+                            <div key={index} style={styles.minerRow}>
+                                <span style={styles.minerAddress}>
+                                    {truncateAddress(miner.address)}
                                 </span>
-                                <span style={styles.plusSign}>+</span>
-                                <span style={styles.bnbAmount}>
-                                    <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public" alt="BNB" style={{width: 14, height: 14, marginRight: 4}} /> {miner.bnbAmount.toFixed(4)}
-                                </span>
+                                <div style={styles.minerAmounts}>
+                                    <span style={styles.bnbAmount}>
+                                        <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public" alt="BNB" style={{width: 14, height: 14, marginRight: 4}} />
+                                        {parseFloat(miner.bnbRewardFormatted).toFixed(6)}
+                                    </span>
+                                    {parseFloat(miner.beanRewardFormatted) > 0 && (
+                                        <>
+                                            <span style={styles.plusSign}>+</span>
+                                            <span style={styles.beansAmount}>
+                                                🫘 {parseFloat(miner.beanRewardFormatted).toFixed(4)}
+                                            </span>
+                                        </>
+                                    )}
+                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
             </div>
 
@@ -249,6 +280,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     bnbAmount: {
         fontSize: "13px",
         color: "#888",
+        display: "flex",
+        alignItems: "center",
+    },
+    emptyState: {
+        padding: "40px 20px",
+        textAlign: "center",
+        color: "#555",
+        fontSize: "13px",
     },
 
     // Overlay

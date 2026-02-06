@@ -1,29 +1,72 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import BeanLogo from './BeanLogo'
+import { apiFetch, sseSubscribe } from '@/lib/api'
+import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
+import { parseEther } from 'viem'
+
+const BnbLogo = ({ size = 18 }: { size?: number }) => (
+    <img
+        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
+        alt="BNB"
+        style={{ width: size, height: size, objectFit: "contain" as const }}
+    />
+)
+
+const WalletIcon = () => (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#666">
+        <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
+    </svg>
+)
+
+const BlocksIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#888">
+        <circle cx="7" cy="7" r="2.5" />
+        <circle cx="17" cy="7" r="2.5" />
+        <circle cx="7" cy="17" r="2.5" />
+        <circle cx="17" cy="17" r="2.5" />
+    </svg>
+)
+
+const RoundsIcon = () => (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+        <line x1="4" y1="6" x2="20" y2="6" />
+        <line x1="4" y1="12" x2="20" y2="12" />
+        <line x1="4" y1="18" x2="20" y2="18" />
+    </svg>
+)
+
+interface AutoMinerState {
+    active: boolean
+    strategyId: number
+    numBlocks: number
+    amountPerBlockFormatted: string
+    numRounds: number
+    roundsExecuted: number
+    depositAmountFormatted: string
+    costPerRoundFormatted: string
+    roundsRemaining: number
+    totalRefundableFormatted: string
+}
 
 interface SidebarControlsProps {
-    beanpotAmount?: number
-    timeRemaining?: number
-    totalDeployed?: number
-    userDeployed?: number
     userBalance?: number
     isConnected?: boolean
-    roundNumber?: number
-    onDeploy?: (amount: number, blocks: number) => void
+    userAddress?: string
+    onDeploy?: (amount: number, blockIds: number[]) => void
+    onAutoActivate?: (strategyId: number, numRounds: number, numBlocks: number, depositAmount: bigint) => void
+    onAutoStop?: () => void
 }
 
 export default function SidebarControls({
-    beanpotAmount = 235.4,
-    timeRemaining = 30,
-    totalDeployed = 9.8563,
-    userDeployed = 0,
     userBalance = 0,
     isConnected = false,
-    roundNumber = 122168,
+    userAddress,
     onDeploy,
+    onAutoActivate,
+    onAutoStop,
 }: SidebarControlsProps) {
     const { openConnectModal } = useConnectModal()
     const [mode, setMode] = useState<"manual" | "auto">("manual")
@@ -31,128 +74,215 @@ export default function SidebarControls({
     const [amount, setAmount] = useState("0")
 
     const [selectedBlockCount, setSelectedBlockCount] = useState(0)
+    const [selectedBlockIds, setSelectedBlockIds] = useState<number[]>([])
 
     const [autoBlocks, setAutoBlocks] = useState(1)
     const [autoRounds, setAutoRounds] = useState(1)
-    const [autoReload, setAutoReload] = useState(false)
     const [blockSelection, setBlockSelection] = useState<"all" | "random">("all")
 
-    const [timer, setTimer] = useState(60)
-    const [currentRound, setCurrentRound] = useState(122168)
-    const [phase, setPhase] = useState<"counting" | "eliminating" | "winner" | "miners">("counting")
+    // AutoMiner state from backend
+    const [autoMinerState, setAutoMinerState] = useState<AutoMinerState | null>(null)
+    const autoMinerActive = autoMinerState?.active === true
+
+    // Round data driven by MiningGrid events
+    const [timer, setTimer] = useState(0)
+    const [currentRound, setCurrentRound] = useState("")
+    const [phase, setPhase] = useState<"counting" | "eliminating" | "winner">("counting")
+    const endTimeRef = useRef(0)
+
+    // Stats
+    const [motherlodePool, setMotherlodePool] = useState(0)
+    const [totalDeployed, setTotalDeployed] = useState(0)
+    const [userDeployed, setUserDeployed] = useState(0)
 
     const [isHoveringTimer, setIsHoveringTimer] = useState(false)
     const [isHoveringBeanpot, setIsHoveringBeanpot] = useState(false)
     const [isHoveringTotalDeployed, setIsHoveringTotalDeployed] = useState(false)
     const [isHoveringYouDeployed, setIsHoveringYouDeployed] = useState(false)
 
-    const [bnbPrice, setBnbPrice] = useState<number>(580)
-    const [beansPrice, setBeansPrice] = useState<number>(0.0264)
+    const [bnbPrice, setBnbPrice] = useState<number>(0)
+    const [beansPrice, setBeansPrice] = useState<number>(0)
 
+    // Fetch AutoMiner state from backend
+    useEffect(() => {
+        if (!userAddress) {
+            setAutoMinerState(null)
+            return
+        }
+
+        const fetchAutoState = () => {
+            apiFetch<{
+                config: {
+                    strategyId: number
+                    numBlocks: number
+                    amountPerBlockFormatted: string
+                    active: boolean
+                    numRounds: number
+                    roundsExecuted: number
+                    depositAmountFormatted: string
+                }
+                costPerRoundFormatted: string
+                roundsRemaining: number
+                totalRefundableFormatted: string
+            }>(`/api/automine/${userAddress}`)
+                .then((data) => {
+                    setAutoMinerState({
+                        active: data.config.active,
+                        strategyId: data.config.strategyId,
+                        numBlocks: data.config.numBlocks,
+                        amountPerBlockFormatted: data.config.amountPerBlockFormatted,
+                        numRounds: data.config.numRounds,
+                        roundsExecuted: data.config.roundsExecuted,
+                        depositAmountFormatted: data.config.depositAmountFormatted,
+                        costPerRoundFormatted: data.costPerRoundFormatted,
+                        roundsRemaining: data.roundsRemaining,
+                        totalRefundableFormatted: data.totalRefundableFormatted,
+                    })
+                    // Force auto mode if active
+                    if (data.config.active) {
+                        setMode("auto")
+                    }
+                })
+                .catch(() => {})
+        }
+
+        fetchAutoState()
+
+        const handleActivated = () => setTimeout(fetchAutoState, 2000)
+        const handleStopped = () => setTimeout(fetchAutoState, 2000)
+        window.addEventListener("autoMinerActivated", handleActivated)
+        window.addEventListener("autoMinerStopped", handleStopped)
+        return () => {
+            window.removeEventListener("autoMinerActivated", handleActivated)
+            window.removeEventListener("autoMinerStopped", handleStopped)
+        }
+    }, [userAddress])
+
+    // Subscribe to user SSE for real-time AutoMiner updates
+    useEffect(() => {
+        if (!userAddress) return
+
+        return sseSubscribe(
+            `/api/user/${userAddress}/events`,
+            (event) => {
+                if (event === 'autoMineExecuted' || event === 'configDeactivated' || event === 'stopped') {
+                    // Re-fetch AutoMiner state
+                    apiFetch<{
+                        config: {
+                            strategyId: number
+                            numBlocks: number
+                            amountPerBlockFormatted: string
+                            active: boolean
+                            numRounds: number
+                            roundsExecuted: number
+                            depositAmountFormatted: string
+                        }
+                        costPerRoundFormatted: string
+                        roundsRemaining: number
+                        totalRefundableFormatted: string
+                    }>(`/api/automine/${userAddress}`)
+                        .then((data) => {
+                            setAutoMinerState({
+                                active: data.config.active,
+                                strategyId: data.config.strategyId,
+                                numBlocks: data.config.numBlocks,
+                                amountPerBlockFormatted: data.config.amountPerBlockFormatted,
+                                numRounds: data.config.numRounds,
+                                roundsExecuted: data.config.roundsExecuted,
+                                depositAmountFormatted: data.config.depositAmountFormatted,
+                                costPerRoundFormatted: data.costPerRoundFormatted,
+                                roundsRemaining: data.roundsRemaining,
+                                totalRefundableFormatted: data.totalRefundableFormatted,
+                            })
+                            // If deactivated, switch back to allow manual mode
+                            if (!data.config.active) {
+                                setMode("manual")
+                            }
+                        })
+                        .catch(() => {})
+                }
+            },
+            ['autoMineExecuted', 'configDeactivated', 'stopped']
+        )
+    }, [userAddress])
+
+    // Listen for block selection changes
     useEffect(() => {
         const handleBlocksChanged = (event: CustomEvent) => {
-            const { count } = event.detail
+            const { blocks, count } = event.detail
             setSelectedBlockCount(count)
-            if (mode === "auto" && blockSelection === "all") {
-                setAutoBlocks(count || 25)
-            }
+            setSelectedBlockIds(blocks || [])
         }
 
         window.addEventListener("blocksChanged" as any, handleBlocksChanged)
         return () => window.removeEventListener("blocksChanged" as any, handleBlocksChanged)
-    }, [mode, blockSelection])
-
-    useEffect(() => {
-        const fetchBnbPrice = async () => {
-            try {
-                const response = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT")
-                const data = await response.json()
-                if (data.price) {
-                    setBnbPrice(parseFloat(data.price))
-                }
-            } catch (error) {
-                console.error("Failed to fetch BNB price:", error)
-            }
-        }
-
-        fetchBnbPrice()
-        const interval = setInterval(fetchBnbPrice, 10000)
-        return () => clearInterval(interval)
     }, [])
 
+    // Fetch prices from backend
     useEffect(() => {
-        const fetchBeansPrice = async () => {
-            try {
-                const response = await fetch("https://api.dexscreener.com/latest/dex/pairs/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47")
-                const data = await response.json()
-                if (data.pair?.priceUsd) {
-                    setBeansPrice(parseFloat(data.pair.priceUsd))
-                }
-            } catch (error) {
-                console.error("Failed to fetch BEANS price:", error)
-            }
-        }
-
-        fetchBeansPrice()
-        const interval = setInterval(fetchBeansPrice, 30000)
-        return () => clearInterval(interval)
-    }, [])
-
-    useEffect(() => {
-        let interval: NodeJS.Timeout
-
-        if (phase === "counting") {
-            interval = setInterval(() => {
-                setTimer((prev) => {
-                    if (prev <= 1) {
-                        setPhase("eliminating")
-                        window.dispatchEvent(
-                            new CustomEvent("phaseChange", {
-                                detail: { phase: "eliminating", round: currentRound },
-                            })
-                        )
-                        return 0
-                    }
-                    return prev - 1
+        const fetchPrices = () => {
+            apiFetch<{ prices: { bean: { usd: string }, bnb: { usd: string } } }>('/api/stats')
+                .then((data) => {
+                    setBnbPrice(parseFloat(data.prices.bnb.usd) || 0)
+                    setBeansPrice(parseFloat(data.prices.bean.usd) || 0)
                 })
-            }, 1000)
-        } else if (phase === "eliminating") {
-            setTimeout(() => {
-                setPhase("winner")
-                window.dispatchEvent(
-                    new CustomEvent("phaseChange", {
-                        detail: { phase: "winner", round: currentRound },
-                    })
-                )
-            }, 5000)
-        } else if (phase === "winner") {
-            setTimeout(() => {
-                setPhase("miners")
-                const newRound = currentRound + 1
-                setCurrentRound(newRound)
-                window.dispatchEvent(
-                    new CustomEvent("phaseChange", {
-                        detail: { phase: "miners", round: newRound },
-                    })
-                )
-            }, 1000)
-        } else if (phase === "miners") {
-            setTimeout(() => {
-                setPhase("counting")
-                setTimer(60)
-                setSelectedBlockCount(0)
-                window.dispatchEvent(
-                    new CustomEvent("phaseChange", {
-                        detail: { phase: "counting", round: currentRound },
-                    })
-                )
-            }, 4000)
+                .catch((err) => console.error('Failed to fetch prices:', err))
         }
 
-        return () => {
-            if (interval) clearInterval(interval)
+        fetchPrices()
+        const interval = setInterval(fetchPrices, 30000)
+        return () => clearInterval(interval)
+    }, [])
+
+    // Listen for round data from MiningGrid
+    useEffect(() => {
+        const handleRoundData = (event: CustomEvent) => {
+            const d = event.detail
+            if (d.roundId) setCurrentRound(d.roundId)
+            if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
+            if (d.motherlodePoolFormatted) setMotherlodePool(parseFloat(d.motherlodePoolFormatted) || 0)
+            if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
+            if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
+            // New round data means we're back to counting
+            setPhase("counting")
         }
-    }, [phase, currentRound])
+
+        const handleRoundDeployed = (event: CustomEvent) => {
+            const d = event.detail
+            if (d.totalDeployedFormatted) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
+            // Update user deployed if this deployment is from the connected user
+            if (d.user && userAddress && d.user.toLowerCase() === userAddress.toLowerCase() && d.userDeployedFormatted) {
+                setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
+            }
+        }
+
+        const handleRoundSettled = () => {
+            setPhase("eliminating")
+            setTimeout(() => setPhase("winner"), 5200)
+        }
+
+        window.addEventListener("roundData" as any, handleRoundData)
+        window.addEventListener("roundDeployed" as any, handleRoundDeployed)
+        window.addEventListener("roundSettled" as any, handleRoundSettled)
+        return () => {
+            window.removeEventListener("roundData" as any, handleRoundData)
+            window.removeEventListener("roundDeployed" as any, handleRoundDeployed)
+            window.removeEventListener("roundSettled" as any, handleRoundSettled)
+        }
+    }, [userAddress])
+
+    // Countdown timer from real endTime
+    useEffect(() => {
+        const tick = () => {
+            if (endTimeRef.current > 0) {
+                const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
+                setTimer(remaining)
+            }
+        }
+        tick()
+        const interval = setInterval(tick, 1000)
+        return () => clearInterval(interval)
+    }, [])
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
@@ -168,61 +298,34 @@ export default function SidebarControls({
     const handleAllClick = () => {
         if (blockSelection === "all") {
             setBlockSelection("random")
-            window.dispatchEvent(
-                new CustomEvent("selectAllBlocks", { detail: { selectAll: false } })
-            )
         } else {
             setBlockSelection("all")
             setAutoBlocks(25)
-            window.dispatchEvent(
-                new CustomEvent("selectAllBlocks", { detail: { selectAll: true } })
-            )
         }
     }
 
+    // Manual mode calculations
     const baseAmount = parseFloat(amount) || 0
-    const effectiveBlocks = mode === "auto"
-        ? blockSelection === "all" ? autoBlocks : autoBlocks
-        : selectedBlockCount
-    const totalPerRound = baseAmount * effectiveBlocks
-    const totalAmount = mode === "auto" ? totalPerRound * autoRounds : totalPerRound
+    const manualPerBlock = selectedBlockCount > 0 ? baseAmount / selectedBlockCount : 0
+    const hasDeployed = userDeployed > 0
+    const canDeploy = baseAmount > 0 && manualPerBlock >= MIN_DEPLOY_PER_BLOCK && timer > 0 && phase === "counting" && !hasDeployed
 
-    const BnbLogo = ({ size = 18 }: { size?: number }) => (
-        <img
-            src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-            alt="BNB"
-            style={{ width: size, height: size, objectFit: "contain" as const }}
-        />
-    )
+    // Auto mode calculations
+    const autoNumBlocks = blockSelection === "all" ? 25 : autoBlocks
+    const autoTotalBlocks = autoNumBlocks * autoRounds
+    // Mirror contract formula: amountPerBlock = (deposit * 10000) / (totalBlocks * (10000 + feeBps))
+    const autoPerBlock = autoTotalBlocks > 0
+        ? (baseAmount * 10000) / (autoTotalBlocks * (10000 + EXECUTOR_FEE_BPS))
+        : 0
+    const autoPerRound = autoRounds > 0 ? baseAmount / autoRounds : 0
+    const canActivate = baseAmount > 0 && autoPerBlock >= MIN_DEPLOY_PER_BLOCK && autoRounds >= 1
 
-    const WalletIcon = () => (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="#666">
-            <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
-        </svg>
-    )
-
-    const BlocksIcon = () => (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#888">
-            <circle cx="7" cy="7" r="2.5" />
-            <circle cx="17" cy="7" r="2.5" />
-            <circle cx="7" cy="17" r="2.5" />
-            <circle cx="17" cy="17" r="2.5" />
-        </svg>
-    )
-
-    const RoundsIcon = () => (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
-            <line x1="4" y1="6" x2="20" y2="6" />
-            <line x1="4" y1="12" x2="20" y2="12" />
-            <line x1="4" y1="18" x2="20" y2="18" />
-        </svg>
-    )
-
-    const ReloadIcon = () => (
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="#888">
-            <path d="M17.65 6.35A7.958 7.958 0 0012 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0112 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z" />
-        </svg>
-    )
+    const handleAutoActivateClick = () => {
+        if (!canActivate) return
+        const strategyId = blockSelection === "all" ? 1 : 0
+        const depositAmount = parseEther(baseAmount.toFixed(18))
+        onAutoActivate?.(strategyId, autoRounds, autoNumBlocks, depositAmount)
+    }
 
     return (
         <div style={styles.container}>
@@ -235,12 +338,12 @@ export default function SidebarControls({
                     <div style={styles.statValue}>
                         <BeanLogo size={20} />
                         <span style={styles.beanpotValue}>
-                            {beanpotAmount.toFixed(1)}
+                            {motherlodePool > 0 ? motherlodePool.toFixed(1) : '—'}
                         </span>
                     </div>
                     <div style={styles.statLabel}>
-                        {isHoveringBeanpot
-                            ? `≈$${(beanpotAmount * beansPrice).toFixed(2)}`
+                        {isHoveringBeanpot && motherlodePool > 0
+                            ? `≈$${(motherlodePool * beansPrice).toFixed(2)}`
                             : "Beanpot"}
                     </div>
                 </div>
@@ -254,7 +357,7 @@ export default function SidebarControls({
                         <span style={styles.timerValue}>{formatTime(timer)}</span>
                     </div>
                     <div style={styles.statLabel}>
-                        {isHoveringTimer ? `Round #${currentRound}` : "Time remaining"}
+                        {isHoveringTimer && currentRound ? `Round #${currentRound}` : "Time remaining"}
                     </div>
                 </div>
 
@@ -266,11 +369,11 @@ export default function SidebarControls({
                     <div style={styles.statValue}>
                         <BnbLogo size={20} />
                         <span style={styles.statValueText}>
-                            {totalDeployed.toFixed(4)}
+                            {totalDeployed > 0 ? totalDeployed.toFixed(5) : '—'}
                         </span>
                     </div>
                     <div style={styles.statLabel}>
-                        {isHoveringTotalDeployed
+                        {isHoveringTotalDeployed && totalDeployed > 0
                             ? `≈$${(totalDeployed * bnbPrice).toFixed(2)}`
                             : "Total deployed"}
                     </div>
@@ -283,10 +386,10 @@ export default function SidebarControls({
                 >
                     <div style={styles.statValue}>
                         <BnbLogo size={20} />
-                        <span style={styles.statValueText}>{userDeployed}</span>
+                        <span style={styles.statValueText}>{userDeployed > 0 ? userDeployed.toFixed(5) : '—'}</span>
                     </div>
                     <div style={styles.statLabel}>
-                        {isHoveringYouDeployed
+                        {isHoveringYouDeployed && userDeployed > 0
                             ? `≈$${(userDeployed * bnbPrice).toFixed(2)}`
                             : "You deployed"}
                     </div>
@@ -294,60 +397,66 @@ export default function SidebarControls({
             </div>
 
             <div style={styles.controlsCard}>
-                <div style={styles.modeToggle}>
-                    <button
-                        style={{
-                            ...styles.modeBtn,
-                            ...(mode === "manual" ? styles.modeBtnActive : {}),
-                            ...(hoveredMode === "manual" && mode !== "manual" ? styles.modeBtnHover : {}),
-                        }}
-                        onClick={() => setMode("manual")}
-                        onMouseEnter={() => setHoveredMode("manual")}
-                        onMouseLeave={() => setHoveredMode(null)}
-                    >
-                        Manual
-                    </button>
-                    <button
-                        style={{
-                            ...styles.modeBtn,
-                            ...(mode === "auto" ? styles.modeBtnActive : {}),
-                            ...(hoveredMode === "auto" && mode !== "auto" ? styles.modeBtnHover : {}),
-                        }}
-                        onClick={() => setMode("auto")}
-                        onMouseEnter={() => setHoveredMode("auto")}
-                        onMouseLeave={() => setHoveredMode(null)}
-                    >
-                        Auto
-                    </button>
-                </div>
-
-                <div style={styles.balanceRow}>
-                    <div style={styles.balanceLeft}>
-                        <WalletIcon />
-                        <span style={styles.balanceAmount}>{userBalance.toFixed(4)} BNB</span>
+                {/* Mode toggle — hidden when AutoMiner is active */}
+                {!autoMinerActive && (
+                    <div style={styles.modeToggle}>
+                        <button
+                            style={{
+                                ...styles.modeBtn,
+                                ...(mode === "manual" ? styles.modeBtnActive : {}),
+                                ...(hoveredMode === "manual" && mode !== "manual" ? styles.modeBtnHover : {}),
+                            }}
+                            onClick={() => setMode("manual")}
+                            onMouseEnter={() => setHoveredMode("manual")}
+                            onMouseLeave={() => setHoveredMode(null)}
+                        >
+                            Manual
+                        </button>
+                        <button
+                            style={{
+                                ...styles.modeBtn,
+                                ...(mode === "auto" ? styles.modeBtnActive : {}),
+                                ...(hoveredMode === "auto" && mode !== "auto" ? styles.modeBtnHover : {}),
+                            }}
+                            onClick={() => setMode("auto")}
+                            onMouseEnter={() => setHoveredMode("auto")}
+                            onMouseLeave={() => setHoveredMode(null)}
+                        >
+                            Auto
+                        </button>
                     </div>
-                    <div style={styles.quickAmounts}>
-                        <button style={styles.quickBtn} onClick={() => handleQuickAmount(1)}>+1</button>
-                        <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.1)}>+0.1</button>
-                        <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.01)}>+0.01</button>
-                    </div>
-                </div>
+                )}
 
-                <div style={styles.inputRow}>
-                    <div style={styles.inputLeft}>
-                        <BnbLogo size={20} />
-                        <span style={styles.inputLabel}>BNB</span>
-                    </div>
-                    <input
-                        type="text"
-                        style={{ ...styles.amountInput, color: "#fff" }}
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                    />
-                </div>
-
-                {mode === "manual" && (
+                {/* ===== MANUAL MODE ===== */}
+                {mode === "manual" && !autoMinerActive && (
                     <>
+                        <div style={styles.balanceRow}>
+                            <div style={styles.balanceLeft}>
+                                <WalletIcon />
+                                <span style={styles.balanceAmount}>{userBalance.toFixed(5)} BNB</span>
+                            </div>
+                            <div style={styles.quickAmounts}>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(1)}>+1</button>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.1)}>+0.1</button>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.01)}>+0.01</button>
+                            </div>
+                        </div>
+
+                        <div style={styles.inputRow}>
+                            <div style={styles.inputLeft}>
+                                <BnbLogo size={20} />
+                                <span style={styles.inputLabel}>BNB</span>
+                            </div>
+                            <input
+                                type="text"
+                                style={{ ...styles.amountInput, color: "#fff" }}
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                onFocus={() => { if (amount === "0") setAmount("") }}
+                                onBlur={() => { if (amount === "") setAmount("0") }}
+                            />
+                        </div>
+
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Blocks</span>
                             <div style={styles.rowRight}>
@@ -372,16 +481,88 @@ export default function SidebarControls({
                             </div>
                         </div>
 
+                        <div style={styles.row}>
+                            <span style={styles.rowLabel}>Per block</span>
+                            <span style={styles.totalValue}>{manualPerBlock.toFixed(5)} BNB</span>
+                        </div>
+
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total</span>
-                            <span style={styles.totalValue}>{totalAmount.toFixed(2)} BNB</span>
+                            <span style={styles.totalValue}>{baseAmount.toFixed(5)} BNB</span>
                         </div>
+
+                        {isConnected ? (
+                            <button
+                                style={{
+                                    ...styles.deployBtn,
+                                    ...(canDeploy ? styles.deployBtnActive : styles.deployBtnDisabled),
+                                }}
+                                onClick={() => onDeploy?.(baseAmount, selectedBlockIds)}
+                                disabled={!canDeploy}
+                            >
+                                {hasDeployed ? "✓ Deployed" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
+                            </button>
+                        ) : (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        )}
                     </>
                 )}
 
-                {mode === "auto" && (
+                {/* ===== AUTO MODE — CONFIGURE VIEW ===== */}
+                {mode === "auto" && !autoMinerActive && (
                     <>
-                        <div style={styles.autoRow}>
+                        <div style={styles.balanceRow}>
+                            <div style={styles.balanceLeft}>
+                                <WalletIcon />
+                                <span style={styles.balanceAmount}>{userBalance.toFixed(5)} BNB</span>
+                            </div>
+                            <div style={styles.quickAmounts}>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(1)}>+1</button>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.1)}>+0.1</button>
+                                <button style={styles.quickBtn} onClick={() => handleQuickAmount(0.01)}>+0.01</button>
+                            </div>
+                        </div>
+
+                        <div style={styles.inputRow}>
+                            <div style={styles.inputLeft}>
+                                <BnbLogo size={20} />
+                                <span style={styles.inputLabel}>BNB</span>
+                            </div>
+                            <input
+                                type="text"
+                                style={{ ...styles.amountInput, color: "#fff" }}
+                                value={amount}
+                                onChange={(e) => setAmount(e.target.value)}
+                                onFocus={() => { if (amount === "0") setAmount("") }}
+                                onBlur={() => { if (amount === "") setAmount("0") }}
+                            />
+                        </div>
+
+                        <div style={styles.row}>
+                            <span style={styles.rowLabel}>Strategy</span>
+                            <div style={styles.blockSelectionToggle}>
+                                <button
+                                    style={{
+                                        ...styles.allBtn,
+                                        ...(blockSelection === "all" ? styles.allBtnActive : {}),
+                                    }}
+                                    onClick={handleAllClick}
+                                >
+                                    All
+                                </button>
+                                <span style={{ ...styles.blockCount, minWidth: "55px", textAlign: "right" }}>
+                                    {blockSelection === "all" ? "x25" : "Random"}
+                                </span>
+                            </div>
+                        </div>
+
+                        <div style={{
+                            ...styles.autoRow,
+                            visibility: blockSelection === "random" ? "visible" : "hidden",
+                            pointerEvents: blockSelection === "random" ? "auto" : "none",
+                        }}>
                             <div style={styles.autoRowLeft}>
                                 <BlocksIcon />
                                 <span style={styles.autoRowLabel}>Blocks</span>
@@ -391,8 +572,10 @@ export default function SidebarControls({
                                 min="1"
                                 max="25"
                                 style={styles.autoInput}
-                                value={autoBlocks}
-                                onChange={(e) => setAutoBlocks(Math.max(1, Math.min(25, parseInt(e.target.value) || 1)))}
+                                value={autoBlocks === 0 ? "" : autoBlocks}
+                                onChange={(e) => setAutoBlocks(Math.max(0, Math.min(25, parseInt(e.target.value) || 0)))}
+                                onFocus={() => setAutoBlocks(0)}
+                                onBlur={() => { if (autoBlocks === 0) setAutoBlocks(1) }}
                             />
                         </div>
 
@@ -406,76 +589,92 @@ export default function SidebarControls({
                                 min="1"
                                 max="100"
                                 style={styles.autoInput}
-                                value={autoRounds}
-                                onChange={(e) => setAutoRounds(Math.max(1, Math.min(100, parseInt(e.target.value) || 1)))}
+                                value={autoRounds === 0 ? "" : autoRounds}
+                                onChange={(e) => setAutoRounds(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                                onFocus={() => setAutoRounds(0)}
+                                onBlur={() => { if (autoRounds === 0) setAutoRounds(1) }}
                             />
                         </div>
 
-                        <div style={styles.autoRow}>
-                            <div style={styles.autoRowLeft}>
-                                <ReloadIcon />
-                                <span style={styles.autoRowLabel}>Auto-reload</span>
-                            </div>
-                            <button
-                                style={{
-                                    ...styles.checkboxBtn,
-                                    ...(autoReload ? styles.checkboxBtnActive : {}),
-                                }}
-                                onClick={() => setAutoReload(!autoReload)}
-                            >
-                                {autoReload && (
-                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="#000">
-                                        <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z" />
-                                    </svg>
-                                )}
-                            </button>
+                        <div style={styles.row}>
+                            <span style={styles.rowLabel}>Per block</span>
+                            <span style={styles.totalValue}>{autoPerBlock.toFixed(5)} BNB</span>
                         </div>
 
                         <div style={styles.row}>
-                            <span style={styles.rowLabel}>Blocks</span>
-                            <div style={styles.blockSelectionToggle}>
-                                <button
-                                    style={{
-                                        ...styles.allBtn,
-                                        ...(blockSelection === "all" ? styles.allBtnActive : {}),
-                                    }}
-                                    onClick={handleAllClick}
-                                >
-                                    All
-                                </button>
-                                <span style={styles.blockCount}>
-                                    {blockSelection === "all" ? `x${autoBlocks}` : "Random"}
-                                </span>
-                            </div>
-                        </div>
-
-                        <div style={styles.row}>
-                            <span style={styles.rowLabel}>Total per round</span>
-                            <span style={styles.totalValue}>{totalPerRound.toFixed(2)} BNB</span>
+                            <span style={styles.rowLabel}>Per round</span>
+                            <span style={styles.totalValue}>{autoPerRound.toFixed(5)} BNB</span>
                         </div>
 
                         <div style={styles.totalRow}>
-                            <span style={styles.rowLabel}>Total</span>
-                            <span style={styles.totalValue}>{totalAmount.toFixed(2)} BNB</span>
+                            <span style={styles.rowLabel}>Total deposit</span>
+                            <span style={styles.totalValue}>{baseAmount.toFixed(5)} BNB</span>
                         </div>
+
+                        {isConnected ? (
+                            <button
+                                style={{
+                                    ...styles.deployBtn,
+                                    ...(canActivate ? styles.deployBtnActive : styles.deployBtnDisabled),
+                                }}
+                                onClick={handleAutoActivateClick}
+                                disabled={!canActivate}
+                            >
+                                Activate AutoMiner
+                            </button>
+                        ) : (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        )}
                     </>
                 )}
 
-                {isConnected ? (
-                    <button
-                        style={{
-                            ...styles.deployBtn,
-                            ...(totalAmount <= 0 ? styles.deployBtnDisabled : {}),
-                        }}
-                        onClick={() => onDeploy?.(totalAmount, effectiveBlocks)}
-                        disabled={totalAmount <= 0}
-                    >
-                        Deploy
-                    </button>
-                ) : (
-                    <button style={styles.connectBtn} onClick={openConnectModal}>
-                        Connect Wallet
-                    </button>
+                {/* ===== AUTO MODE — ACTIVE VIEW ===== */}
+                {autoMinerActive && autoMinerState && (
+                    <>
+                        <div style={styles.activeHeader}>
+                            <span style={styles.activeDot} />
+                            <span style={styles.activeTitle}>AutoMiner Active</span>
+                        </div>
+
+                        <div style={styles.activeRow}>
+                            <span style={styles.rowLabel}>Balance</span>
+                            <span style={styles.totalValue}>{parseFloat(autoMinerState.totalRefundableFormatted).toFixed(5)} BNB</span>
+                        </div>
+
+                        <div style={styles.activeRow}>
+                            <span style={styles.rowLabel}>Strategy</span>
+                            <span style={styles.totalValue}>
+                                {autoMinerState.strategyId === 1 ? "All" : "Random"} x{autoMinerState.numBlocks}
+                            </span>
+                        </div>
+
+                        <div style={styles.activeRow}>
+                            <span style={styles.rowLabel}>Per round</span>
+                            <span style={styles.totalValue}>{parseFloat(autoMinerState.costPerRoundFormatted).toFixed(5)} BNB</span>
+                        </div>
+
+                        <div style={styles.activeRow}>
+                            <span style={styles.rowLabel}>Rounds</span>
+                            <span style={styles.totalValue}>
+                                {autoMinerState.roundsExecuted} / {autoMinerState.numRounds}
+                            </span>
+                        </div>
+
+                        <div style={{ ...styles.totalRow, borderTop: "1px solid #222" }}>
+                            <span style={styles.rowLabel}>Per block</span>
+                            <span style={styles.totalValue}>{parseFloat(autoMinerState.amountPerBlockFormatted).toFixed(5)} BNB</span>
+                        </div>
+
+                        <button
+                            style={styles.stopBtn}
+                            onClick={() => onAutoStop?.()}
+                        >
+                            Stop AutoMiner
+                        </button>
+                        <div style={styles.stopHint}>Cancel and refund remaining BNB</div>
+                    </>
                 )}
             </div>
         </div>
@@ -658,22 +857,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "inherit",
         outline: "none",
     },
-    checkboxBtn: {
-        width: "24px",
-        height: "24px",
-        background: "transparent",
-        border: "2px solid #444",
-        borderRadius: "4px",
-        cursor: "pointer",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: 0,
-    },
-    checkboxBtnActive: {
-        background: "#fff",
-        borderColor: "#fff",
-    },
     row: {
         display: "flex",
         alignItems: "center",
@@ -741,6 +924,11 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
+    deployBtnActive: {
+        background: "#F0B90B",
+        color: "#000",
+        cursor: "pointer",
+    },
     deployBtnDisabled: {
         background: "#1a1a1a",
         color: "#444",
@@ -757,5 +945,48 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: "#000",
         cursor: "pointer",
         fontFamily: "inherit",
+    },
+    // Active AutoMiner styles
+    activeHeader: {
+        display: "flex",
+        alignItems: "center",
+        gap: "8px",
+        padding: "4px 0",
+    },
+    activeDot: {
+        width: "8px",
+        height: "8px",
+        borderRadius: "50%",
+        background: "#4ade80",
+    },
+    activeTitle: {
+        fontSize: "15px",
+        fontWeight: 700,
+        color: "#fff",
+    },
+    activeRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "6px 0",
+    },
+    stopBtn: {
+        width: "100%",
+        background: "#2a1a1a",
+        border: "1px solid #442222",
+        borderRadius: "8px",
+        padding: "14px",
+        fontSize: "14px",
+        fontWeight: 600,
+        color: "#f87171",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        transition: "all 0.15s",
+    },
+    stopHint: {
+        fontSize: "12px",
+        color: "#666",
+        textAlign: "center",
+        marginTop: "-4px",
     },
 }

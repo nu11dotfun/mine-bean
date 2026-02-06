@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react"
 import BeanLogo from './BeanLogo'
+import { apiFetch } from '../lib/api'
 
+// Display interface (for table rendering)
 interface Round {
     round: number
     block: number
@@ -15,8 +17,29 @@ interface Round {
     time: string
 }
 
-interface MiningTableProps {
-    rounds?: Round[]
+// API response interfaces
+interface RoundFromAPI {
+    roundId: number
+    winningBlock: number
+    beanWinner: string | null  // address that won BEAN reward (null if split round)
+    isSplit: boolean
+    winnerCount: number
+    totalDeployed: string
+    vaultedAmount: string
+    totalWinnings: string
+    motherlodeAmount: string
+    endTime: number | string    // Unix timestamp or ISO date string
+    settledAt?: number | string // Unix timestamp or ISO date string
+}
+
+interface RoundsResponse {
+    rounds: RoundFromAPI[]
+    pagination: {
+        page: number
+        limit: number
+        total: number
+        pages: number
+    }
 }
 
 const BnbIcon = () => (
@@ -39,61 +62,89 @@ const ChevronRight = () => (
     </svg>
 )
 
-// Seeded random number generator for consistent values
-const seededRandom = (seed: number) => {
-    const x = Math.sin(seed) * 10000
-    return x - Math.floor(x)
+// Helper functions
+const formatWei = (wei: string): number => {
+    if (!wei) return 0
+    return parseFloat(wei) / 1e18
 }
 
-const generateMockRounds = (count: number, goldenBeanOnly: boolean = false): Round[] => {
-    const rounds: Round[] = []
-    const baseRound = 122346
+const formatAddress = (addr: string): string => {
+    if (!addr) return '—'
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+}
 
-    for (let i = 0; i < count; i++) {
-        const seed = baseRound - i
-        const hasGoldenBean = goldenBeanOnly ? true : seededRandom(seed * 7) < 0.01
-        
-        const round: Round = {
-            round: baseRound - i,
-            block: Math.floor(seededRandom(seed * 1) * 25) + 1,
-            winner: seededRandom(seed * 2) > 0.15
-                ? `0x${(seed * 1234).toString(16).slice(0, 4)}...${(seed * 5678).toString(16).slice(0, 4)}`
-                : "Split",
-            winners: Math.floor(seededRandom(seed * 3) * 50) + 130,
-            deployed: 8 + seededRandom(seed * 4) * 5,
-            vaulted: 0.8 + seededRandom(seed * 5) * 0.5,
-            winnings: 7 + seededRandom(seed * 6) * 4,
-            goldenBean: hasGoldenBean ? Math.floor(seededRandom(seed * 8) * 200) + 10 : null,
-            time: i === 0 ? "39 sec ago" : i < 10 ? `${i} min ago` : `${Math.floor(i / 6)} hours ago`,
-        }
-
-        if (!goldenBeanOnly || hasGoldenBean) {
-            rounds.push(round)
-        }
+const getRelativeTime = (timestamp: number | string): string => {
+    // Handle ISO date string or Unix timestamp (seconds or milliseconds)
+    let timeMs: number
+    if (typeof timestamp === 'string') {
+        timeMs = new Date(timestamp).getTime()
+    } else if (timestamp > 1e12) {
+        // Already in milliseconds
+        timeMs = timestamp
+    } else {
+        // Unix seconds
+        timeMs = timestamp * 1000
     }
 
-    return goldenBeanOnly ? rounds.slice(0, 50) : rounds
+    const seconds = Math.floor((Date.now() - timeMs) / 1000)
+    if (seconds < 0) return 'just now'
+    if (seconds < 60) return `${seconds} sec ago`
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} min ago`
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} hours ago`
+    return `${Math.floor(seconds / 86400)} days ago`
 }
 
-export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
+const transformRound = (r: RoundFromAPI): Round => ({
+    round: r.roundId,
+    block: r.winningBlock,
+    winner: r.isSplit ? "Split" : formatAddress(r.beanWinner || ''),
+    winners: r.winnerCount || 0,
+    deployed: formatWei(r.totalDeployed),
+    vaulted: formatWei(r.vaultedAmount),
+    winnings: formatWei(r.totalWinnings),
+    goldenBean: r.motherlodeAmount && parseFloat(r.motherlodeAmount) > 0
+        ? formatWei(r.motherlodeAmount)
+        : null,
+    time: getRelativeTime(r.settledAt || r.endTime)
+})
+
+export default function MiningTable() {
     const [activeTab, setActiveTab] = useState<"rounds" | "goldenbeans">("rounds")
     const [currentPage, setCurrentPage] = useState(0)
     const [rounds, setRounds] = useState<Round[]>([])
-    const [goldenBeanRounds, setGoldenBeanRounds] = useState<Round[]>([])
+    const [totalPages, setTotalPages] = useState(1)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
+    const [mounted, setMounted] = useState(false)
     const rowsPerPage = 12
 
+    // Prevent hydration mismatch by only rendering after mount
     useEffect(() => {
-        setRounds(propRounds || generateMockRounds(50))
-        setGoldenBeanRounds(generateMockRounds(100, true))
-    }, [propRounds])
+        setMounted(true)
+    }, [])
 
-    const allRounds = activeTab === "rounds" ? rounds : goldenBeanRounds
-    const totalPages = Math.ceil(allRounds.length / rowsPerPage)
-    
-    const displayRounds = allRounds.slice(
-        currentPage * rowsPerPage,
-        (currentPage + 1) * rowsPerPage
-    )
+    useEffect(() => {
+        if (!mounted) return
+
+        const fetchRounds = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const beanpotParam = activeTab === "goldenbeans" ? "&beanpot=true" : ""
+                const response = await apiFetch<RoundsResponse>(
+                    `/api/rounds?page=${currentPage + 1}&limit=${rowsPerPage}&settled=true${beanpotParam}`
+                )
+                setRounds(response.rounds.map(transformRound))
+                setTotalPages(response.pagination.pages)
+            } catch (err) {
+                console.error('Failed to fetch rounds:', err)
+                setError('Failed to load rounds')
+            } finally {
+                setLoading(false)
+            }
+        }
+        fetchRounds()
+    }, [currentPage, activeTab, mounted])
 
     const handlePrevPage = () => {
         if (currentPage > 0) {
@@ -112,8 +163,17 @@ export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
         setCurrentPage(0)
     }
 
-    if (rounds.length === 0 || typeof window === "undefined") {
+    // Return null until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return null
+    }
+
+    if (loading && rounds.length === 0) {
         return <div style={styles.container}>Loading...</div>
+    }
+
+    if (error && rounds.length === 0) {
+        return <div style={styles.container}>{error}</div>
     }
 
     return (
@@ -159,7 +219,7 @@ export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
                         <tr>
                             <th style={styles.th}>Round</th>
                             <th style={styles.th}>Block</th>
-                            <th style={styles.th}>BEANS Winner</th>
+                            <th style={styles.th}>BEAN Winner</th>
                             <th style={styles.thCenter}>Winners</th>
                             <th style={styles.thRight}>Deployed</th>
                             <th style={styles.thRight}>Vaulted</th>
@@ -169,8 +229,8 @@ export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
                         </tr>
                     </thead>
                     <tbody>
-                        {displayRounds.map((round, index) => (
-                            <tr key={index} style={styles.tr}>
+                        {rounds.map((round, index) => (
+                            <tr key={round.round || index} style={styles.tr}>
                                 <td style={styles.td}>#{round.round.toLocaleString()}</td>
                                 <td style={styles.td}>#{round.block}</td>
                                 <td style={styles.td}>
@@ -203,7 +263,7 @@ export default function MiningTable({ rounds: propRounds }: MiningTableProps) {
                                     {round.goldenBean ? (
                                         <span style={styles.valueWithIcon}>
                                             <BeanLogo size={16} />
-                                            {round.goldenBean}
+                                            {round.goldenBean.toFixed(2)}
                                         </span>
                                     ) : (
                                         <span style={styles.dash}>–</span>

@@ -1,45 +1,97 @@
 'use client'
 
-import React from "react"
+import React, { useState, useEffect } from "react"
 import BeanLogo from './BeanLogo'
+import { apiFetch } from '../lib/api'
+
+// API response interfaces
+interface StatsResponse {
+    totalSupply: string
+    totalSupplyFormatted: string
+}
+
+interface TreasuryStatsResponse {
+    totalVaulted: string
+    totalVaultedFormatted: string
+    totalBurned: string
+    totalBurnedFormatted: string
+}
+
+// Contract constant
+const MAX_SUPPLY = 3_000_000
 
 interface GlobalStatsProps {
-    maxSupply?: number
-    circulatingSupply?: number
-    burned7d?: number
-    protocolRev7d?: number
     isMobile?: boolean
 }
 
 export default function GlobalStats({
-    maxSupply = 3000000,
-    circulatingSupply = 422154,
-    burned7d = 7337,
-    protocolRev7d = 10195,
     isMobile = false,
 }: GlobalStatsProps) {
+    const [mounted, setMounted] = useState(false)
+    const [data, setData] = useState<{
+        circulatingSupply: number
+        burned: number
+        protocolRevenue: number
+    } | null>(null)
+
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    useEffect(() => {
+        if (!mounted) return
+
+        const fetchStats = async () => {
+            try {
+                const [statsRes, treasuryRes] = await Promise.all([
+                    apiFetch<StatsResponse>('/api/stats'),
+                    apiFetch<TreasuryStatsResponse>('/api/treasury/stats')
+                ])
+                setData({
+                    circulatingSupply: parseFloat(statsRes.totalSupplyFormatted),
+                    burned: parseFloat(treasuryRes.totalBurnedFormatted),
+                    protocolRevenue: parseFloat(treasuryRes.totalVaultedFormatted)
+                })
+            } catch (err) {
+                console.error('Failed to fetch stats:', err)
+            }
+        }
+        fetchStats()
+    }, [mounted])
+
     const stats = [
         {
-            value: maxSupply.toLocaleString(),
+            value: MAX_SUPPLY.toLocaleString(),
             label: "Max Supply",
             iconType: "beans",
         },
         {
-            value: circulatingSupply.toLocaleString(),
+            value: data?.circulatingSupply != null
+                ? Math.floor(data.circulatingSupply).toLocaleString()
+                : "—",
             label: "Circulating Supply",
             iconType: "beans",
         },
         {
-            value: burned7d.toLocaleString(),
-            label: "Burned (7d)",
+            value: data?.burned != null
+                ? Math.floor(data.burned).toLocaleString()
+                : "—",
+            label: "Burned",
             iconType: "beans",
         },
         {
-            value: protocolRev7d.toLocaleString(),
-            label: "Protocol Rev (7d)",
+            value: data?.protocolRevenue != null
+                ? data.protocolRevenue.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
+                : "—",
+            label: "Protocol Revenue",
             iconType: "bnb",
         },
     ]
+
+    // Return null until mounted to prevent hydration mismatch
+    if (!mounted) {
+        return null
+    }
 
     if (isMobile) {
         return (

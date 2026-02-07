@@ -1,15 +1,5 @@
 # BEANS Protocol — Frontend
 
-
-## Instructions 
-You are an expert who double checks things, you are skeptical and you do research. I am not always right. Neither are you, but we both strive for accuracy. 
-
-I like to plan out the steps first and how features will be implemented. I'll review and change if we need to change the logic. Once ready, write out the code. 
-
-I like to plan out the steps first and how features will be implemented. I'll review and change if we need to change the logic. Once ready, write out the code. 
-
-Be playful and mock me if I fucked up. 
-
 ## Overview
 
 Gamified mining protocol on BNB Chain. Users compete in 60-second rounds on a 5×5 grid of blocks, deploying BNB to earn BEANS tokens and BNB rewards. Built with Next.js 14 (App Router), React 18, TypeScript, and Wagmi/RainbowKit for wallet integration.
@@ -54,9 +44,10 @@ components/
   AboutPage.tsx       — About content with expandable sections
 
 lib/
-  api.ts            — Backend API helpers (apiFetch, sseSubscribe). Base URL via NEXT_PUBLIC_API_URL env var (default http://localhost:3001)
+  api.ts            — Backend API helpers (apiFetch). Base URL via NEXT_PUBLIC_API_URL env var (default http://localhost:3001)
+  SSEContext.tsx    — Centralized SSE provider (useSSE hook for subscribeGlobal/subscribeUser)
   contracts.ts      — Contract addresses, ABIs, and constants (MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS)
-  providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query)
+  providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, SSEProvider)
   wagmi.ts          — Chain config (BSC mainnet + testnet)
   abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20)
 ```
@@ -95,15 +86,15 @@ npm run lint      # Linter
 
 ### Connected to Backend + Smart Contract
 - **app/page.tsx** — Orchestrates deploy and claim flows. Uses wagmi `useWriteContract` to call `GridMining.deploy(uint8[] blockIds)` payable, `GridMining.claimBNB()`, and `GridMining.claimBEAN()`. On deploy tx success, dispatches `userDeployed` window event for optimistic block tracking. Passes `onDeploy`, `onClaimBNB`, `onClaimBEAN` callbacks to child components.
-- **MiningGrid.tsx** — Fetches `GET /api/round/current?user=` on mount (with wallet address when connected), subscribes to `GET /api/events/rounds` SSE for live updates (`deployed`, `roundSettled`, `gameStarted`). Dispatches `roundData`, `roundDeployed`, and `roundSettled` window events. Tracks `userDeployedBlocks` (blocks user already deployed to this round) via `GET /api/user/:address/history?type=deploy&roundId=X` on load and optimistic `userDeployed` events. Deployed blocks are visually marked (green border + ✓) and unclickable. **One deploy per round:** `hasDeployedThisRound` boolean locks ALL grid blocks after the first deploy — set `true` on `userDeployed` event or when backend history shows existing deploys, reset to `false` in `resetForNewRound()`. The `selectAllBlocks` listener is also ignored when `hasDeployedThisRound` is true.
-- **SidebarControls.tsx** — Receives round data (beanpot, timer, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Fetches BNB and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (amount > 0, perBlock >= MIN_DEPLOY_PER_BLOCK, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. Input amount is total BNB (divided by blocks), not per-block.
-- **MobileControls.tsx** — Same as SidebarControls but mobile layout. Phase-aware deploy button with same `canDeploy` logic. Tracks `userDeployed` via `roundData` and `roundDeployed` window events (matches `user` field against connected `userAddress` prop). Shows "✓ Deployed" when locked.
+- **MiningGrid.tsx** — Fetches `GET /api/round/current?user=` on mount (with wallet address when connected), uses `useSSE()` to subscribe to global events (`deployed`, `roundSettled`, `gameStarted`) and user events (`autoMineExecuted`). Dispatches `roundData`, `roundDeployed`, and `roundSettled` window events. Tracks `userDeployedBlocks` (blocks user already deployed to this round) via `GET /api/user/:address/history?type=deploy&roundId=X` on load and optimistic `userDeployed` events. Deployed blocks are visually marked (green border + ✓) and unclickable. **One deploy per round:** `hasDeployedThisRound` boolean locks ALL grid blocks after the first deploy — set `true` on `userDeployed` event or when backend history shows existing deploys, reset to `false` in `resetForNewRound()`. The `selectAllBlocks` listener is also ignored when `hasDeployedThisRound` is true. **AutoMiner grid lock:** When in auto mode (`autoMode.enabled`), all grid cells are disabled to prevent manual selection.
+- **SidebarControls.tsx** — Receives round data (beanpot, timer, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Uses `useSSE()` to subscribe to user events (`autoMineExecuted`, `configDeactivated`, `stopped`) for AutoMiner real-time updates. Fetches BNB and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (perBlock >= MIN_DEPLOY_PER_BLOCK, blocks > 0, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. **Input is per-block amount** — total is calculated as `perBlock × selectedBlocks`.
+- **MobileControls.tsx** — Same as SidebarControls but mobile layout. Uses `useSSE()` for user event subscriptions. Phase-aware deploy button with same `canDeploy` logic. Tracks `userDeployed` via `roundData` and `roundDeployed` window events (matches `user` field against connected `userAddress` prop). Shows "✓ Deployed" when locked.
 - **MobileStatsBar.tsx** — Receives beanpot, timer, total deployed, and user deployed via `roundData`/`roundDeployed` window events.
-- **ClaimRewards.tsx** — Fetches `GET /api/user/:address/rewards` on mount. Re-fetches on `settlementComplete` window event (after 8s animation). Subscribes to user SSE stream (`GET /api/user/:address/events`) for `claimedBNB`/`claimedBEAN` confirmation events to refresh after on-chain claim. Shows BNB rewards, unrefined BEAN, refined BEAN separately. Conditionally rendered — hidden when all rewards are zero. Claim buttons call `GridMining.claimBNB()` and `GridMining.claimBEAN()` via wagmi `useWriteContract`.
+- **ClaimRewards.tsx** — Fetches `GET /api/user/:address/rewards` on mount. Re-fetches on `settlementComplete` window event (after 8s animation). Uses `useSSE()` to subscribe to `claimedBNB`/`claimedBEAN` events to refresh after on-chain claim. Shows BNB rewards, unrefined BEAN, refined BEAN separately. Conditionally rendered — hidden when all rewards are zero. Claim buttons call `GridMining.claimBNB()` and `GridMining.claimBEAN()` via wagmi `useWriteContract`.
 - **MinersPanel.tsx** — Sliding left panel showing winning miners from the last settled round. Listens to `roundSettled` window event to capture the settled roundId (stored in a ref), then on `settlementComplete` (after 8s animation) fetches `GET /api/round/:id/miners` to get computed BNB and BEAN rewards per winner. Uses a consume-once ref pattern: `settledRoundIdRef` is set by `roundSettled` and cleared after consumption by `settlementComplete`, so empty rounds (no `roundSettled` event) don't re-trigger old data. Panel auto-opens when winners data arrives; collapsed state shows a trophy icon tab on the left edge. If the round had no deployments (empty miners response), keeps showing the previous round's data without re-opening.
 - **app/page.tsx** — Also handles AutoMiner contract interactions via `handleAutoActivate` (calls `AutoMiner.setConfig` payable) and `handleAutoStop` (calls `AutoMiner.stop`). Dispatches `autoMinerActivated`/`autoMinerStopped` window events on success.
-- **SidebarControls.tsx / MobileControls.tsx** — Support both Manual and Auto mining modes. Auto mode: fetches `GET /api/automine/:address` on mount, subscribes to user SSE for `autoMineExecuted`/`configDeactivated`/`stopped` events for real-time updates. When AutoMiner is active, hides Manual tab and shows active status (balance, strategy, rounds executed/total, per block/round). Configure view validates per-block amount against `MIN_DEPLOY_PER_BLOCK` accounting for `EXECUTOR_FEE_BPS` (0.5%). Calls `onAutoActivate`/`onAutoStop` props from page.tsx.
-- **MiningGrid.tsx** — Also subscribes to user SSE for `autoMineExecuted` to highlight deployed blocks green. Additionally handles AutoMiner deployments in the global `deployed` SSE handler: when `isAutoMine === true` and user matches, fetches deployment history and decodes `blockMask` to mark deployed blocks.
+- **SidebarControls.tsx / MobileControls.tsx** — Support both Manual and Auto mining modes. Auto mode: fetches `GET /api/automine/:address` on mount, uses `useSSE()` to subscribe to `autoMineExecuted`/`configDeactivated`/`stopped` events for real-time updates. When AutoMiner is active, hides Manual tab and shows active status (balance, strategy, rounds executed/total, per block/round). Configure view validates per-block amount against `MIN_DEPLOY_PER_BLOCK` accounting for `EXECUTOR_FEE_BPS` (0.5%). Calls `onAutoActivate`/`onAutoStop` props from page.tsx.
+- **MiningGrid.tsx** — Also uses `useSSE()` to subscribe to `autoMineExecuted` to highlight deployed blocks green. Additionally handles AutoMiner deployments in the global `deployed` SSE handler: when `isAutoMine === true` and user matches, fetches deployment history and decodes `blockMask` to mark deployed blocks.
 - **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where motherlode was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, BNB deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time.
 - **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), BNB Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view.
 - **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12` and `GET /api/leaderboard/earners?limit=12` on mount. Three tabs: Miners (total BNB deployed), Stakers (coming soon - empty state), Unrefined (unclaimed BEAN). Displays: Rank, Address (truncated), Value with icon (BNB or BEAN).
@@ -200,15 +191,19 @@ const effectiveAmountPerBlock = (deposit × 10000) / (numBlocks × numRounds × 
 2. **Auto Configure** — Input BNB deposit, strategy (All/Random), blocks (if random), rounds. Shows calculated per-block and per-round amounts.
 3. **Auto Active** — When `autoMinerState.active === true`. Hides Manual tab, shows status: balance (refundable), strategy, rounds executed/total, per block. Stop button triggers refund.
 
-**Real-time updates via SSE:**
-- SidebarControls/MobileControls subscribe to `GET /api/user/:address/events` for `autoMineExecuted`, `configDeactivated`, `stopped` events
+**Real-time updates via `useSSE()`:**
+- SidebarControls/MobileControls use `subscribeUser()` for `autoMineExecuted`, `configDeactivated`, `stopped` events
 - On any event, re-fetches `GET /api/automine/:address` to update display
 - On `configDeactivated`, switches back to manual mode
 
 **Grid highlighting for AutoMiner:**
-- MiningGrid subscribes to user SSE for `autoMineExecuted` to add deployed blocks to `userDeployedBlocks` Set
-- Also handles AutoMiner in global `deployed` SSE: when `isAutoMine === true` and user matches, fetches `/api/user/:address/history?type=deploy&roundId=X&limit=1`, decodes `blockMask`, and updates `userDeployedBlocks`
+- MiningGrid uses `subscribeUser('autoMineExecuted')` to add deployed blocks to `userDeployedBlocks` Set
+- Also handles AutoMiner in global `deployed` SSE (via `subscribeGlobal`): when `isAutoMine === true` and user matches, fetches `/api/user/:address/history?type=deploy&roundId=X&limit=1`, decodes `blockMask`, and updates `userDeployedBlocks`
 - This dual approach handles the race condition where user SSE may not be connected for the first round
+
+**Grid lock in AutoMiner mode:**
+- When `autoMode.enabled === true`, all grid cell clicks are disabled
+- Prevents users from manually selecting/deselecting blocks while AutoMiner is active
 
 **Window events:**
 | Event | Dispatched By | Consumed By |
@@ -219,7 +214,49 @@ const effectiveAmountPerBlock = (deposit × 10000) / (numBlocks × numRounds × 
 ### `lib/api.ts` Helpers
 
 - **`apiFetch<T>(path)`** — Typed GET request to backend. Base URL from `NEXT_PUBLIC_API_URL` env var (default `http://localhost:3001`).
-- **`sseSubscribe(path, onEvent, events?)`** — Opens EventSource to backend SSE stream. Listens for specified event names (defaults to `['gameStarted', 'deployed', 'roundSettled']`). Returns cleanup function. Auto-reconnects on error (native EventSource behavior). Used by MiningGrid for global round events and ClaimRewards for user-specific claim events (`claimedBNB`, `claimedBEAN`).
+
+### Centralized SSE Architecture (`lib/SSEContext.tsx`)
+
+The app uses a centralized SSE provider to maintain exactly **2 connections** per browser session (1 global + 1 user) instead of per-component connections that caused connection stacking and 429 rate limit errors.
+
+**Provider setup in `lib/providers.tsx`:**
+```tsx
+function SSEWrapper({ children }: { children: React.ReactNode }) {
+  const { address } = useAccount()
+  return <SSEProvider userAddress={address}>{children}</SSEProvider>
+}
+```
+
+**Usage in components:**
+```tsx
+import { useSSE } from '@/lib/SSEContext'
+
+const { subscribeGlobal, subscribeUser } = useSSE()
+
+// Subscribe to global events (round lifecycle)
+useEffect(() => {
+  const unsub = subscribeGlobal('deployed', (data) => { ... })
+  return () => unsub()
+}, [subscribeGlobal])
+
+// Subscribe to user-specific events (claims, autominer)
+useEffect(() => {
+  const unsub = subscribeUser('claimedBNB', (data) => { ... })
+  return () => unsub()
+}, [subscribeUser])
+```
+
+**Connection lifecycle:**
+- **Global connection** (`/api/events/rounds`) — Opens on app mount, never closes. Listens for: `gameStarted`, `deployed`, `roundSettled`
+- **User connection** (`/api/user/{address}/events`) — Opens when wallet connects, closes on disconnect. Listens for: `autoMineExecuted`, `configDeactivated`, `stopped`, `claimedBNB`, `claimedBEAN`, `checkpointed`
+
+**Components using `useSSE()`:**
+| Component | Global Events | User Events |
+|-----------|---------------|-------------|
+| MiningGrid | `deployed`, `roundSettled`, `gameStarted` | `autoMineExecuted` |
+| SidebarControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
+| MobileControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
+| ClaimRewards | — | `claimedBNB`, `claimedBEAN` |
 
 ### Global Page (`/global`)
 

@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useCallback } from "react"
-import { apiFetch, sseSubscribe } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
+import { useSSE } from '@/lib/SSEContext'
 
 interface RewardsData {
   pendingBNB: string
@@ -43,6 +44,7 @@ const BeanIcon = ({ size = 16 }: { size?: number }) => (
 
 export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: ClaimRewardsProps) {
   const [rewards, setRewards] = useState<RewardsData | null>(null)
+  const { subscribeUser } = useSSE()
 
   const fetchRewards = useCallback(() => {
     if (!userAddress) return
@@ -65,17 +67,13 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
 
   // Subscribe to user SSE for claim confirmations
   useEffect(() => {
-    if (!userAddress) return
-    return sseSubscribe(
-      `/api/user/${userAddress}/events`,
-      (event) => {
-        if (event === 'claimedBNB' || event === 'claimedBEAN') {
-          fetchRewards()
-        }
-      },
-      ['claimedBNB', 'claimedBEAN']
-    )
-  }, [userAddress, fetchRewards])
+    const unsubBNB = subscribeUser('claimedBNB', () => fetchRewards())
+    const unsubBEAN = subscribeUser('claimedBEAN', () => fetchRewards())
+    return () => {
+      unsubBNB()
+      unsubBEAN()
+    }
+  }, [subscribeUser, fetchRewards])
 
   if (!userAddress || !rewards) return null
 

@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useRef } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
-import { apiFetch, sseSubscribe } from '@/lib/api'
+import { apiFetch } from '@/lib/api'
+import { useSSE } from '@/lib/SSEContext'
 import { parseEther } from 'viem'
 
 interface AutoMinerState {
@@ -114,53 +115,57 @@ export default function MobileControls({
         }
     }, [userAddress])
 
-    // Subscribe to user SSE for real-time AutoMiner updates
-    useEffect(() => {
-        if (!userAddress) return
+    // Subscribe to user SSE for real-time AutoMiner updates via centralized SSE context
+    const { subscribeUser } = useSSE()
 
-        return sseSubscribe(
-            `/api/user/${userAddress}/events`,
-            (event) => {
-                if (event === 'autoMineExecuted' || event === 'configDeactivated' || event === 'stopped') {
-                    // Re-fetch AutoMiner state
-                    apiFetch<{
-                        config: {
-                            strategyId: number
-                            numBlocks: number
-                            amountPerBlockFormatted: string
-                            active: boolean
-                            numRounds: number
-                            roundsExecuted: number
-                            depositAmountFormatted: string
-                        }
-                        costPerRoundFormatted: string
-                        roundsRemaining: number
-                        totalRefundableFormatted: string
-                    }>(`/api/automine/${userAddress}`)
-                        .then((data) => {
-                            setAutoMinerState({
-                                active: data.config.active,
-                                strategyId: data.config.strategyId,
-                                numBlocks: data.config.numBlocks,
-                                amountPerBlockFormatted: data.config.amountPerBlockFormatted,
-                                numRounds: data.config.numRounds,
-                                roundsExecuted: data.config.roundsExecuted,
-                                depositAmountFormatted: data.config.depositAmountFormatted,
-                                costPerRoundFormatted: data.costPerRoundFormatted,
-                                roundsRemaining: data.roundsRemaining,
-                                totalRefundableFormatted: data.totalRefundableFormatted,
-                            })
-                            // If deactivated, switch back to allow manual mode
-                            if (!data.config.active) {
-                                setMode("manual")
-                            }
-                        })
-                        .catch(() => {})
+    useEffect(() => {
+        const fetchAutoState = () => {
+            if (!userAddress) return
+            apiFetch<{
+                config: {
+                    strategyId: number
+                    numBlocks: number
+                    amountPerBlockFormatted: string
+                    active: boolean
+                    numRounds: number
+                    roundsExecuted: number
+                    depositAmountFormatted: string
                 }
-            },
-            ['autoMineExecuted', 'configDeactivated', 'stopped']
-        )
-    }, [userAddress])
+                costPerRoundFormatted: string
+                roundsRemaining: number
+                totalRefundableFormatted: string
+            }>(`/api/automine/${userAddress}`)
+                .then((data) => {
+                    setAutoMinerState({
+                        active: data.config.active,
+                        strategyId: data.config.strategyId,
+                        numBlocks: data.config.numBlocks,
+                        amountPerBlockFormatted: data.config.amountPerBlockFormatted,
+                        numRounds: data.config.numRounds,
+                        roundsExecuted: data.config.roundsExecuted,
+                        depositAmountFormatted: data.config.depositAmountFormatted,
+                        costPerRoundFormatted: data.costPerRoundFormatted,
+                        roundsRemaining: data.roundsRemaining,
+                        totalRefundableFormatted: data.totalRefundableFormatted,
+                    })
+                    // If deactivated, switch back to allow manual mode
+                    if (!data.config.active) {
+                        setMode("manual")
+                    }
+                })
+                .catch(() => {})
+        }
+
+        const unsub1 = subscribeUser('autoMineExecuted', fetchAutoState)
+        const unsub2 = subscribeUser('configDeactivated', fetchAutoState)
+        const unsub3 = subscribeUser('stopped', fetchAutoState)
+
+        return () => {
+            unsub1()
+            unsub2()
+            unsub3()
+        }
+    }, [subscribeUser, userAddress])
 
     useEffect(() => {
         const handleBlocksChanged = (event: CustomEvent) => {

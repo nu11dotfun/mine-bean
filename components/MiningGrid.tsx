@@ -1,7 +1,8 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from "react"
-import { apiFetch, sseSubscribe } from "@/lib/api"
+import { apiFetch } from "@/lib/api"
+import { useSSE } from "@/lib/SSEContext"
 
 interface BlockData {
     id: number
@@ -219,143 +220,137 @@ export default function MiningGrid({
         return () => window.removeEventListener("userDeployed" as any, handleUserDeployed)
     }, [])
 
-    // Subscribe to user SSE for AutoMiner deployments
+    // Subscribe to user SSE for AutoMiner deployments via centralized SSE context
+    const { subscribeUser, subscribeGlobal } = useSSE()
+
     useEffect(() => {
-        if (!userAddress) return
-
-        return sseSubscribe(
-            `/api/user/${userAddress}/events`,
-            (event, data) => {
-                if (event === 'autoMineExecuted') {
-                    const d = data as { roundId: string; blocks?: number[]; roundsExecuted: number }
-                    // Mark these blocks as deployed by user (guard against undefined blocks)
-                    if (d.blocks && d.blocks.length > 0) {
-                        setUserDeployedBlocks(prev => {
-                            const next = new Set(prev)
-                            d.blocks!.forEach(id => next.add(id))
-                            return next
-                        })
-                        setHasDeployedThisRound(true)
-                        // Clear selection and notify controls
-                        setSelectedBlocks([])
-                        window.dispatchEvent(new CustomEvent("blocksChanged", {
-                            detail: { blocks: [], count: 0 }
-                        }))
-                    }
-                }
-            },
-            ['autoMineExecuted']
-        )
-    }, [userAddress])
-
-    // Subscribe to SSE for live updates
-    useEffect(() => {
-        const closeSSE = sseSubscribe('/api/events/rounds', (event, data) => {
-            if (event === 'deployed') {
-                if (animatingRef.current) return
-                const d = data as DeployedEvent
-                setCells(blocksToGrid(d.blocks))
-
-                // If this is the connected user's AutoMiner deployment, fetch their blocks
-                // This handles the race condition where user SSE may not be connected yet
-                if (d.isAutoMine && userAddressRef.current &&
-                    d.user.toLowerCase() === userAddressRef.current.toLowerCase()) {
-                    apiFetch<{ history: Array<{ blockMask: string }> }>(
-                        `/api/user/${userAddressRef.current}/history?type=deploy&roundId=${d.roundId}&limit=1`
-                    ).then((res) => {
-                        if (res.history[0]?.blockMask) {
-                            const blockIds = decodeBlockMask(res.history[0].blockMask)
-                            if (blockIds.length > 0) {
-                                setUserDeployedBlocks(prev => {
-                                    const next = new Set(prev)
-                                    blockIds.forEach(id => next.add(id))
-                                    return next
-                                })
-                                setHasDeployedThisRound(true)
-                                setSelectedBlocks([])
-                                window.dispatchEvent(new CustomEvent("blocksChanged", {
-                                    detail: { blocks: [], count: 0 }
-                                }))
-                            }
-                        }
-                    }).catch(() => {})
-                }
-
-                window.dispatchEvent(new CustomEvent("roundDeployed", {
-                    detail: {
-                        totalDeployed: d.totalDeployed,
-                        totalDeployedFormatted: d.totalDeployedFormatted,
-                        user: d.user,
-                        userDeployedFormatted: d.userDeployedFormatted,
-                    }
+        return subscribeUser('autoMineExecuted', (data) => {
+            const d = data as { roundId: string; blocks?: number[]; roundsExecuted: number }
+            // Mark these blocks as deployed by user (guard against undefined blocks)
+            if (d.blocks && d.blocks.length > 0) {
+                setUserDeployedBlocks(prev => {
+                    const next = new Set(prev)
+                    d.blocks!.forEach(id => next.add(id))
+                    return next
+                })
+                setHasDeployedThisRound(true)
+                // Clear selection and notify controls
+                setSelectedBlocks([])
+                window.dispatchEvent(new CustomEvent("blocksChanged", {
+                    detail: { blocks: [], count: 0 }
                 }))
             }
+        })
+    }, [subscribeUser])
 
-            if (event === 'roundSettled') {
-                const d = data as RoundSettledEvent
-                const winner = parseInt(d.winningBlock, 10)
-                clearAnimationTimers()
+    // Subscribe to global SSE events for live updates via centralized SSE context
+    useEffect(() => {
+        const unsubDeployed = subscribeGlobal('deployed', (data) => {
+            if (animatingRef.current) return
+            const d = data as DeployedEvent
+            setCells(blocksToGrid(d.blocks))
 
-                // Freeze current grid data so it survives any resets
-                snapshotCellsRef.current = [...cellsRef.current]
-                animatingRef.current = true
-                setPhase("eliminating")
-                setWinningBlock(winner)
-
-                // Eliminate blocks one by one over 5 seconds
-                const toEliminate = Array.from({ length: 25 }, (_, i) => i).filter((i) => i !== winner)
-                toEliminate.sort(() => Math.random() - 0.5)
-
-                const intervalTime = 5000 / toEliminate.length
-                let eliminated: number[] = []
-
-                toEliminate.forEach((blockIndex, i) => {
-                    const tid = setTimeout(() => {
-                        eliminated = [...eliminated, blockIndex]
-                        setEliminatedBlocks([...eliminated])
-                    }, intervalTime * (i + 1))
-                    animationTimers.current.push(tid)
-                })
-
-                // Show winner phase after elimination finishes (~5s)
-                animationTimers.current.push(
-                    setTimeout(() => setPhase("winner"), 5200)
-                )
-
-                // After 3 more seconds of winner display (8s total), reset for the new round
-                animationTimers.current.push(
-                    setTimeout(() => {
-                        resetForNewRound(pendingResetRef.current)
-                    }, 8200)
-                )
-
-                window.dispatchEvent(
-                    new CustomEvent("roundSettled", { detail: d })
-                )
+            // If this is the connected user's AutoMiner deployment, fetch their blocks
+            // This handles the race condition where user SSE may not be connected yet
+            if (d.isAutoMine && userAddressRef.current &&
+                d.user.toLowerCase() === userAddressRef.current.toLowerCase()) {
+                apiFetch<{ history: Array<{ blockMask: string }> }>(
+                    `/api/user/${userAddressRef.current}/history?type=deploy&roundId=${d.roundId}&limit=1`
+                ).then((res) => {
+                    if (res.history[0]?.blockMask) {
+                        const blockIds = decodeBlockMask(res.history[0].blockMask)
+                        if (blockIds.length > 0) {
+                            setUserDeployedBlocks(prev => {
+                                const next = new Set(prev)
+                                blockIds.forEach(id => next.add(id))
+                                return next
+                            })
+                            setHasDeployedThisRound(true)
+                            setSelectedBlocks([])
+                            window.dispatchEvent(new CustomEvent("blocksChanged", {
+                                detail: { blocks: [], count: 0 }
+                            }))
+                        }
+                    }
+                }).catch(() => {})
             }
 
-            if (event === 'gameStarted') {
-                const d = data as GameStartedEvent
-                // Always buffer — never reset immediately.
-                // If roundSettled already arrived, the animation timer handles the reset.
-                // If roundSettled hasn't arrived yet (wrong order), wait 2s for it.
-                pendingResetRef.current = d
-                if (!animatingRef.current) {
-                    const fallbackId = setTimeout(() => {
-                        if (!animatingRef.current) {
-                            resetForNewRound(pendingResetRef.current)
-                        }
-                    }, 2000)
-                    animationTimers.current.push(fallbackId)
+            window.dispatchEvent(new CustomEvent("roundDeployed", {
+                detail: {
+                    totalDeployed: d.totalDeployed,
+                    totalDeployedFormatted: d.totalDeployedFormatted,
+                    user: d.user,
+                    userDeployedFormatted: d.userDeployedFormatted,
                 }
+            }))
+        })
+
+        const unsubSettled = subscribeGlobal('roundSettled', (data) => {
+            const d = data as RoundSettledEvent
+            const winner = parseInt(d.winningBlock, 10)
+            clearAnimationTimers()
+
+            // Freeze current grid data so it survives any resets
+            snapshotCellsRef.current = [...cellsRef.current]
+            animatingRef.current = true
+            setPhase("eliminating")
+            setWinningBlock(winner)
+
+            // Eliminate blocks one by one over 5 seconds
+            const toEliminate = Array.from({ length: 25 }, (_, i) => i).filter((i) => i !== winner)
+            toEliminate.sort(() => Math.random() - 0.5)
+
+            const intervalTime = 5000 / toEliminate.length
+            let eliminated: number[] = []
+
+            toEliminate.forEach((blockIndex, i) => {
+                const tid = setTimeout(() => {
+                    eliminated = [...eliminated, blockIndex]
+                    setEliminatedBlocks([...eliminated])
+                }, intervalTime * (i + 1))
+                animationTimers.current.push(tid)
+            })
+
+            // Show winner phase after elimination finishes (~5s)
+            animationTimers.current.push(
+                setTimeout(() => setPhase("winner"), 5200)
+            )
+
+            // After 3 more seconds of winner display (8s total), reset for the new round
+            animationTimers.current.push(
+                setTimeout(() => {
+                    resetForNewRound(pendingResetRef.current)
+                }, 8200)
+            )
+
+            window.dispatchEvent(
+                new CustomEvent("roundSettled", { detail: d })
+            )
+        })
+
+        const unsubGameStarted = subscribeGlobal('gameStarted', (data) => {
+            const d = data as GameStartedEvent
+            // Always buffer — never reset immediately.
+            // If roundSettled already arrived, the animation timer handles the reset.
+            // If roundSettled hasn't arrived yet (wrong order), wait 2s for it.
+            pendingResetRef.current = d
+            if (!animatingRef.current) {
+                const fallbackId = setTimeout(() => {
+                    if (!animatingRef.current) {
+                        resetForNewRound(pendingResetRef.current)
+                    }
+                }, 2000)
+                animationTimers.current.push(fallbackId)
             }
         })
 
         return () => {
-            closeSSE()
+            unsubDeployed()
+            unsubSettled()
+            unsubGameStarted()
             clearAnimationTimers()
         }
-    }, [resetForNewRound, clearAnimationTimers])
+    }, [subscribeGlobal, resetForNewRound, clearAnimationTimers])
 
     // Listen for select-all from sidebar controls
     useEffect(() => {

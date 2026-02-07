@@ -14,7 +14,7 @@ export const CONTRACTS = {
     abi: BeanABI,
   },
   AutoMiner: {
-    address: '0x29d24210cEF9a3a85ae3040f1b7f442649D16ecF' as `0x${string}`,
+    address: '0x442714CcFf3f0C851A16cA9B3733cd58951389e1' as `0x${string}`,
     abi: AutoMinerABI,
   },
   Treasury: {

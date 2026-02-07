@@ -110,6 +110,7 @@ export default function MiningGrid({
     const [currentRoundId, setCurrentRoundId] = useState<string>("")
     const [userDeployedBlocks, setUserDeployedBlocks] = useState<Set<number>>(new Set())
     const [hasDeployedThisRound, setHasDeployedThisRound] = useState(false)
+    const [autoMode, setAutoMode] = useState<{ enabled: boolean, strategy: "all" | "random" | null }>({ enabled: false, strategy: null })
 
     // Animation state: snapshot freezes grid data so resets can't wipe it mid-animation
     const animatingRef = useRef(false)
@@ -376,7 +377,29 @@ export default function MiningGrid({
         return () => window.removeEventListener("selectAllBlocks" as any, handleSelectAll)
     }, [])
 
+    // Listen for autoMinerMode from sidebar controls
+    useEffect(() => {
+        const handleAutoMode = (event: CustomEvent) => {
+            const { enabled, strategy } = event.detail
+            setAutoMode({ enabled, strategy })
+            if (enabled && strategy === "all") {
+                // Select all 25 blocks
+                const allBlocks = Array.from({ length: 25 }, (_, i) => i).filter(i => !userDeployedBlocks.has(i))
+                setSelectedBlocks(allBlocks)
+                window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: allBlocks, count: allBlocks.length } }))
+            } else {
+                // Clear selection for random or manual mode
+                setSelectedBlocks([])
+                window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: [], count: 0 } }))
+            }
+        }
+
+        window.addEventListener("autoMinerMode" as any, handleAutoMode)
+        return () => window.removeEventListener("autoMinerMode" as any, handleAutoMode)
+    }, [userDeployedBlocks])
+
     const handleBlockClick = (index: number) => {
+        if (autoMode.enabled) return  // Disable clicks in any auto mode (both "all" and "random")
         if (phase !== "counting") return
         if (hasDeployedThisRound) return
         if (userDeployedBlocks.has(index)) return
@@ -409,9 +432,10 @@ export default function MiningGrid({
                                 ...(isSelected && !isEliminated && !isDeployed ? styles.cellSelected : {}),
                                 ...(isEliminated ? styles.cellEliminated : {}),
                                 ...(isWinner && phase === "winner" ? styles.cellWinner : {}),
+                                ...(autoMode.enabled && autoMode.strategy === "random" && !isDeployed ? styles.cellDisabled : {}),
                             }}
                             onClick={() => handleBlockClick(index)}
-                            disabled={phase !== "counting" || isDeployed || hasDeployedThisRound}
+                            disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || autoMode.enabled}
                         >
                             {!isEliminated && (
                                 <>
@@ -520,6 +544,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     cellWinner: {
         border: "2px solid #F0B90B",
         boxShadow: "0 0 20px rgba(240, 185, 11, 0.3)",
+    },
+    cellDisabled: {
+        opacity: 0.5,
+        cursor: "not-allowed",
     },
     cellHeader: {
         display: "flex",

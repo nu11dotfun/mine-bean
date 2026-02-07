@@ -71,7 +71,7 @@ export default function SidebarControls({
     const { openConnectModal } = useConnectModal()
     const [mode, setMode] = useState<"manual" | "auto">("manual")
     const [hoveredMode, setHoveredMode] = useState<string | null>(null)
-    const [amount, setAmount] = useState("0")
+    const [perBlock, setPerBlock] = useState("0")
 
     const [selectedBlockCount, setSelectedBlockCount] = useState(0)
     const [selectedBlockIds, setSelectedBlockIds] = useState<number[]>([])
@@ -291,39 +291,43 @@ export default function SidebarControls({
     }
 
     const handleQuickAmount = (value: number) => {
-        const current = parseFloat(amount) || 0
-        setAmount((current + value).toFixed(2))
+        const current = parseFloat(perBlock) || 0
+        setPerBlock((current + value).toFixed(5))
     }
 
     const handleAllClick = () => {
         if (blockSelection === "all") {
             setBlockSelection("random")
+            window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: true, strategy: "random" } }))
         } else {
             setBlockSelection("all")
             setAutoBlocks(25)
+            window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: true, strategy: "all" } }))
         }
     }
 
     // Manual mode calculations
-    const baseAmount = parseFloat(amount) || 0
-    const manualPerBlock = selectedBlockCount > 0 ? baseAmount / selectedBlockCount : 0
+    const perBlockAmount = parseFloat(perBlock) || 0
+    const manualTotal = perBlockAmount * selectedBlockCount
     const hasDeployed = userDeployed > 0
-    const canDeploy = baseAmount > 0 && manualPerBlock >= MIN_DEPLOY_PER_BLOCK && timer > 0 && phase === "counting" && !hasDeployed
+    const exceedsBalance = manualTotal > userBalance
+    const canDeploy = perBlockAmount >= MIN_DEPLOY_PER_BLOCK && selectedBlockCount > 0 && !exceedsBalance && timer > 0 && phase === "counting" && !hasDeployed
 
     // Auto mode calculations
     const autoNumBlocks = blockSelection === "all" ? 25 : autoBlocks
     const autoTotalBlocks = autoNumBlocks * autoRounds
-    // Mirror contract formula: amountPerBlock = (deposit * 10000) / (totalBlocks * (10000 + feeBps))
-    const autoPerBlock = autoTotalBlocks > 0
-        ? (baseAmount * 10000) / (autoTotalBlocks * (10000 + EXECUTOR_FEE_BPS))
-        : 0
-    const autoPerRound = autoRounds > 0 ? baseAmount / autoRounds : 0
-    const canActivate = baseAmount > 0 && autoPerBlock >= MIN_DEPLOY_PER_BLOCK && autoRounds >= 1
+    // Invert the fee formula to get required deposit from desired per-block
+    // Contract formula: effectivePerBlock = (deposit * 10000) / (totalBlocks * (10000 + feeBps))
+    // Inverting: deposit = effectivePerBlock * totalBlocks * (10000 + feeBps) / 10000
+    const autoTotalDeposit = (perBlockAmount * autoTotalBlocks * (10000 + EXECUTOR_FEE_BPS)) / 10000
+    const autoPerRound = autoRounds > 0 ? autoTotalDeposit / autoRounds : 0
+    const exceedsBalanceAuto = autoTotalDeposit > userBalance
+    const canActivate = perBlockAmount >= MIN_DEPLOY_PER_BLOCK && autoRounds >= 1 && !exceedsBalanceAuto
 
     const handleAutoActivateClick = () => {
         if (!canActivate) return
         const strategyId = blockSelection === "all" ? 1 : 0
-        const depositAmount = parseEther(baseAmount.toFixed(18))
+        const depositAmount = parseEther(autoTotalDeposit.toFixed(18))
         onAutoActivate?.(strategyId, autoRounds, autoNumBlocks, depositAmount)
     }
 
@@ -406,7 +410,10 @@ export default function SidebarControls({
                                 ...(mode === "manual" ? styles.modeBtnActive : {}),
                                 ...(hoveredMode === "manual" && mode !== "manual" ? styles.modeBtnHover : {}),
                             }}
-                            onClick={() => setMode("manual")}
+                            onClick={() => {
+                                setMode("manual")
+                                window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: false, strategy: null } }))
+                            }}
                             onMouseEnter={() => setHoveredMode("manual")}
                             onMouseLeave={() => setHoveredMode(null)}
                         >
@@ -418,7 +425,10 @@ export default function SidebarControls({
                                 ...(mode === "auto" ? styles.modeBtnActive : {}),
                                 ...(hoveredMode === "auto" && mode !== "auto" ? styles.modeBtnHover : {}),
                             }}
-                            onClick={() => setMode("auto")}
+                            onClick={() => {
+                                setMode("auto")
+                                window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: true, strategy: blockSelection } }))
+                            }}
                             onMouseEnter={() => setHoveredMode("auto")}
                             onMouseLeave={() => setHoveredMode(null)}
                         >
@@ -450,10 +460,10 @@ export default function SidebarControls({
                             <input
                                 type="text"
                                 style={{ ...styles.amountInput, color: "#fff" }}
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                onFocus={() => { if (amount === "0") setAmount("") }}
-                                onBlur={() => { if (amount === "") setAmount("0") }}
+                                value={perBlock}
+                                onChange={(e) => setPerBlock(e.target.value)}
+                                onFocus={() => { if (perBlock === "0") setPerBlock("") }}
+                                onBlur={() => { if (perBlock === "") setPerBlock("0") }}
                             />
                         </div>
 
@@ -481,14 +491,9 @@ export default function SidebarControls({
                             </div>
                         </div>
 
-                        <div style={styles.row}>
-                            <span style={styles.rowLabel}>Per block</span>
-                            <span style={styles.totalValue}>{manualPerBlock.toFixed(5)} BNB</span>
-                        </div>
-
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total</span>
-                            <span style={styles.totalValue}>{baseAmount.toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>{manualTotal.toFixed(5)} BNB</span>
                         </div>
 
                         {isConnected ? (
@@ -497,7 +502,7 @@ export default function SidebarControls({
                                     ...styles.deployBtn,
                                     ...(canDeploy ? styles.deployBtnActive : styles.deployBtnDisabled),
                                 }}
-                                onClick={() => onDeploy?.(baseAmount, selectedBlockIds)}
+                                onClick={() => onDeploy?.(manualTotal, selectedBlockIds)}
                                 disabled={!canDeploy}
                             >
                                 {hasDeployed ? "✓ Deployed" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
@@ -533,10 +538,10 @@ export default function SidebarControls({
                             <input
                                 type="text"
                                 style={{ ...styles.amountInput, color: "#fff" }}
-                                value={amount}
-                                onChange={(e) => setAmount(e.target.value)}
-                                onFocus={() => { if (amount === "0") setAmount("") }}
-                                onBlur={() => { if (amount === "") setAmount("0") }}
+                                value={perBlock}
+                                onChange={(e) => setPerBlock(e.target.value)}
+                                onFocus={() => { if (perBlock === "0") setPerBlock("") }}
+                                onBlur={() => { if (perBlock === "") setPerBlock("0") }}
                             />
                         </div>
 
@@ -597,18 +602,13 @@ export default function SidebarControls({
                         </div>
 
                         <div style={styles.row}>
-                            <span style={styles.rowLabel}>Per block</span>
-                            <span style={styles.totalValue}>{autoPerBlock.toFixed(5)} BNB</span>
-                        </div>
-
-                        <div style={styles.row}>
                             <span style={styles.rowLabel}>Per round</span>
                             <span style={styles.totalValue}>{autoPerRound.toFixed(5)} BNB</span>
                         </div>
 
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total deposit</span>
-                            <span style={styles.totalValue}>{baseAmount.toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>{autoTotalDeposit.toFixed(5)} BNB</span>
                         </div>
 
                         {isConnected ? (

@@ -33,4 +33,4 @@ export const CONTRACTS = {
 // Below values are used by frontend validations to avoid users submitting tx's that will revert due to contract limits.
 // Make sure they reflect the true contract values.
 export const MIN_DEPLOY_PER_BLOCK = 0.00001 // BNB
-export const EXECUTOR_FEE_BPS = 50 // 0.5% AutoMiner executor fee
+export const EXECUTOR_FEE_BPS = 100 // 1% AutoMiner executor fee

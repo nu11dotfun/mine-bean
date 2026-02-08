@@ -1,6 +1,7 @@
 'use client'
 
 import { ConnectButton } from '@rainbow-me/rainbowkit'
+import BeanLogo from './BeanLogo'
 import { useState, useRef, useEffect } from 'react'
 import { useBalance, useReadContract, useDisconnect } from 'wagmi'
 
@@ -161,28 +162,28 @@ export default function WalletButton() {
                         <div style={styles.portfolioRow}>
                           <span style={styles.portfolioLabel}>Wallet</span>
                           <span style={styles.portfolioValue}>
-                            <span style={styles.beansIcon}>🫘</span> {portfolio.wallet.toFixed(4)}
+                            <BeanLogo size={14} /> {portfolio.wallet.toFixed(4)}
                           </span>
                         </div>
                         
                         <div style={styles.portfolioRow}>
                           <span style={styles.portfolioLabel}>Staked</span>
                           <span style={styles.portfolioValue}>
-                            <span style={styles.beansIcon}>🫘</span> {portfolio.staked.toFixed(4)}
+                            <BeanLogo size={14} /> {portfolio.staked.toFixed(4)}
                           </span>
                         </div>
                         
                         <div style={styles.portfolioRow}>
                           <span style={styles.portfolioLabel}>Rewards</span>
                           <span style={styles.portfolioValue}>
-                            <span style={styles.beansIcon}>🫘</span> {portfolio.rewards.toFixed(4)}
+                            <BeanLogo size={14} /> {portfolio.rewards.toFixed(4)}
                           </span>
                         </div>
 
                         <div style={styles.portfolioRowTotal}>
                           <span style={styles.portfolioLabel}>Total</span>
                           <span style={styles.portfolioValue}>
-                            <span style={styles.beansIcon}>🫘</span> {(portfolio.wallet + portfolio.staked + portfolio.rewards).toFixed(4)}
+                            <BeanLogo size={14} /> {(portfolio.wallet + portfolio.staked + portfolio.rewards).toFixed(4)}
                           </span>
                         </div>
                       </div>

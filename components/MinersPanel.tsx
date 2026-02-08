@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef, useCallback } from "react"
+import BeanLogo from './BeanLogo'
 import { apiFetch } from "@/lib/api"
 
 interface Miner {
@@ -144,7 +145,7 @@ export default function MinersPanel() {
                                         <>
                                             <span style={styles.plusSign}>+</span>
                                             <span style={styles.beansAmount}>
-                                                🫘 {parseFloat(miner.beanRewardFormatted).toFixed(4)}
+                                                <BeanLogo size={14} /> {parseFloat(miner.beanRewardFormatted).toFixed(4)}
                                             </span>
                                         </>
                                     )}

@@ -23,8 +23,9 @@ export default function AboutPage({
         { id: "how-it-works", label: "How It Works", children: [
             { id: "mining", label: "Mining" },
             { id: "beanpot", label: "The Beanpot" },
-            { id: "golden-bean", label: "Golden Bean" },
+            { id: "bean-rewards", label: "BEAN Rewards" },
             { id: "refining", label: "Refining" },
+            { id: "autominer", label: "AutoMiner" },
         ]},
         { id: "tokenomics", label: "Tokenomics", children: [
             { id: "supply", label: "Supply" },
@@ -44,12 +45,12 @@ export default function AboutPage({
             title: "Overview",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: paragraphGap }}>
-                    <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on BNB Chain where players compete in 60-second rounds to earn rewards.</p>
-                    <p style={{ margin: 0 }}>Deploy BNB on a 5×5 grid of 25 blocks. At the end of each round, one winning block is randomly selected. Players on the winning block share the BNB from all losing blocks, proportional to their deployment.</p>
-                    <p style={{ margin: 0 }}>Each round also emits BEANS tokens to winners, with bonus jackpots and rewards for patient miners who delay claiming.</p>
+                    <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on BNB Chain. Players compete in continuous 60-second rounds on a 5×5 grid of 25 blocks, deploying BNB to earn both BNB rewards and BEANS tokens.</p>
+                    <p style={{ margin: 0 }}>Each round, players choose which blocks to deploy their BNB on. When the round ends, one winning block is randomly selected on-chain. All BNB deployed to losing blocks is redistributed to winners, proportional to their share of the winning block. The protocol takes a 10% vault fee from total deployed BNB, which funds buybacks, burns, and staker rewards.</p>
+                    <p style={{ margin: 0 }}>Beyond BNB rewards, every round mints approximately 1 BEANS token awarded to a miner on the winning block, while a growing jackpot called the Beanpot adds an extra layer of excitement. A unique refining mechanic rewards patient miners who delay claiming their earned BEANS.</p>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Why BEANS?</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be refined and roasted to reach their full potential, BEANS tokens reward patience. The longer you let your mined BEANS roast (remain unclaimed), the more you earn from the refining mechanism.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be refined and roasted to reach their full potential, BEANS tokens reward patience. When you win BEANS, they start as &quot;unrefined&quot; — raw and unclaimed. A 10% refining fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEANS. The longer you let your BEANS roast, the more refined BEANS you accumulate from others claiming before you.</p>
                     </div>
                 </div>
             ),
@@ -58,22 +59,27 @@ export default function AboutPage({
             title: "Mining",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEANS. Each round lasts 60 seconds and takes place on a 5×5 grid of 25 blocks.</p>
+                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEANS. Rounds run continuously — each lasting 60 seconds — on a 5×5 grid of 25 blocks. You get one deploy per round.</p>
                     <div>
-                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How a Round Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Deploy BNB</strong> – Choose which block(s) to deploy your BNB on.</li>
-                            <li><strong>Wait for the round to end</strong> – Each round lasts 60 seconds.</li>
-                            <li><strong>Winning block selected</strong> – A secure random number generator selects one winning block.</li>
-                            <li><strong>Rewards distributed</strong> – BNB from losing blocks goes to winners proportionally.</li>
+                            <li><strong>Select blocks</strong> — Choose which of the 25 blocks you want to deploy on. You can select anywhere from 1 to all 25.</li>
+                            <li><strong>Set your amount</strong> — Enter how much BNB to deploy per block. The total cost is your per-block amount multiplied by the number of blocks you selected. There is a minimum of 0.00001 BNB per block.</li>
+                            <li><strong>Deploy</strong> — Submit your transaction. You can only deploy once per round — once confirmed, your blocks are locked in and shown with a green border on the grid.</li>
+                            <li><strong>Round ends</strong> — When the 60-second timer expires, blocks are eliminated one by one in a rapid animation until only the winning block remains.</li>
+                            <li><strong>Rewards distributed</strong> — Winners on the winning block receive BNB proportional to their share of that block. The protocol takes a 10% vault fee from total deployed BNB, and the rest goes to winners.</li>
                         </ol>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Winner Selection</h3>
+                        <p style={{ margin: 0 }}>The winning block is selected using a secure on-chain random number. This ensures fair and verifiable outcomes every round. All settlement data — winning block, rewards, and miner payouts — is recorded on-chain and visible in the Global stats page.</p>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Strategy</h3>
                         <ul style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Spread your BNB</strong> across multiple blocks for higher win chance but smaller payouts</li>
-                            <li><strong>Concentrate on fewer blocks</strong> for lower chance but larger payouts</li>
-                            <li><strong>Cover all 25 blocks</strong> to guarantee winning (minus protocol fees)</li>
+                            <li><strong>Fewer blocks, higher risk/reward</strong> — Concentrating your BNB on 1–5 blocks gives you a lower chance of winning, but your share of the winning pot is larger relative to what you deployed.</li>
+                            <li><strong>More blocks, lower risk/reward</strong> — Spreading across many blocks increases your odds of being on the winner, but your payout is smaller relative to total cost.</li>
+                            <li><strong>All 25 blocks</strong> — Guarantees you&apos;re on the winning block every round. After the 10% vault fee, you&apos;ll receive back roughly 90% of the total pot, minus what other winners on the same block earn proportionally.</li>
                         </ul>
                     </div>
                 </div>
@@ -83,31 +89,35 @@ export default function AboutPage({
             title: "The Beanpot",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing jackpot pool that adds excitement to every round.</p>
+                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing BEANS jackpot that can be won on any round. It adds a jackpot element to every round of mining, rewarding lucky winners with a potentially large bonus on top of their normal rewards.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li>Each round, <strong>0.2 BEANS</strong> is added to the Beanpot.</li>
-                            <li>There is a <strong>1-in-625 chance</strong> the Beanpot is hit each round.</li>
-                            <li>If hit, the pool is split among winners proportionally.</li>
-                            <li>If not hit, it keeps growing.</li>
+                            <li>Each round, <strong>0.2 BEANS</strong> is added to the Beanpot from the round&apos;s token emission.</li>
+                            <li>Every round has a <strong>1-in-625 chance</strong> of triggering the Beanpot.</li>
+                            <li>If triggered, the entire Beanpot is distributed among the round&apos;s winners, proportional to their deployment on the winning block.</li>
+                            <li>If not triggered, the pool carries over and continues growing, making the next potential payout even larger.</li>
                         </ol>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>Beanpot Math</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>At 0.2 BEANS per round and roughly 1,440 rounds per day (one every 60 seconds), the Beanpot grows by about 288 BEANS daily if not triggered. With 1-in-625 odds, it triggers on average once every ~10 hours, though the actual timing is random.</p>
                     </div>
                 </div>
             ),
         },
-        "golden-bean": {
-            title: "Golden Bean",
+        "bean-rewards": {
+            title: "BEAN Rewards",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The <strong>Golden Bean</strong> is a +1 BEANS bonus awarded to one miner on the winning block each round.</p>
+                    <p style={{ margin: 0 }}>Every round, approximately <strong>1 BEANS token</strong> is minted and awarded to miners on the winning block. This is the primary way new BEANS enter circulation.</p>
                     <div>
-                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
-                        <ol style={{ ...styles.list, gap: listGap }}>
-                            <li>Each round, one miner receives <strong>+1 BEANS</strong> bonus.</li>
-                            <li>Winner selected randomly, weighted by deployment amount.</li>
-                            <li>Sometimes split among all winners instead.</li>
-                        </ol>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How the Winner is Chosen</h3>
+                        <p style={{ margin: 0 }}>The BEANS reward recipient is determined on-chain using a weighted random selection. Miners who deployed more BNB to the winning block have a proportionally higher chance of receiving the full reward.</p>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Split Rounds</h3>
+                        <p style={{ margin: 0 }}>Some rounds result in a <strong>split</strong> instead of a single winner. In split rounds, the BEANS reward is divided among all miners on the winning block proportional to their deployment, rather than going to one person. Split rounds are indicated with a &quot;Split&quot; badge in the mining history.</p>
                     </div>
                 </div>
             ),
@@ -116,15 +126,44 @@ export default function AboutPage({
             title: "Refining",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}><strong>Refining</strong> rewards patient miners who delay claiming.</p>
+                    <p style={{ margin: 0 }}><strong>Refining</strong> is a mechanism that rewards patient miners. When you win BEANS from mining, they accumulate as &quot;unrefined&quot; tokens until you choose to claim them.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li>Won BEANS are <strong>unrefined</strong> until claimed.</li>
-                            <li>Claiming applies a <strong>10% refining fee</strong>.</li>
-                            <li>This fee redistributes to miners with unclaimed BEANS.</li>
-                            <li>Longer holds = more bonus BEANS.</li>
+                            <li><strong>Win BEANS</strong> — Your rewards accumulate as unrefined BEANS in the contract. You can see your unrefined balance in the Rewards panel.</li>
+                            <li><strong>Others claim</strong> — When other miners claim their BEANS, a 10% refining fee is deducted from their claim. This fee is redistributed proportionally to all miners still holding unclaimed BEANS.</li>
+                            <li><strong>Your refined balance grows</strong> — The longer you hold, the more refined BEANS you accumulate from other players&apos; refining fees. Your refined balance is shown separately from your unrefined balance.</li>
+                            <li><strong>Claim when ready</strong> — When you claim, you receive both your unrefined and refined BEANS, minus the 10% fee on your unrefined portion. The fee from your claim then flows to the remaining holders.</li>
                         </ol>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>The Patience Game</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>Refining creates a strategic tension: claim early and pay the 10% fee, or hold longer and benefit from others claiming before you. There&apos;s no lock-up — you can claim anytime — but the incentive structure rewards patience.</p>
+                    </div>
+                </div>
+            ),
+        },
+        autominer: {
+            title: "AutoMiner",
+            content: (
+                <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
+                    <p style={{ margin: 0 }}>The <strong>AutoMiner</strong> lets you deploy automatically across multiple rounds without needing to manually submit a transaction each time. Deposit BNB upfront, configure your strategy, and the AutoMiner handles the rest.</p>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
+                        <ol style={{ ...styles.list, gap: listGap }}>
+                            <li><strong>Choose a strategy</strong> — Select between &quot;All Blocks&quot; (deploys to all 25 blocks every round) or &quot;Random&quot; (deploys to a set number of randomly selected blocks).</li>
+                            <li><strong>Set rounds and amount</strong> — Choose how many rounds to run and your BNB per block. The total deposit is calculated automatically.</li>
+                            <li><strong>Activate</strong> — A single transaction deposits your BNB and starts the AutoMiner. It will deploy on your behalf each round until the configured number of rounds is complete.</li>
+                            <li><strong>Stop anytime</strong> — You can stop the AutoMiner at any point. Remaining unspent BNB is refunded to your wallet.</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Executor Fee</h3>
+                        <p style={{ margin: 0 }}>The AutoMiner charges a 1% executor fee on your deposit to cover the gas costs of executing deployments on your behalf. This is deducted from your deposit upfront — the per-block and per-round amounts shown in the interface already account for this fee.</p>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>Grid Behaviour</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>While AutoMiner is active, the mining grid is locked — you can&apos;t manually select or deploy blocks. Your auto-deployed blocks are highlighted in green each round. You can track rounds executed, remaining balance, and strategy from the controls panel.</p>
                     </div>
                 </div>
             ),
@@ -133,6 +172,7 @@ export default function AboutPage({
             title: "Supply",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
+                    <p style={{ margin: 0 }}>BEANS has a fixed maximum supply with zero initial allocation. Every token in circulation was minted through mining — there is no pre-mine, team allocation, or investor distribution.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Token Details</h3>
                         <table style={styles.table}>
@@ -140,8 +180,19 @@ export default function AboutPage({
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Token Name</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BEANS</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Network</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BNB Chain (BSC)</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Max Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>3,000,000 BEANS</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Initial Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Emission Rate</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>~1 BEANS per round</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Initial Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0 (fair launch)</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Emission</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>~1 BEANS per round</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Round Duration</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>60 seconds</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Emission Breakdown</h3>
+                        <p style={{ margin: 0 }}>Each round mints approximately 1 BEANS, distributed as follows:</p>
+                        <table style={styles.table}>
+                            <tbody>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>BEAN Reward (winner)</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>~0.8 BEANS</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Beanpot contribution</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0.2 BEANS</td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -152,15 +203,28 @@ export default function AboutPage({
             title: "Protocol Revenue",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEANS generates protocol revenue from mining activity.</p>
+                    <p style={{ margin: 0 }}>The protocol generates revenue by taking a <strong>10% vault fee</strong> from all BNB deployed in mining rounds. This revenue is managed by the Treasury contract and used to support the token&apos;s value through buybacks and burns.</p>
                     <div>
-                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Usage</h3>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Flow</h3>
+                        <ol style={{ ...styles.list, gap: listGap }}>
+                            <li><strong>Collection</strong> — 10% of all BNB deployed each round is sent to the Treasury.</li>
+                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated BNB to buy BEANS from the BEAN/BNB liquidity pool on-chain.</li>
+                            <li><strong>Burn</strong> — 90% of purchased BEANS are permanently burned, reducing circulating supply.</li>
+                            <li><strong>Staker Rewards</strong> — The remaining 10% of purchased BEANS are distributed to BEANS stakers as yield.</li>
+                        </ol>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Allocation</h3>
                         <table style={styles.table}>
                             <tbody>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Buyback & Burn</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>90% of revenue</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Staker Rewards</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>10% of revenue</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Buyback &amp; Burn</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>90% of buyback</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Staker Rewards</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>10% of buyback</td></tr>
                             </tbody>
                         </table>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>Transparency</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible in the Global page under the Revenue tab. You can see exactly how much BNB was spent, how much BEANS was burned, and how much yield was generated for stakers.</p>
                     </div>
                 </div>
             ),
@@ -169,8 +233,19 @@ export default function AboutPage({
             title: "Burn Mechanism",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEANS is designed to be <strong>deflationary</strong>.</p>
-                    <p style={{ margin: 0 }}>90% of all BEANS bought with protocol revenue are permanently burned.</p>
+                    <p style={{ margin: 0 }}>BEANS is designed to be <strong>deflationary</strong>. While new tokens are minted through mining (~1 per round), the burn mechanism works to offset and eventually exceed emission.</p>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Burns Work</h3>
+                        <ol style={{ ...styles.list, gap: listGap }}>
+                            <li>The Treasury collects 10% of all deployed BNB as protocol revenue.</li>
+                            <li>This BNB is used to buy BEANS from the on-chain liquidity pool.</li>
+                            <li>90% of purchased BEANS are sent to the burn address — permanently removed from circulation.</li>
+                        </ol>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>Deflationary Dynamics</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>The more BNB deployed across rounds, the more revenue the protocol generates, and the more BEANS are burned. As mining activity increases, buy pressure and burn rate scale with it — creating a positive feedback loop for the token&apos;s scarcity. Current burn totals are visible on the Global stats page.</p>
+                    </div>
                 </div>
             ),
         },
@@ -178,14 +253,19 @@ export default function AboutPage({
             title: "Staking",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Stake your BEANS to earn a share of protocol revenue.</p>
+                    <p style={{ margin: 0 }}>Stake your BEANS tokens to earn a share of protocol revenue. Stakers receive 10% of all BEANS purchased through Treasury buybacks as yield, distributed proportionally based on stake size.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Staking Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Deposit BEANS</strong> into the staking contract</li>
-                            <li><strong>Earn rewards</strong> from protocol revenue</li>
-                            <li><strong>Withdraw anytime</strong> – no lock-up period</li>
+                            <li><strong>Deposit BEANS</strong> — Stake your BEANS tokens into the staking contract.</li>
+                            <li><strong>Earn yield</strong> — Each time the Treasury executes a buyback, 10% of the purchased BEANS is distributed to stakers proportional to their stake.</li>
+                            <li><strong>Claim rewards</strong> — Accumulated staking rewards can be claimed at any time.</li>
+                            <li><strong>Withdraw</strong> — Unstake your BEANS whenever you want. There is no lock-up period.</li>
                         </ol>
+                    </div>
+                    <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
+                        <strong>Staking vs Refining</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>Staking and refining are separate reward streams. Refining rewards come from the 10% fee when miners claim their unrefined BEANS. Staking rewards come from the Treasury buyback cycle — funded by the 10% vault fee on deployed BNB. You can benefit from both by mining (to earn unrefined BEANS through refining) and staking (to earn yield from buybacks).</p>
                     </div>
                 </div>
             ),
@@ -196,15 +276,39 @@ export default function AboutPage({
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is BEANS?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A gamified mining protocol on BNB Chain with 60-second rounds.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>BEANS is a gamified mining protocol on BNB Chain. Players deploy BNB on a 5×5 grid in 60-second rounds, competing to land on the randomly selected winning block and earn BNB rewards plus BEANS tokens.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Can I lose my BNB?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>Yes, if your block doesn't win. Cover all 25 blocks to guarantee wins.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Yes. If none of your selected blocks are the winning block, your deployed BNB goes to the winners. You can reduce risk by deploying on more blocks, or eliminate it entirely by covering all 25 — though the 10% vault fee means you&apos;ll receive back less than you deployed.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How many times can I deploy per round?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>Once. The smart contract enforces one deployment per round per wallet. After deploying, your blocks are locked in and you wait for the round to settle.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the minimum deployment?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>0.00001 BNB per block. If you select 5 blocks, your minimum total would be 0.00005 BNB.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the Beanpot?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>A growing BEANS jackpot funded by 0.2 BEANS per round. Each round has a 1-in-625 chance of triggering the Beanpot, distributing the entire pool to that round&apos;s winners.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is refining?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A 10% fee on claims redistributed to patient miners.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>When you claim earned BEANS, a 10% refining fee is deducted and redistributed to other miners still holding unclaimed BEANS. By delaying your claim, you accumulate &quot;refined&quot; BEANS from other players&apos; fees.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What does the AutoMiner do?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>AutoMiner lets you deposit BNB upfront and automatically deploy across multiple rounds. Choose a strategy (all blocks or random), set how many rounds to run, and the protocol handles deployment each round. A 1% executor fee covers gas costs.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Where does protocol revenue come from?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>10% of all BNB deployed in mining rounds is collected as a vault fee. This BNB is used by the Treasury to buy BEANS from the liquidity pool — 90% is burned and 10% goes to stakers.</p>
+                    </div>
+                    <div style={styles.faqItem}>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Is there a token pre-mine or team allocation?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>No. BEANS launched with zero initial supply. Every token in circulation was minted through mining rounds. The max supply is 3,000,000 BEANS.</p>
                     </div>
                 </div>
             ),

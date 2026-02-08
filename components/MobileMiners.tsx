@@ -70,7 +70,7 @@ export default function MobileMiners() {
                         <div key={index} style={styles.minerRow}>
                             <span style={styles.minerAddress}>{miner.address}</span>
                             <div style={styles.minerAmounts}>
-                                <span style={styles.beansAmount}>🫘 {miner.beansAmount.toFixed(4)}</span>
+                                <span style={styles.beansAmount}><BeanLogo size={14} /> {miner.beansAmount.toFixed(4)}</span>
                                 <span style={styles.bnbAmount}>+ ⛓️ {miner.bnbAmount.toFixed(4)}</span>
                             </div>
                         </div>

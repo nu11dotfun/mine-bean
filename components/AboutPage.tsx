@@ -42,9 +42,20 @@ export default function AboutPage({
     const paragraphGap = isMobile ? "16px" : "20px"
     const listGap = isMobile ? "12px" : "16px"
 
-    const SectionImage = ({ alt }: { alt: string; placeholder: string }) => (
-        <div style={{ width: "100%", borderRadius: "12px", overflow: "hidden", border: "1px solid #333", marginTop: "8px", marginBottom: "8px", background: "#111", padding: isMobile ? "32px 16px" : "48px 24px", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <span style={{ color: "#555", fontSize: isMobile ? "13px" : "15px", fontWeight: 600, textAlign: "center", textTransform: "uppercase", letterSpacing: "0.5px" }}>[ Insert image of {alt} ]</span>
+    const SectionImage = ({ alt, placeholder, maxWidth = "480px" }: { alt: string; placeholder: string; maxWidth?: string }) => (
+        <div style={{ maxWidth, borderRadius: "12px", overflow: "hidden", border: "1px solid #222", marginTop: "8px", marginBottom: "8px" }}>
+            <img src={`/images/about/${placeholder}`} alt={alt} style={{ width: "100%", height: "auto", display: "block" }} />
+        </div>
+    )
+
+    const SideBySideImages = ({ left, right, maxWidth = "520px" }: { left: { alt: string; placeholder: string }; right: { alt: string; placeholder: string }; maxWidth?: string }) => (
+        <div style={{ display: "flex", gap: "12px", marginTop: "8px", marginBottom: "8px", maxWidth }}>
+            <div style={{ flex: 1, borderRadius: "12px", overflow: "hidden", border: "1px solid #222" }}>
+                <img src={`/images/about/${left.placeholder}`} alt={left.alt} style={{ width: "100%", height: "auto", display: "block" }} />
+            </div>
+            <div style={{ flex: 1, borderRadius: "12px", overflow: "hidden", border: "1px solid #222" }}>
+                <img src={`/images/about/${right.placeholder}`} alt={right.alt} style={{ width: "100%", height: "auto", display: "block" }} />
+            </div>
         </div>
     )
 
@@ -56,7 +67,7 @@ export default function AboutPage({
                     <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on BNB Chain where players compete in continuous 60-second rounds to earn BNB and BEANS tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
                     <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy BNB onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. All BNB from the 24 losing blocks is collected, the protocol takes a 10% vault fee, and the remaining 90% is redistributed to miners on the winning block — proportional to how much each player deployed.</p>
                     <p style={{ margin: 0 }}>On top of BNB rewards, approximately 1 BEANS token is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEANS bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEANS.</p>
-                    <SectionImage alt="BEANS mining grid overview" placeholder="grid-overview.png" />
+                    <SectionImage alt="BEANS mining grid overview" placeholder="beansmininggrid.png" maxWidth="520px" />
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Why BEANS?</strong>
                         <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEANS tokens reward patience. When you win BEANS, they start as &quot;unroasted&quot; — raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEANS. The longer you let your BEANS roast, the more roasted BEANS you accumulate from others claiming before you.</p>
@@ -80,7 +91,6 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Connect Your Wallet</h3>
                         <p style={{ margin: 0 }}>Click the <strong>Connect Wallet</strong> button in the top-right corner. Select your wallet provider and approve the connection. Once connected, you&apos;ll see your truncated address displayed in the header.</p>
-                        <SectionImage alt="Connect wallet button" placeholder="connect-wallet.png" />
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Your Account</h3>
@@ -90,7 +100,7 @@ export default function AboutPage({
                             <li><strong>BNB Balance</strong> — Your current BNB balance on BSC, used for deploying and gas fees.</li>
                             <li><strong>Portfolio</strong> — Your BEANS token breakdown across three categories: Wallet (BEANS in your wallet), Staked (BEANS deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
                         </ul>
-                        <SectionImage alt="Account panel showing wallet and portfolio" placeholder="wallet-account.png" />
+                        <SectionImage alt="Account panel showing wallet and portfolio" placeholder="accountpanel.png" maxWidth="280px" />
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Live Price Feeds</h3>
@@ -108,7 +118,7 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}>Mining is the core mechanic of BEANS. Rounds run continuously — one every 60 seconds — on a 5×5 grid of 25 blocks. Each round is an independent game with its own set of deployments, a randomly selected winner, and immediate payouts.</p>
-                    <SectionImage alt="BEANS mining grid with active round" placeholder="mining-grid.png" />
+                    <SectionImage alt="BEANS mining grid with active round" placeholder="beansmininggrid.png" maxWidth="520px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How a Round Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -119,7 +129,7 @@ export default function AboutPage({
                             <li><strong>Rewards distributed</strong> — All BNB from losing blocks is collected. The protocol takes a 10% vault fee, and the remaining 90% is distributed to miners on the winning block, proportional to each miner&apos;s share of that block.</li>
                         </ol>
                     </div>
-                    <SectionImage alt="BEANS controls panel" placeholder="controls-panel.png" />
+                    <SideBySideImages left={{ alt: "Manual controls panel", placeholder: "manualcontrolpanel.png" }} right={{ alt: "Auto controls panel", placeholder: "autocontrolpanel.png" }} />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
@@ -193,7 +203,6 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}><strong>Roasting</strong> is the mechanism that rewards patient miners. When you win BEANS from mining, they accumulate as &quot;unroasted&quot; tokens in the smart contract until you choose to claim them. The longer you wait, the more you earn from other miners claiming before you.</p>
-                    <SectionImage alt="Rewards panel showing unroasted and roasted balances" placeholder="rewards-panel.png" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -224,7 +233,6 @@ export default function AboutPage({
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}>The <strong>AutoMiner</strong> lets you mine across multiple rounds without manually deploying each time. Deposit BNB upfront, configure your strategy, and the protocol handles deployment on your behalf every round until your balance runs out or you stop it.</p>
                     <p style={{ margin: 0 }}>This is especially useful for maximizing Beanpot chances and roasting fee accumulation — consistent presence across many rounds is more profitable than sporadic manual mining.</p>
-                    <SectionImage alt="AutoMiner configuration panel" placeholder="autominer-config.png" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -235,7 +243,6 @@ export default function AboutPage({
                             <li><strong>Stop anytime</strong> — Hit Stop to deactivate the AutoMiner. Any remaining unspent BNB is refunded to your wallet immediately.</li>
                         </ol>
                     </div>
-                    <SectionImage alt="AutoMiner active status" placeholder="autominer-active.png" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Executor Fee</h3>
                         <p style={{ margin: 0 }}>The AutoMiner charges a <strong>1% executor fee</strong> on your deposit to cover the gas costs of executing deployments on your behalf each round. This is deducted from your deposit upfront — the per-block and per-round amounts shown in the interface already account for this fee, so what you see is what gets deployed.</p>
@@ -327,7 +334,7 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}>The protocol generates revenue by taking a <strong>10% vault fee</strong> from all BNB deployed in mining rounds. This revenue doesn&apos;t sit idle — it actively supports the BEANS token through automated buybacks and burns.</p>
-                    <SectionImage alt="Global page showing protocol revenue stats" placeholder="global-revenue.png" />
+                    <SectionImage alt="Global page showing protocol revenue stats" placeholder="protocolrev.png" maxWidth="680px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Flow</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -383,7 +390,7 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}>Stake your BEANS tokens to earn a share of protocol revenue. Stakers receive 10% of all BEANS purchased through Treasury buybacks as yield, distributed proportionally based on stake size.</p>
-                    <SectionImage alt="Staking page interface" placeholder="staking-page.png" />
+                    <SectionImage alt="Staking page interface" placeholder="stake.png" maxWidth="440px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Staking Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -392,6 +399,20 @@ export default function AboutPage({
                             <li><strong>Claim rewards</strong> — Accumulated staking rewards can be claimed at any time. They don&apos;t compound automatically — claimed rewards go to your wallet.</li>
                             <li><strong>Withdraw</strong> — Unstake your BEANS whenever you want. There is no lock-up period, no cooldown, no penalty.</li>
                         </ol>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Staking Summary</h3>
+                        <p style={{ margin: 0 }}>The Stake page displays key metrics so you can evaluate staking at a glance:</p>
+                        <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
+                            <li><strong>Total Deposits</strong> — The total amount of BEANS staked across all stakers.</li>
+                            <li><strong>APR</strong> — The current annualized percentage return based on recent buyback activity and total staked amount.</li>
+                            <li><strong>TVL</strong> — Total Value Locked, showing the dollar value of all staked BEANS.</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 style={isMobile ? styles.h3Mobile : styles.h3}>APR Calculator</h3>
+                        <p style={{ margin: 0 }}>The APR Calculator lets you estimate your potential staking returns before committing. Enter the amount of BEANS you plan to stake and it calculates your projected daily, weekly, monthly, and yearly yield based on the current APR and protocol activity. This helps you decide how much to stake and set realistic expectations for your earnings.</p>
+                        <SectionImage alt="APR Calculator" placeholder="apr.png" maxWidth="440px" />
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Staking vs Roasting</strong>

@@ -19,7 +19,7 @@ app/
   page.tsx          — Home / Mining interface (LandingPage → MiningGrid)
   about/page.tsx    — Protocol documentation
   global/page.tsx   — Global stats, mining tables, revenue, leaderboard
-  stake/page.tsx    — Staking interface
+  stake/page.tsx    — Staking contract orchestrator (approve→deposit chain, withdraw, claim, compound)
   layout.tsx        — Root layout with Web3Provider
   globals.css       — Global styles
 
@@ -38,7 +38,7 @@ components/
   MiningTable.tsx     — Mining history table
   RevenueTable.tsx    — Protocol revenue breakdown
   LeaderboardTable.tsx— Top miners/stakers leaderboard
-  StakePage.tsx       — Staking deposit/withdraw interface
+  StakePage.tsx       — Staking interface (deposit/withdraw, user position, global stats, APR calculator)
   WalletButton.tsx    — Wallet connection with balance display
   BeanLogo.tsx        — Logo SVG components
   AboutPage.tsx       — About content with expandable sections
@@ -49,7 +49,7 @@ lib/
   contracts.ts      — Contract addresses, ABIs, and constants (MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS)
   providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, SSEProvider)
   wagmi.ts          — Chain config (BSC mainnet + testnet)
-  abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20)
+  abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20, Staking)
 ```
 
 ## Commands
@@ -78,6 +78,7 @@ npm run lint      # Linter
 | GridMining  | `0x103182b4E9E530ff2e0c69b0CC2a43EE7bb262`   |
 | Treasury    | `0x0093DB20543d17F294F58432D08c4FA47C70dfe9` |
 | AutoMiner   | `0x89286f7B9aFc0249CbB67fA661a9eB1039fe75dB` |
+| Staking     | `0x3bf1F3dA47061eF07423750879FE9ccB2d484b95` |
 | BEAN/BNB LP | `0x7e58f160b5b77b8b24cd9900c09a3e730215ac47` |
 
 **ABI source:** `lib/abis/GridMining.json` is extracted from Hardhat artifacts (`hardhat/artifacts/contracts/GridMining.sol/GridMining.json`). Includes `AlreadyDeployedThisRound` custom error, `ResetRequested` event, and `topMinerSeed`/`winnersDeployed` fields in `RoundSettled` event.
@@ -99,15 +100,15 @@ npm run lint      # Linter
 - **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), BNB Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view.
 - **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12` and `GET /api/leaderboard/earners?limit=12` on mount. Three tabs: Miners (total BNB deployed), Stakers (coming soon - empty state), Unrefined (unclaimed BEAN). Displays: Rank, Address (truncated), Value with icon (BNB or BEAN).
 - **GlobalStats.tsx** — Fetches `GET /api/stats` and `GET /api/treasury/stats` on mount. Displays: Max Supply (hardcoded 3M), Circulating Supply (`totalMintedFormatted`), Burned (`totalBurnedFormatted`), Protocol Revenue (`totalVaultedFormatted`).
+- **app/stake/page.tsx** — Orchestrates staking contract interactions. Uses wagmi `useWriteContract` (2 instances) to handle the ERC20 approve→deposit chain: first `Bean.approve(Staking, amount)`, then `Staking.deposit(amount)` with optional `msg.value` for compound fee BNB. Chains transactions via `useWaitForTransactionReceipt` watching approval tx hash; on confirmation, fires deposit with stored `pendingApprovalAmount` and `pendingCompoundFee`. Also handles `Staking.withdraw(amount)`, `Staking.claimYield()`, and `Staking.compound()`. Reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`. Passes `onDeposit`, `onWithdraw`, `onClaimYield`, `onCompound` callbacks to StakePage component.
+- **StakePage.tsx** — Full staking interface connected to backend and smart contract. Fetches `GET /api/staking/stats` on mount for global stats (totalStaked, APR, TVL). Fetches `GET /api/staking/:address` when wallet connected for user stake info (balance, pendingRewards, compoundFeeReserve, canCompound). Uses `useSSE()` to subscribe to global `yieldDistributed` and user `stakeDeposited`/`stakeWithdrawn`/`yieldClaimed`/`yieldCompounded` events — all trigger data re-fetch. Summary section shows Total Deposits, APR, TVL. Deposit/withdraw section shows BEAN balance, input field, and auto-compound settings (toggle + BNB input, default 0.006). User position card (visible when staked > 0) shows total staked, pending rewards, "Claim" and "Claim & Deposit" buttons. Info icons ('i') on all metrics open tooltip dialogues on hover (desktop) or click (mobile). Includes APR Calculator modal using real APR from backend. **Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh on backend, SSE event handlers re-fetch immediately + again after 10s to catch cache updates.
 
 ### Still Using Mock/Hardcoded Data
 - **Header.tsx** — Price feeds from Binance/DexScreener directly.
 - **MobileMiners.tsx** — Hardcoded miner list (not yet connected to `/api/round/:id/miners`).
-- **StakePage.tsx** — Mock staking data.
 - **WalletButton.tsx** — Wallet connection functional, balance reads via wagmi.
 
 ### Not Yet Connected
-- Smart contract write interactions for staking
 - User data endpoints (profile)
 
 ## Architecture Notes
@@ -179,7 +180,7 @@ The AutoMiner contract uses a single payable `setConfig(strategyId, numRounds, n
 
 **Frontend constants in `lib/contracts.ts`:**
 - `MIN_DEPLOY_PER_BLOCK = 0.00001` — minimum BNB per block
-- `EXECUTOR_FEE_BPS = 50` — 0.5% executor fee deducted from deposits
+- `EXECUTOR_FEE_BPS = 100` — 1% executor fee deducted from deposits
 
 **Fee-adjusted validation:** Frontend mirrors contract formula to validate per-block amount:
 ```typescript
@@ -210,6 +211,42 @@ const effectiveAmountPerBlock = (deposit × 10000) / (numBlocks × numRounds × 
 |-------|--------------|-------------|
 | `autoMinerActivated` | page.tsx (setConfig success) | SidebarControls, MobileControls |
 | `autoMinerStopped` | page.tsx (stop success) | SidebarControls, MobileControls |
+
+### Staking Integration
+
+The staking page (`/stake`) allows users to deposit BEAN tokens to earn yield from protocol buybacks. Connected to `Staking` contract (`0x3bf1F3dA47061eF07423750879FE9ccB2d484b95`) via wagmi.
+
+**Two-token distinction:** BEANS (`0x000Ae3...`) is the mining rewards ERC20; Bean (`0xBe4764...`) is the stakeable BEAN token. The staking contract accepts Bean, not BEANS. Frontend reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`.
+
+**Deposit flow (approve→deposit chain):**
+1. User enters BEAN amount + optional auto-compound toggle (BNB for `compoundFeeReserve`)
+2. `app/stake/page.tsx` calls `Bean.approve(Staking, amount)` via `writeContract` (hook 1)
+3. `useWaitForTransactionReceipt` watches approval tx hash
+4. On confirmation, `useEffect` fires `Staking.deposit(amount)` with `value: compoundFeeBnb` via `writeContract2` (hook 2)
+5. `pendingApprovalAmount` and `pendingCompoundFee` state cleared after deposit tx sent
+
+**Contract functions used:**
+- `deposit(uint256 amount)` payable — deposit BEAN, optional BNB `msg.value` goes to `compoundFeeReserve`
+- `withdraw(uint256 amount)` — withdraw staked BEAN
+- `claimYield()` — claim accumulated BEAN yield
+- `compound()` — claim yield and re-deposit (label: "Claim & Deposit")
+
+**Data sources:**
+- `GET /api/staking/stats` — Global stats (totalStaked, apr, tvlUsd). Cached 60s on backend.
+- `GET /api/staking/:address` — User stake info (balance, pendingRewards, compoundFeeReserve, canCompound). Fresh RPC call, not cached.
+
+**Real-time updates via `useSSE()`:**
+- `subscribeGlobal('yieldDistributed')` → re-fetches both global stats and user stake info
+- `subscribeUser('stakeDeposited'|'stakeWithdrawn'|'yieldClaimed'|'yieldCompounded')` → re-fetches user stake info + global stats with delayed re-fetch
+
+**Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh, SSE events trigger an immediate fetch (may get stale cache) plus a 10-second delayed fetch to catch the cache update. Timers are cleaned up on unmount.
+
+**UI components:**
+1. **Summary section** — Total Deposits (BEAN), APR (%), TVL (USD) from `/api/staking/stats`
+2. **Deposit/Withdraw** — Tab switch, BEAN balance display, amount input, MAX button. Deposit tab shows auto-compound toggle (default off) with BNB input (default 0.006) when enabled
+3. **User Position** — Visible when `userStakeInfo.balance > 0`. Shows total staked, pending rewards (accent color), "Claim" and "Claim & Deposit" buttons
+4. **APR Calculator** — Modal with real APR from backend, calculates projected earnings
+5. **Info icons** — Hover (desktop) / click (mobile) tooltips explaining each metric
 
 ### `lib/api.ts` Helpers
 
@@ -247,8 +284,8 @@ useEffect(() => {
 ```
 
 **Connection lifecycle:**
-- **Global connection** (`/api/events/rounds`) — Opens on app mount, never closes. Listens for: `gameStarted`, `deployed`, `roundSettled`
-- **User connection** (`/api/user/{address}/events`) — Opens when wallet connects, closes on disconnect. Listens for: `autoMineExecuted`, `configDeactivated`, `stopped`, `claimedBNB`, `claimedBEAN`, `checkpointed`
+- **Global connection** (`/api/events/rounds`) — Opens on app mount, never closes. Listens for: `gameStarted`, `deployed`, `roundSettled`, `roundTransition`, `yieldDistributed`
+- **User connection** (`/api/user/{address}/events`) — Opens when wallet connects, closes on disconnect. Listens for: `autoMineExecuted`, `configDeactivated`, `stopped`, `claimedBNB`, `claimedBEAN`, `checkpointed`, `stakeDeposited`, `stakeWithdrawn`, `yieldClaimed`, `yieldCompounded`
 
 **Components using `useSSE()`:**
 | Component | Global Events | User Events |
@@ -257,6 +294,7 @@ useEffect(() => {
 | SidebarControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
 | MobileControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
 | ClaimRewards | — | `claimedBNB`, `claimedBEAN` |
+| StakePage | `yieldDistributed` | `stakeDeposited`, `stakeWithdrawn`, `yieldClaimed`, `yieldCompounded` |
 
 ### Global Page (`/global`)
 
@@ -575,6 +613,35 @@ Top users by unclaimed BEAN (unrefined). **Connected by LeaderboardTable.tsx** (
 }
 ```
 
+### Staking
+
+#### `GET /api/staking/stats`
+Global staking statistics. Cached 60s on backend. **Connected by StakePage.tsx**.
+```json
+{
+  "totalStaked": "string",
+  "totalStakedFormatted": "string",
+  "apr": "string",
+  "tvlUsd": "string",
+  "rewardRate": "string",
+  "rewardRateFormatted": "string"
+}
+```
+
+#### `GET /api/staking/:address`
+User's staking position. Fresh RPC call (not cached). Rate limited (5/min). **Connected by StakePage.tsx**.
+```json
+{
+  "balance": "string",
+  "balanceFormatted": "string",
+  "pendingRewards": "string",
+  "pendingRewardsFormatted": "string",
+  "compoundFeeReserve": "string",
+  "compoundFeeReserveFormatted": "string",
+  "canCompound": true
+}
+```
+
 ### AutoMiner
 
 #### `GET /api/automine/:address`
@@ -603,16 +670,22 @@ Global real-time event stream. Events:
 - `gameStarted` — new round began (`{ roundId, startTime, endTime, motherlodePool, motherlodePoolFormatted }`)
 - `deployed` — a user deployed BNB to blocks (`{ roundId, user, totalAmount, isAutoMine, totalDeployed, totalDeployedFormatted, userDeployed, userDeployedFormatted, blocks[] }`) — note: `userDeployed*` fields are for the deploying user, not the receiving client
 - `roundSettled` — round completed with winner (`{ roundId, winningBlock, topMiner, totalWinnings, topMinerReward, motherlodeAmount, isSplit }`)
+- `roundTransition` — round transition event
+- `yieldDistributed` — staking yield distributed from buyback (`{ amount, amountFormatted, timestamp }`)
 - `heartbeat` — keep-alive every 30s
 
 #### `GET /api/user/:address/events`
-User-specific event stream. **Connected by ClaimRewards.tsx, SidebarControls.tsx, MobileControls.tsx, and MiningGrid.tsx**.
+User-specific event stream. **Connected by ClaimRewards.tsx, SidebarControls.tsx, MobileControls.tsx, MiningGrid.tsx, and StakePage.tsx**.
 - `claimedBNB` — user claimed BNB rewards (`{ amount, txHash, timestamp }`)
 - `claimedBEAN` — user claimed BEAN rewards (`{ gross, fee, net, txHash, timestamp }`)
 - `checkpointed` — reward checkpoint processed
 - `autoMineExecuted` — AutoMiner deployed on user's behalf (`{ roundId, blocks[], totalDeployed, fee, roundsExecuted }`)
 - `configDeactivated` — AutoMiner completed all rounds (`{ roundsCompleted }`)
 - `stopped` — AutoMiner manually stopped (`{ refundAmount, roundsCompleted }`)
+- `stakeDeposited` — user deposited BEAN to staking (`{ amount, amountFormatted, txHash, timestamp }`)
+- `stakeWithdrawn` — user withdrew BEAN from staking (`{ amount, amountFormatted, txHash, timestamp }`)
+- `yieldClaimed` — user claimed staking yield (`{ amount, amountFormatted, txHash, timestamp }`)
+- `yieldCompounded` — user compounded staking yield (`{ amount, amountFormatted, txHash, timestamp }`)
 - `heartbeat` — keep-alive every 30s
 
 ### Health Check

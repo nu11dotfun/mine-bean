@@ -55,6 +55,11 @@ interface GameStartedEvent {
     motherlodePoolFormatted: string
 }
 
+interface RoundTransitionEvent {
+    settled: RoundSettledEvent | null
+    newRound: GameStartedEvent
+}
+
 interface CellData {
     minerCount: number
     amount: number
@@ -164,6 +169,7 @@ export default function MiningGrid({
                 )
             })
             .catch((err) => console.error('Failed to refresh round after animation:', err))
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks and other setters are stable
     }, [clearAnimationTimers])
 
     // Fetch initial round state
@@ -218,6 +224,7 @@ export default function MiningGrid({
         }
         window.addEventListener("userDeployed" as any, handleUserDeployed)
         return () => window.removeEventListener("userDeployed" as any, handleUserDeployed)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable, defined once per component
     }, [])
 
     // Subscribe to user SSE for AutoMiner deployments via centralized SSE context
@@ -241,6 +248,7 @@ export default function MiningGrid({
                 }))
             }
         })
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable, defined once per component
     }, [subscribeUser])
 
     // Subscribe to global SSE events for live updates via centralized SSE context
@@ -285,71 +293,66 @@ export default function MiningGrid({
             }))
         })
 
-        const unsubSettled = subscribeGlobal('roundSettled', (data) => {
-            const d = data as RoundSettledEvent
-            const winner = parseInt(d.winningBlock, 10)
-            clearAnimationTimers()
+        // Combined handler for round transitions (replaces separate roundSettled + gameStarted)
+        const unsubTransition = subscribeGlobal('roundTransition', (data) => {
+            const { settled, newRound } = data as RoundTransitionEvent
 
-            // Freeze current grid data so it survives any resets
-            snapshotCellsRef.current = [...cellsRef.current]
-            animatingRef.current = true
-            setPhase("eliminating")
-            setWinningBlock(winner)
+            // Buffer the new round data
+            pendingResetRef.current = newRound
 
-            // Eliminate blocks one by one over 5 seconds
-            const toEliminate = Array.from({ length: 25 }, (_, i) => i).filter((i) => i !== winner)
-            toEliminate.sort(() => Math.random() - 0.5)
+            if (settled) {
+                // Round had deployments — run settlement animation
+                const winner = parseInt(settled.winningBlock, 10)
+                clearAnimationTimers()
 
-            const intervalTime = 5000 / toEliminate.length
-            let eliminated: number[] = []
+                // Freeze current grid data so it survives any resets
+                snapshotCellsRef.current = [...cellsRef.current]
+                animatingRef.current = true
+                setPhase("eliminating")
+                setWinningBlock(winner)
 
-            toEliminate.forEach((blockIndex, i) => {
-                const tid = setTimeout(() => {
-                    eliminated = [...eliminated, blockIndex]
-                    setEliminatedBlocks([...eliminated])
-                }, intervalTime * (i + 1))
-                animationTimers.current.push(tid)
-            })
+                // Eliminate blocks one by one over 5 seconds
+                const toEliminate = Array.from({ length: 25 }, (_, i) => i).filter((i) => i !== winner)
+                toEliminate.sort(() => Math.random() - 0.5)
 
-            // Show winner phase after elimination finishes (~5s)
-            animationTimers.current.push(
-                setTimeout(() => setPhase("winner"), 5200)
-            )
+                const intervalTime = 5000 / toEliminate.length
+                let eliminated: number[] = []
 
-            // After 3 more seconds of winner display (8s total), reset for the new round
-            animationTimers.current.push(
-                setTimeout(() => {
-                    resetForNewRound(pendingResetRef.current)
-                }, 8200)
-            )
+                toEliminate.forEach((blockIndex, i) => {
+                    const tid = setTimeout(() => {
+                        eliminated = [...eliminated, blockIndex]
+                        setEliminatedBlocks([...eliminated])
+                    }, intervalTime * (i + 1))
+                    animationTimers.current.push(tid)
+                })
 
-            window.dispatchEvent(
-                new CustomEvent("roundSettled", { detail: d })
-            )
-        })
+                // Show winner phase after elimination finishes (~5s)
+                animationTimers.current.push(
+                    setTimeout(() => setPhase("winner"), 5200)
+                )
 
-        const unsubGameStarted = subscribeGlobal('gameStarted', (data) => {
-            const d = data as GameStartedEvent
-            // Always buffer — never reset immediately.
-            // If roundSettled already arrived, the animation timer handles the reset.
-            // If roundSettled hasn't arrived yet (wrong order), wait 2s for it.
-            pendingResetRef.current = d
-            if (!animatingRef.current) {
-                const fallbackId = setTimeout(() => {
-                    if (!animatingRef.current) {
+                // After 3 more seconds of winner display (8s total), reset for the new round
+                animationTimers.current.push(
+                    setTimeout(() => {
                         resetForNewRound(pendingResetRef.current)
-                    }
-                }, 2000)
-                animationTimers.current.push(fallbackId)
+                    }, 8200)
+                )
+
+                window.dispatchEvent(
+                    new CustomEvent("roundSettled", { detail: settled })
+                )
+            } else {
+                // Empty round — reset immediately (no settlement animation)
+                resetForNewRound(newRound)
             }
         })
 
         return () => {
             unsubDeployed()
-            unsubSettled()
-            unsubGameStarted()
+            unsubTransition()
             clearAnimationTimers()
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable, defined once per component
     }, [subscribeGlobal, resetForNewRound, clearAnimationTimers])
 
     // Listen for select-all from sidebar controls
@@ -370,6 +373,7 @@ export default function MiningGrid({
 
         window.addEventListener("selectAllBlocks" as any, handleSelectAll)
         return () => window.removeEventListener("selectAllBlocks" as any, handleSelectAll)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- hasDeployedThisRound, userDeployedBlocks, and setSelectedBlocks are stable
     }, [])
 
     // Listen for autoMinerMode from sidebar controls
@@ -391,6 +395,7 @@ export default function MiningGrid({
 
         window.addEventListener("autoMinerMode" as any, handleAutoMode)
         return () => window.removeEventListener("autoMinerMode" as any, handleAutoMode)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable, defined once per component
     }, [userDeployedBlocks])
 
     const handleBlockClick = (index: number) => {

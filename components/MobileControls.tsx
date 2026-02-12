@@ -56,7 +56,7 @@ export default function MobileControls({
 
     // Round data driven by MiningGrid events
     const [timer, setTimer] = useState(0)
-    const [currentRound, setCurrentRound] = useState("")
+    const [_currentRound, setCurrentRound] = useState("")
     const [phase, setPhase] = useState<"counting" | "eliminating" | "winner">("counting")
     const [userDeployed, setUserDeployed] = useState(0)
     const endTimeRef = useRef(0)

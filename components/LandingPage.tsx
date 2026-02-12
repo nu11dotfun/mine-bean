@@ -160,7 +160,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   container: { minHeight: '100vh', background: '#0a0a0a', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif" },
   gridBackground: { position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '60px 60px' },
   glowEffect: { position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '400px', background: 'radial-gradient(ellipse, rgba(240, 185, 11, 0.15) 0%, transparent 70%)', pointerEvents: 'none' },
-  header: { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', borderBottom: '1px solid #1a1a1a', zIndex: 10 },
+  header: { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', borderBottom: '1px solid #1a1a1a', zIndex: 20 },
   logoSection: { display: 'flex', alignItems: 'center', gap: '40px' },
   logo: { display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' },
   nav: { display: 'flex', gap: '8px' },

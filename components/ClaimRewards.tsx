@@ -1,26 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from "react"
-import { apiFetch } from '@/lib/api'
-import { useSSE } from '@/lib/SSEContext'
-
-interface RewardsData {
-  pendingBNB: string
-  pendingBNBFormatted: string
-  pendingBEAN: {
-    unrefined: string
-    unrefinedFormatted: string
-    refined: string
-    refinedFormatted: string
-    gross: string
-    grossFormatted: string
-    fee: string
-    feeFormatted: string
-    net: string
-    netFormatted: string
-  }
-  uncheckpointedRound: string
-}
+import React from "react"
+import { useUserData } from '@/lib/UserDataContext'
 
 interface ClaimRewardsProps {
   userAddress?: string
@@ -43,37 +24,8 @@ const BeanIcon = ({ size = 16 }: { size?: number }) => (
 )
 
 export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: ClaimRewardsProps) {
-  const [rewards, setRewards] = useState<RewardsData | null>(null)
-  const { subscribeUser } = useSSE()
-
-  const fetchRewards = useCallback(() => {
-    if (!userAddress) return
-    apiFetch<RewardsData>(`/api/user/${userAddress}/rewards`)
-      .then(data => setRewards(data))
-      .catch(() => {})
-  }, [userAddress])
-
-  // Fetch on mount and when address changes
-  useEffect(() => {
-    fetchRewards()
-  }, [fetchRewards])
-
-  // Re-fetch after settlement animation completes
-  useEffect(() => {
-    const handler = () => fetchRewards()
-    window.addEventListener("settlementComplete", handler)
-    return () => window.removeEventListener("settlementComplete", handler)
-  }, [fetchRewards])
-
-  // Subscribe to user SSE for claim confirmations
-  useEffect(() => {
-    const unsubBNB = subscribeUser('claimedBNB', () => fetchRewards())
-    const unsubBEAN = subscribeUser('claimedBEAN', () => fetchRewards())
-    return () => {
-      unsubBNB()
-      unsubBEAN()
-    }
-  }, [subscribeUser, fetchRewards])
+  // Shared rewards data from context (no local fetching)
+  const { rewards } = useUserData()
 
   if (!userAddress || !rewards) return null
 

@@ -2,7 +2,7 @@ import GridMiningABI from './abis/GridMining.json'
 import AutoMinerABI from './abis/AutoMiner.json'
 import BeanABI from './abis/Bean.json'
 import TreasuryABI from './abis/Treasury.json'
-import ERC20ABI from './abis/ERC20.json'
+import StakingABI from './abis/Staking.json'
 
 export const CONTRACTS = {
   GridMining: {
@@ -21,12 +21,12 @@ export const CONTRACTS = {
     address: '0x0093DB20543d17F294F58432D08c4FA47C70dfe9' as `0x${string}`,
     abi: TreasuryABI,
   },
-  BEANS: {
-    address: '0x000Ae314E2A2172a039B26378814C252734f556A' as `0x${string}`,
-    abi: ERC20ABI,
-  },
   LP: {
     address: '0x7e58f160b5b77b8b24cd9900c09a3e730215ac47' as `0x${string}`,
+  },
+  Staking: {
+    address: '0x3bf1F3dA47061eF07423750879FE9ccB2d484b95' as `0x${string}`,
+    abi: StakingABI,
   },
 } as const
 

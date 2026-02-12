@@ -13,7 +13,6 @@ interface HeaderProps {
 }
 
 export default function Header({
-  logoText = 'BEANS',
   currentPage = 'home',
   isMobile: propIsMobile,
 }: HeaderProps) {
@@ -35,7 +34,7 @@ export default function Header({
         const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
         const data = await response.json()
         if (data.price) setBnbPrice(parseFloat(data.price).toFixed(2))
-      } catch (error) {
+      } catch {
         setBnbPrice('580.00')
       }
     }
@@ -50,7 +49,7 @@ export default function Header({
         const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
         const data = await response.json()
         if (data.pair?.priceUsd) setBeansPrice(parseFloat(data.pair.priceUsd).toFixed(4))
-      } catch (error) {
+      } catch {
         setBeansPrice('0.0264')
       }
     }

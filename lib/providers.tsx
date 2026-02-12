@@ -6,12 +6,19 @@ import { WagmiProvider, useAccount } from 'wagmi'
 import { config } from '@/lib/wagmi'
 import { useState } from 'react'
 import { SSEProvider } from './SSEContext'
+import { UserDataProvider } from './UserDataContext'
 
 import '@rainbow-me/rainbowkit/styles.css'
 
 function SSEWrapper({ children }: { children: React.ReactNode }) {
   const { address } = useAccount()
-  return <SSEProvider userAddress={address}>{children}</SSEProvider>
+  return (
+    <SSEProvider userAddress={address}>
+      <UserDataProvider userAddress={address}>
+        {children}
+      </UserDataProvider>
+    </SSEProvider>
+  )
 }
 
 export function Web3Provider({ children }: { children: React.ReactNode }) {

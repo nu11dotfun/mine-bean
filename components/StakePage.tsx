@@ -1,37 +1,66 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import { parseEther } from 'viem'
 import BeanLogo from './BeanLogo'
+import { apiFetch } from '../lib/api'
+import { useSSE } from '../lib/SSEContext'
+import { useUserData } from '../lib/UserDataContext'
 
 interface StakePageProps {
+    userAddress?: string
     userBalance?: number
-    userStaked?: number
     isConnected?: boolean
     isMobile?: boolean
-    onDeposit?: (amount: number) => void
-    onWithdraw?: (amount: number) => void
+    onDeposit?: (amount: bigint, compoundFeeBnb?: bigint) => void
+    onWithdraw?: (amount: bigint) => void
+    onClaimYield?: () => void
+    onCompound?: () => void
+    onRefetchBalance?: () => void
+}
+
+interface StakingStats {
+    totalStaked: string
+    totalStakedFormatted: string
+    apr: string
+    tvlUsd: string
 }
 
 export default function StakePage({
+    userAddress: _userAddress,
     userBalance = 0,
-    userStaked = 0,
     isConnected = false,
     isMobile = false,
     onDeposit,
     onWithdraw,
+    onClaimYield,
+    onCompound,
+    onRefetchBalance,
 }: StakePageProps) {
     const { openConnectModal } = useConnectModal()
+    const { subscribeGlobal, subscribeUser } = useSSE()
+
     const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
-    const [amount, setAmount] = useState("0")
+    const [amount, setAmount] = useState("")
     const [beansPrice, setBeansPrice] = useState<number>(0.0264)
     const [showCalculator, setShowCalculator] = useState(false)
     const [calcAmount, setCalcAmount] = useState("1000")
 
-    const [totalDeposits] = useState(277606)
-    const [apr] = useState(15.27)
-    const [tvl] = useState(39213198)
+    // Auto-compound
+    const [autoCompoundEnabled, setAutoCompoundEnabled] = useState(false)
+    const [compoundFeeBnb, setCompoundFeeBnb] = useState("0.006")
+    const [showAutoCompoundInfo, setShowAutoCompoundInfo] = useState(false)
+    const autoCompoundInfoRef = useRef<HTMLDivElement>(null)
 
+    // Tooltip state
+    const [activeTooltip, setActiveTooltip] = useState<string | null>(null)
+
+    // Real data
+    const [stakingStats, setStakingStats] = useState<StakingStats | null>(null)
+    const { stakeInfo: userStakeInfo, refetchStakeInfo } = useUserData()
+
+    // Fetch BEAN price
     useEffect(() => {
         const fetchBeansPrice = async () => {
             try {
@@ -43,7 +72,7 @@ export default function StakePage({
                     setBeansPrice(parseFloat(data.pair.priceUsd))
                 }
             } catch (error) {
-                console.error("Failed to fetch BEANS price:", error)
+                console.error("Failed to fetch BEAN price:", error)
             }
         }
 
@@ -52,26 +81,127 @@ export default function StakePage({
         return () => clearInterval(interval)
     }, [])
 
+    // Fetch global staking stats
+    const fetchStakingStats = useCallback(async () => {
+        try {
+            const stats = await apiFetch<StakingStats>('/api/staking/stats')
+            setStakingStats(stats)
+        } catch (err) {
+            console.error('Failed to fetch staking stats:', err)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchStakingStats()
+    }, [fetchStakingStats])
+
+    // SSE: global yield distribution → refresh stats + user pending rewards
+    useEffect(() => {
+        const unsub = subscribeGlobal('yieldDistributed', () => {
+            fetchStakingStats()
+            refetchStakeInfo()
+        })
+        return () => unsub()
+    }, [subscribeGlobal, fetchStakingStats, refetchStakeInfo])
+
+    // SSE: user staking events → refresh stats (user stake info handled by UserDataContext)
+    // Note: /api/staking/stats is cached (60s refresh) so we re-fetch immediately
+    // and again after a delay to catch the next cache cycle
+    useEffect(() => {
+        const timers: ReturnType<typeof setTimeout>[] = []
+        const refetchStatsWithDelay = () => {
+            fetchStakingStats()
+            const t = setTimeout(() => fetchStakingStats(), 10000)
+            timers.push(t)
+        }
+        const unsub1 = subscribeUser('stakeDeposited', () => {
+            // Staked balance update handled by UserDataContext via SSE
+            // Refresh BEAN wallet balance via wagmi
+            onRefetchBalance?.()
+            refetchStatsWithDelay()
+        })
+        const unsub2 = subscribeUser('stakeWithdrawn', () => {
+            // Staked balance update handled by UserDataContext via SSE
+            // Refresh BEAN wallet balance via wagmi
+            onRefetchBalance?.()
+            refetchStatsWithDelay()
+        })
+        const unsub3 = subscribeUser('yieldCompounded', () => {
+            // Staked balance + pendingRewards update handled by UserDataContext via SSE
+            refetchStatsWithDelay()
+        })
+        return () => {
+            unsub1(); unsub2(); unsub3()
+            timers.forEach(t => clearTimeout(t))
+        }
+    }, [subscribeUser, fetchStakingStats, onRefetchBalance])
+
+    // Close tooltip on outside click (mobile)
+    useEffect(() => {
+        if (!activeTooltip) return
+        const handleClick = () => setActiveTooltip(null)
+        const timer = setTimeout(() => document.addEventListener('click', handleClick), 0)
+        return () => {
+            clearTimeout(timer)
+            document.removeEventListener('click', handleClick)
+        }
+    }, [activeTooltip])
+
+    // Close auto-compound info on outside click
+    useEffect(() => {
+        if (!showAutoCompoundInfo) return
+        const handleClick = (e: MouseEvent) => {
+            if (autoCompoundInfoRef.current && !autoCompoundInfoRef.current.contains(e.target as Node)) {
+                setShowAutoCompoundInfo(false)
+            }
+        }
+        const timer = setTimeout(() => document.addEventListener('click', handleClick), 0)
+        return () => {
+            clearTimeout(timer)
+            document.removeEventListener('click', handleClick)
+        }
+    }, [showAutoCompoundInfo])
+
+    const userStakedBalance = userStakeInfo ? parseFloat(userStakeInfo.balanceFormatted) : 0
+    const pendingRewards = userStakeInfo ? parseFloat(userStakeInfo.pendingRewardsFormatted) : 0
     const handleHalf = () => {
-        const balance = activeTab === "deposit" ? userBalance : userStaked
+        const balance = activeTab === "deposit" ? userBalance : userStakedBalance
         setAmount((balance / 2).toFixed(4))
     }
 
     const handleAll = () => {
-        const balance = activeTab === "deposit" ? userBalance : userStaked
+        const balance = activeTab === "deposit" ? userBalance : userStakedBalance
         setAmount(balance.toFixed(4))
     }
 
     const handleAction = () => {
         const value = parseFloat(amount) || 0
+        if (value <= 0) return
+
         if (activeTab === "deposit") {
-            onDeposit?.(value)
+            const amountWei = parseEther(amount)
+            const feeBnb = autoCompoundEnabled && parseFloat(compoundFeeBnb) > 0
+                ? parseEther(compoundFeeBnb)
+                : undefined
+            onDeposit?.(amountWei, feeBnb)
         } else {
-            onWithdraw?.(value)
+            onWithdraw?.(parseEther(amount))
         }
+        setAmount("")
     }
 
-    const currentBalance = activeTab === "deposit" ? userBalance : userStaked
+    const currentBalance = activeTab === "deposit" ? userBalance : userStakedBalance
+    const parsedAmount = parseFloat(amount) || 0
+
+    // Deposit validation
+    const canDeposit = parsedAmount > 0 && parsedAmount <= userBalance &&
+        (!autoCompoundEnabled || parseFloat(compoundFeeBnb) > 0)
+    // Withdraw validation
+    const canWithdraw = parsedAmount > 0 && parsedAmount <= userStakedBalance
+    const canAction = activeTab === "deposit" ? canDeposit : canWithdraw
+
+    const apr = stakingStats ? parseFloat(stakingStats.apr) : 0
+    const totalStaked = stakingStats ? parseFloat(stakingStats.totalStakedFormatted) : 0
 
     const calcBeansAmount = parseFloat(calcAmount) || 0
     const dailyRate = apr / 365
@@ -81,9 +211,34 @@ export default function StakePage({
     const weeklyEarnings = (calcBeansAmount * weeklyRate) / 100
     const monthlyEarnings = (calcBeansAmount * monthlyRate) / 100
 
+    const tooltipTexts: Record<string, string> = {
+        totalDeposits: "Total BEAN tokens staked in the protocol by all users.",
+        apr: "Annual Percentage Rate based on the last 7 days of yield distributions. Actual returns may vary.",
+        tvl: "Total Value Locked — the USD value of all staked BEAN at current market price.",
+    }
+
+    const InfoIcon = ({ id, size = 12 }: { id: string, size?: number }) => (
+        <div
+            style={{ position: 'relative', display: 'inline-flex', cursor: 'pointer' }}
+            onClick={(e) => { e.stopPropagation(); setActiveTooltip(activeTooltip === id ? null : id) }}
+            onMouseEnter={() => { if (!isMobile) setActiveTooltip(id) }}
+            onMouseLeave={() => { if (!isMobile) setActiveTooltip(null) }}
+        >
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="#666">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+            </svg>
+            {activeTooltip === id && (
+                <div style={isMobile ? styles.tooltipMobile : styles.tooltip}>
+                    {tooltipTexts[id]}
+                </div>
+            )}
+        </div>
+    )
+
     return (
         <div style={isMobile ? styles.containerMobile : styles.container}>
             <div style={isMobile ? styles.contentMobile : styles.content}>
+                {/* Header */}
                 <div style={isMobile ? styles.headerMobile : styles.header}>
                     <h1 style={isMobile ? styles.titleMobile : styles.title}>Stake</h1>
                     <p style={isMobile ? styles.subtitleMobile : styles.subtitle}>
@@ -91,6 +246,7 @@ export default function StakePage({
                     </p>
                 </div>
 
+                {/* Deposit / Withdraw Card */}
                 <div style={isMobile ? styles.cardMobile : styles.card}>
                     <div style={isMobile ? styles.tabsMobile : styles.tabs}>
                         <button
@@ -98,7 +254,7 @@ export default function StakePage({
                                 ...(isMobile ? styles.tabMobile : styles.tab),
                                 ...(activeTab === "deposit" ? styles.tabActive : {}),
                             }}
-                            onClick={() => setActiveTab("deposit")}
+                            onClick={() => { setActiveTab("deposit"); setAmount("") }}
                         >
                             Deposit
                         </button>
@@ -107,7 +263,7 @@ export default function StakePage({
                                 ...(isMobile ? styles.tabMobile : styles.tab),
                                 ...(activeTab === "withdraw" ? styles.tabActive : {}),
                             }}
-                            onClick={() => setActiveTab("withdraw")}
+                            onClick={() => { setActiveTab("withdraw"); setAmount("") }}
                         >
                             Withdraw
                         </button>
@@ -119,7 +275,7 @@ export default function StakePage({
                                 <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                             </svg>
                             <span style={isMobile ? styles.balanceTextMobile : styles.balanceText}>
-                                {currentBalance.toFixed(4)} BEANS
+                                {currentBalance.toFixed(4)} BEAN
                             </span>
                         </div>
                         <div style={styles.quickBtns}>
@@ -135,7 +291,7 @@ export default function StakePage({
                     <div style={isMobile ? styles.inputRowMobile : styles.inputRow}>
                         <div style={styles.inputLeft}>
                             <BeanLogo size={isMobile ? 20 : 24} />
-                            <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>BEANS</span>
+                            <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>BEAN</span>
                         </div>
                         <input
                             type="text"
@@ -146,69 +302,176 @@ export default function StakePage({
                         />
                     </div>
 
+                    {/* Auto-compound section (deposit tab only, shown when amount > 0) */}
+                    {activeTab === "deposit" && parsedAmount > 0 && (
+                        <div style={styles.autoCompoundSection}>
+                            <div style={styles.autoCompoundHeader}>
+                                <div style={styles.autoCompoundLabelRow}>
+                                    <span style={isMobile ? { fontSize: '13px', color: '#ccc' } : { fontSize: '14px', color: '#ccc' }}>
+                                        Auto-compound
+                                    </span>
+                                    <div
+                                        ref={autoCompoundInfoRef}
+                                        style={{ position: 'relative', display: 'inline-flex', cursor: 'pointer' }}
+                                        onClick={(e) => { e.stopPropagation(); setShowAutoCompoundInfo(!showAutoCompoundInfo) }}
+                                    >
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#666">
+                                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                                        </svg>
+                                        {showAutoCompoundInfo && (
+                                            <div style={isMobile ? styles.tooltipMobile : styles.tooltipWide}>
+                                                Auto-compounding automatically restakes your earned BEAN rewards daily. A small BNB reserve is needed to pay bots that trigger the compound transaction. Each compound costs 0.0002 BNB as a bounty. Unused BNB can be withdrawn at any time.
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                                <button
+                                    style={{
+                                        ...styles.toggle,
+                                        ...(autoCompoundEnabled ? styles.toggleOn : styles.toggleOff),
+                                    }}
+                                    onClick={() => setAutoCompoundEnabled(!autoCompoundEnabled)}
+                                >
+                                    <div style={{
+                                        ...styles.toggleKnob,
+                                        ...(autoCompoundEnabled ? styles.toggleKnobOn : styles.toggleKnobOff),
+                                    }} />
+                                </button>
+                            </div>
+                            {autoCompoundEnabled && (
+                                <div style={isMobile ? styles.compoundFeeInputRowMobile : styles.compoundFeeInputRow}>
+                                    <div style={styles.inputLeft}>
+                                        <img
+                                            src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
+                                            alt="BNB"
+                                            style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20, objectFit: 'contain' as const }}
+                                        />
+                                        <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>BNB</span>
+                                    </div>
+                                    <input
+                                        type="text"
+                                        style={isMobile ? styles.compoundFeeInputMobile : styles.compoundFeeInput}
+                                        value={compoundFeeBnb}
+                                        onChange={(e) => setCompoundFeeBnb(e.target.value)}
+                                        placeholder="0.006"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     {isConnected ? (
                         <button
                             style={{
                                 ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
-                                ...(parseFloat(amount) <= 0 ? styles.actionBtnDisabled : styles.actionBtnEnabled),
+                                ...(canAction ? styles.actionBtnEnabled : styles.actionBtnDisabled),
                             }}
                             onClick={handleAction}
-                            disabled={parseFloat(amount) <= 0}
+                            disabled={!canAction}
                         >
                             {activeTab === "deposit" ? "Deposit" : "Withdraw"}
                         </button>
                     ) : (
-                        <button 
+                        <button
                             style={{
                                 ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
                                 ...styles.actionBtnEnabled,
-                            }} 
+                            }}
                             onClick={openConnectModal}
                         >
-                            {activeTab === "deposit" ? "Deposit" : "Withdraw"}
+                            Connect Wallet
                         </button>
                     )}
                 </div>
 
+                {/* User Position Card (only when staked > 0) */}
+                {isConnected && userStakedBalance > 0 && (
+                    <div style={isMobile ? styles.cardMobile : styles.card}>
+                        <h2 style={isMobile ? { fontSize: '16px', fontWeight: 600, color: '#fff', margin: 0, marginBottom: '16px' } : { fontSize: '20px', fontWeight: 600, color: '#fff', margin: 0, marginBottom: '20px' }}>
+                            Your Position
+                        </h2>
+
+                        <div style={isMobile ? styles.positionRowMobile : styles.positionRow}>
+                            <span style={isMobile ? { fontSize: '13px', color: '#666' } : { fontSize: '14px', color: '#666' }}>Total Staked</span>
+                            <div style={styles.positionValue}>
+                                <BeanLogo size={14} />
+                                <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#fff' } : { fontSize: '15px', fontWeight: 500, color: '#fff' }}>
+                                    {parseFloat(userStakeInfo!.balanceFormatted).toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                                </span>
+                            </div>
+                        </div>
+
+                        {pendingRewards > 0 && (
+                            <>
+                                <div style={{ ...isMobile ? styles.positionRowMobile : styles.positionRow, borderBottom: 'none' }}>
+                                    <span style={isMobile ? { fontSize: '13px', color: '#F0B90B' } : { fontSize: '14px', color: '#F0B90B' }}>Pending Rewards</span>
+                                    <div style={styles.positionValue}>
+                                        <BeanLogo size={14} />
+                                        <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#F0B90B' } : { fontSize: '15px', fontWeight: 500, color: '#F0B90B' }}>
+                                            {pendingRewards.toLocaleString(undefined, { maximumFractionDigits: 4 })}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div style={styles.rewardButtons}>
+                                    <button
+                                        style={isMobile ? styles.rewardBtnMobile : styles.rewardBtn}
+                                        onClick={onClaimYield}
+                                    >
+                                        Claim
+                                    </button>
+                                    <button
+                                        style={{
+                                            ...(isMobile ? styles.rewardBtnMobile : styles.rewardBtn),
+                                            ...styles.rewardBtnPrimary,
+                                        }}
+                                        onClick={onCompound}
+                                    >
+                                        Claim & Deposit
+                                    </button>
+                                </div>
+                            </>
+                        )}
+                    </div>
+                )}
+
+                {/* Summary */}
                 <div style={isMobile ? styles.summaryMobile : styles.summary}>
                     <h2 style={isMobile ? styles.summaryTitleMobile : styles.summaryTitle}>Summary</h2>
 
                     <div style={isMobile ? styles.summaryRowMobile : styles.summaryRow}>
                         <div style={styles.summaryLabel}>
                             <span style={isMobile ? { fontSize: '13px' } : {}}>Total deposits</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                            </svg>
+                            <InfoIcon id="totalDeposits" />
                         </div>
                         <div style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
                             <BeanLogo size={14} />
-                            <span>{totalDeposits.toLocaleString()}</span>
+                            <span>{stakingStats ? Math.floor(totalStaked).toLocaleString() : '—'}</span>
                         </div>
                     </div>
 
                     <div style={isMobile ? styles.summaryRowMobile : styles.summaryRow}>
                         <div style={styles.summaryLabel}>
                             <span style={isMobile ? { fontSize: '13px' } : {}}>APR</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                            </svg>
+                            <InfoIcon id="apr" />
                         </div>
-                        <span style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>{apr}%</span>
+                        <span style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
+                            {stakingStats ? `${parseFloat(stakingStats.apr).toFixed(2)}%` : '—'}
+                        </span>
                     </div>
 
                     <div style={isMobile ? styles.summaryRowMobile : styles.summaryRow}>
                         <div style={styles.summaryLabel}>
                             <span style={isMobile ? { fontSize: '13px' } : {}}>TVL</span>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="#666">
-                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
-                            </svg>
+                            <InfoIcon id="tvl" />
                         </div>
                         <span style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
-                            ${tvl.toLocaleString()}
+                            {stakingStats ? `$${parseFloat(stakingStats.tvlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
                         </span>
                     </div>
                 </div>
 
+                {/* APR Calculator Button */}
                 <button
                     style={isMobile ? styles.calculatorBtnMobile : styles.calculatorBtn}
                     onClick={() => setShowCalculator(true)}
@@ -220,6 +483,7 @@ export default function StakePage({
                 </button>
             </div>
 
+            {/* APR Calculator Modal */}
             {showCalculator && (
                 <>
                     <div style={styles.overlay} onClick={() => setShowCalculator(false)} />
@@ -230,7 +494,7 @@ export default function StakePage({
                         </div>
 
                         <div style={styles.calcInputRow}>
-                            <span style={styles.calcLabel}>BEANS to stake</span>
+                            <span style={styles.calcLabel}>BEAN to stake</span>
                             <div style={styles.calcInputWrapper}>
                                 <BeanLogo size={18} />
                                 <input
@@ -278,7 +542,7 @@ export default function StakePage({
                             </div>
                         </div>
 
-                        <p style={styles.calcNote}>Based on current APR of {apr}%. Actual returns may vary.</p>
+                        <p style={styles.calcNote}>Based on current APR of {apr.toFixed(2)}%. Actual returns may vary.</p>
                     </div>
                 </>
             )}
@@ -456,7 +720,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "1px solid #222",
         borderRadius: "12px",
         padding: "16px 20px",
-        marginBottom: "24px",
+        marginBottom: "16px",
     },
     inputRowMobile: {
         display: "flex",
@@ -466,7 +730,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "1px solid #222",
         borderRadius: "10px",
         padding: "14px 16px",
-        marginBottom: "16px",
+        marginBottom: "12px",
     },
     inputLeft: {
         display: "flex",
@@ -505,6 +769,93 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontFamily: "inherit",
         outline: "none",
     },
+    // Auto-compound
+    autoCompoundSection: {
+        marginBottom: "16px",
+    },
+    autoCompoundHeader: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        marginBottom: "12px",
+    },
+    autoCompoundLabelRow: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+    },
+    toggle: {
+        width: "44px",
+        height: "24px",
+        borderRadius: "12px",
+        border: "none",
+        cursor: "pointer",
+        position: "relative" as const,
+        transition: "background 0.2s",
+        padding: 0,
+    },
+    toggleOn: {
+        background: "#F0B90B",
+    },
+    toggleOff: {
+        background: "#333",
+    },
+    toggleKnob: {
+        width: "20px",
+        height: "20px",
+        borderRadius: "50%",
+        background: "#fff",
+        position: "absolute" as const,
+        top: "2px",
+        transition: "left 0.2s",
+    },
+    toggleKnobOn: {
+        left: "22px",
+    },
+    toggleKnobOff: {
+        left: "2px",
+    },
+    compoundFeeInputRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "#0a0a0a",
+        border: "1px solid #222",
+        borderRadius: "12px",
+        padding: "12px 16px",
+    },
+    compoundFeeInputRowMobile: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        background: "#0a0a0a",
+        border: "1px solid #222",
+        borderRadius: "10px",
+        padding: "10px 14px",
+    },
+    compoundFeeInput: {
+        background: "transparent",
+        border: "none",
+        fontSize: "18px",
+        fontWeight: 600,
+        color: "#fff",
+        textAlign: "right" as const,
+        width: "120px",
+        fontFamily: "inherit",
+        outline: "none",
+    },
+    compoundFeeInputMobile: {
+        background: "transparent",
+        border: "none",
+        fontSize: "16px",
+        fontWeight: 600,
+        color: "#fff",
+        textAlign: "right" as const,
+        width: "100px",
+        fontFamily: "inherit",
+        outline: "none",
+    },
+    // Action buttons
     actionBtn: {
         width: "100%",
         background: "#222",
@@ -539,6 +890,64 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: "#444",
         cursor: "not-allowed",
     },
+    // Position card
+    positionRow: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "14px 0",
+        borderBottom: "1px solid #1a1a1a",
+    },
+    positionRowMobile: {
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "10px 0",
+        borderBottom: "1px solid #1a1a1a",
+    },
+    positionValue: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+    },
+    rewardButtons: {
+        display: "flex",
+        gap: "10px",
+        marginTop: "16px",
+    },
+    rewardBtn: {
+        flex: 1,
+        background: "#1a1a1a",
+        border: "1px solid #333",
+        borderRadius: "10px",
+        padding: "14px",
+        fontSize: "14px",
+        fontWeight: 500,
+        color: "#ccc",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        transition: "all 0.15s",
+    },
+    rewardBtnMobile: {
+        flex: 1,
+        background: "#1a1a1a",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "12px",
+        fontSize: "13px",
+        fontWeight: 500,
+        color: "#ccc",
+        cursor: "pointer",
+        fontFamily: "inherit",
+        transition: "all 0.15s",
+    },
+    rewardBtnPrimary: {
+        background: "#F0B90B",
+        border: "1px solid #F0B90B",
+        color: "#000",
+        fontWeight: 600,
+    },
+    // Summary
     summary: {
         marginBottom: "20px",
     },
@@ -596,6 +1005,53 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 500,
         color: "#fff",
     },
+    // Tooltips
+    tooltip: {
+        position: "absolute" as const,
+        bottom: "calc(100% + 8px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#1a1a1a",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "10px 12px",
+        fontSize: "12px",
+        color: "#aaa",
+        lineHeight: 1.5,
+        width: "220px",
+        zIndex: 100,
+        pointerEvents: "none" as const,
+    },
+    tooltipMobile: {
+        position: "absolute" as const,
+        bottom: "calc(100% + 8px)",
+        left: "0",
+        background: "#1a1a1a",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "10px 12px",
+        fontSize: "11px",
+        color: "#aaa",
+        lineHeight: 1.5,
+        width: "200px",
+        zIndex: 100,
+    },
+    tooltipWide: {
+        position: "absolute" as const,
+        bottom: "calc(100% + 8px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "#1a1a1a",
+        border: "1px solid #333",
+        borderRadius: "8px",
+        padding: "10px 12px",
+        fontSize: "12px",
+        color: "#aaa",
+        lineHeight: 1.5,
+        width: "280px",
+        zIndex: 100,
+    },
+    // Calculator
     calculatorBtn: {
         width: "100%",
         display: "flex",

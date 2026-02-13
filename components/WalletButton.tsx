@@ -227,11 +227,12 @@ export default function WalletButton() {
   const buttonRef = useRef<HTMLDivElement>(null)
   const { disconnect } = useDisconnect()
 
-  // Profile state - will be loaded from DB later
-  const [profile, setProfile] = useState<{
-    username: string | null
-    pfp: string | null
-  }>({ username: null, pfp: null })
+  // Profile from shared context (fetched once on wallet connect, cached in sessionStorage)
+  const { rewards, stakeInfo, profile: profileData } = useUserData()
+  const profile = {
+    username: profileData?.username || null,
+    pfp: profileData?.pfpUrl || null,
+  }
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

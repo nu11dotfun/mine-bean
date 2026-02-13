@@ -1,13 +1,15 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import BeanLogo from "./BeanLogo"
 import { apiFetch } from '../lib/api'
+import { useProfileResolver } from '../lib/useProfileResolver'
 
 // Display interface
 interface LeaderboardEntry {
     rank: number
     address: string
+    rawAddress: string
     value: number
 }
 
@@ -44,12 +46,14 @@ const formatAddress = (addr: string): string => {
 const transformDeployer = (d: DeployerFromAPI, i: number): LeaderboardEntry => ({
     rank: i + 1,
     address: formatAddress(d.address),
+    rawAddress: d.address,
     value: parseFloat(d.totalDeployedFormatted)
 })
 
 const transformEarner = (e: EarnerFromAPI, i: number): LeaderboardEntry => ({
     rank: i + 1,
     address: formatAddress(e.address),
+    rawAddress: e.address,
     value: parseFloat(e.unclaimedFormatted)
 })
 
@@ -69,6 +73,13 @@ export default function LeaderboardTable() {
     const [loading, setLoading] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
     const [mounted, setMounted] = useState(false)
+
+    // Resolve addresses to usernames via batch profile lookup
+    const allAddresses = useMemo(() =>
+        [...miners, ...unrefined].map(e => e.rawAddress),
+        [miners, unrefined]
+    )
+    const { resolve } = useProfileResolver(allAddresses)
 
     useEffect(() => {
         setMounted(true)
@@ -233,7 +244,7 @@ export default function LeaderboardTable() {
                                 <tr key={index} style={styles.tr}>
                                     <td style={styles.td}>#{entry.rank}</td>
                                     <td style={styles.td}>
-                                        <span>{entry.address}</span>
+                                        <span>{resolve(entry.rawAddress)}</span>
                                     </td>
                                     <td style={styles.tdRight}>
                                         {getValueIcon() === "bnb" ? (

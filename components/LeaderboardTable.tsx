@@ -37,6 +37,16 @@ interface EarnersResponse {
     pagination: { page: number; limit: number; total: number; pages: number }
 }
 
+interface StakerFromAPI {
+    address: string
+    stakedBalance: string
+    stakedBalanceFormatted: string
+}
+
+interface StakersResponse {
+    stakers: StakerFromAPI[]
+}
+
 // Helper functions
 const formatAddress = (addr: string): string => {
     if (!addr || addr.length < 10) return addr
@@ -57,6 +67,13 @@ const transformEarner = (e: EarnerFromAPI, i: number): LeaderboardEntry => ({
     value: parseFloat(e.unclaimedFormatted)
 })
 
+const transformStaker = (s: StakerFromAPI, i: number): LeaderboardEntry => ({
+    rank: i + 1,
+    address: formatAddress(s.address),
+    rawAddress: s.address,
+    value: parseFloat(s.stakedBalanceFormatted)
+})
+
 // SVG Icons
 const BnbIcon = () => (
     <img
@@ -69,6 +86,7 @@ const BnbIcon = () => (
 export default function LeaderboardTable() {
     const [activeTab, setActiveTab] = useState<"miners" | "stakers" | "unrefined">("miners")
     const [miners, setMiners] = useState<LeaderboardEntry[]>([])
+    const [stakers, setStakers] = useState<LeaderboardEntry[]>([])
     const [unrefined, setUnrefined] = useState<LeaderboardEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
@@ -76,8 +94,8 @@ export default function LeaderboardTable() {
 
     // Resolve addresses to usernames via batch profile lookup
     const allAddresses = useMemo(() =>
-        [...miners, ...unrefined].map(e => e.rawAddress),
-        [miners, unrefined]
+        [...miners, ...stakers, ...unrefined].map(e => e.rawAddress),
+        [miners, stakers, unrefined]
     )
     const { resolve } = useProfileResolver(allAddresses)
 
@@ -98,11 +116,13 @@ export default function LeaderboardTable() {
         const fetchData = async () => {
             setLoading(true)
             try {
-                const [minersRes, earnersRes] = await Promise.all([
+                const [minersRes, stakersRes, earnersRes] = await Promise.all([
                     apiFetch<MinersResponse>('/api/leaderboard/miners?period=all&limit=12'),
+                    apiFetch<StakersResponse>('/api/leaderboard/stakers?limit=12'),
                     apiFetch<EarnersResponse>('/api/leaderboard/earners?limit=12')
                 ])
                 setMiners(minersRes.deployers.map(transformDeployer))
+                setStakers(stakersRes.stakers.map(transformStaker))
                 setUnrefined(earnersRes.earners.map(transformEarner))
             } catch (err) {
                 console.error('Failed to fetch leaderboard:', err)
@@ -170,7 +190,7 @@ export default function LeaderboardTable() {
             case "miners":
                 return miners
             case "stakers":
-                return [] // Coming soon
+                return stakers
             case "unrefined":
                 return unrefined
         }
@@ -217,11 +237,7 @@ export default function LeaderboardTable() {
             <p style={isMobile ? styles.descriptionMobile : styles.description}>{getDescription()}</p>
 
             {/* Table or Empty State */}
-            {activeTab === "stakers" ? (
-                <div style={styles.emptyState}>
-                    <p style={styles.emptyText}>Staking leaderboard coming soon</p>
-                </div>
-            ) : loading && getData().length === 0 ? (
+            {loading && getData().length === 0 ? (
                 <div style={styles.emptyState}>
                     <p style={styles.emptyText}>Loading...</p>
                 </div>

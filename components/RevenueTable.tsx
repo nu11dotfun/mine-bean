@@ -10,6 +10,7 @@ interface BuybackEntry {
     spent: number
     burned: number
     yieldGenerated: number
+    txHash: string
 }
 
 // API response interfaces
@@ -52,7 +53,8 @@ const transformBuyback = (b: BuybackFromAPI): BuybackEntry => ({
     time: getRelativeTime(b.timestamp),
     spent: parseFloat(b.bnbSpentFormatted),
     burned: parseFloat(b.beanBurnedFormatted),
-    yieldGenerated: parseFloat(b.beanToStakersFormatted)
+    yieldGenerated: parseFloat(b.beanToStakersFormatted),
+    txHash: b.txHash
 })
 
 // Pagination icons
@@ -85,6 +87,7 @@ export default function RevenueTable() {
     const [error, setError] = useState<string | null>(null)
     const [isMobile, setIsMobile] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [hoveredRow, setHoveredRow] = useState<number | null>(null)
     const rowsPerPage = 12
 
     useEffect(() => {
@@ -167,7 +170,18 @@ export default function RevenueTable() {
                     </thead>
                     <tbody>
                         {buybacks.map((entry, index) => (
-                            <tr key={index} style={styles.tr}>
+                            <tr
+                                key={index}
+                                style={{
+                                    ...styles.tr,
+                                    cursor: 'pointer',
+                                    background: hoveredRow === index ? '#1a1a1a' : 'transparent',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={() => setHoveredRow(index)}
+                                onMouseLeave={() => setHoveredRow(null)}
+                                onClick={() => window.open(`https://bscscan.com/tx/${entry.txHash}`, '_blank')}
+                            >
                                 <td style={styles.td}>{entry.time}</td>
                                 <td style={styles.tdRight}>
                                     <span style={styles.valueWithIcon}>

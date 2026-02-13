@@ -91,13 +91,14 @@ export default function LeaderboardTable() {
     const [loading, setLoading] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
     const [mounted, setMounted] = useState(false)
+    const [hoveredRow, setHoveredRow] = useState<number | null>(null)
 
     // Resolve addresses to usernames via batch profile lookup
     const allAddresses = useMemo(() =>
         [...miners, ...stakers, ...unrefined].map(e => e.rawAddress),
         [miners, stakers, unrefined]
     )
-    const { resolve } = useProfileResolver(allAddresses)
+    const { profiles, resolve } = useProfileResolver(allAddresses)
 
     useEffect(() => {
         setMounted(true)
@@ -257,10 +258,30 @@ export default function LeaderboardTable() {
                         </thead>
                         <tbody>
                             {getData().map((entry, index) => (
-                                <tr key={index} style={styles.tr}>
+                                <tr
+                                    key={index}
+                                    style={{
+                                        ...styles.tr,
+                                        cursor: 'pointer',
+                                        background: hoveredRow === index ? '#1a1a1a' : 'transparent',
+                                        transition: 'background 0.15s'
+                                    }}
+                                    onMouseEnter={() => setHoveredRow(index)}
+                                    onMouseLeave={() => setHoveredRow(null)}
+                                    onClick={() => window.open(`https://bscscan.com/address/${entry.rawAddress}`, '_blank')}
+                                >
                                     <td style={styles.td}>#{entry.rank}</td>
                                     <td style={styles.td}>
-                                        <span>{resolve(entry.rawAddress)}</span>
+                                        <span style={styles.addressCell}>
+                                            {(() => {
+                                                const info = profiles.get(entry.rawAddress.toLowerCase())
+                                                if (info?.pfpUrl) {
+                                                    return <img src={info.pfpUrl} alt="" style={styles.addressPfp} />
+                                                }
+                                                return null
+                                            })()}
+                                            <span>{resolve(entry.rawAddress)}</span>
+                                        </span>
                                     </td>
                                     <td style={styles.tdRight}>
                                         {getValueIcon() === "bnb" ? (
@@ -413,6 +434,18 @@ const styles: { [key: string]: React.CSSProperties } = {
         alignItems: "center",
         justifyContent: "flex-end",
         gap: "6px",
+    },
+    addressCell: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+    },
+    addressPfp: {
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        objectFit: "cover" as const,
+        flexShrink: 0,
     },
     emptyState: {
         display: "flex",

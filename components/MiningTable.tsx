@@ -17,6 +17,7 @@ interface Round {
     winnings: number
     goldenBean: number | null
     time: string
+    txHash: string  // fulfilment transaction hash
 }
 
 // API response interfaces
@@ -32,6 +33,7 @@ interface RoundFromAPI {
     motherlodeAmount: string
     endTime: number | string    // Unix timestamp or ISO date string
     settledAt?: number | string // Unix timestamp or ISO date string
+    txHash: string              // fulfilment transaction hash
 }
 
 interface RoundsResponse {
@@ -108,7 +110,8 @@ const transformRound = (r: RoundFromAPI): Round => ({
     goldenBean: r.motherlodeAmount && parseFloat(r.motherlodeAmount) > 0
         ? formatWei(r.motherlodeAmount)
         : null,
-    time: getRelativeTime(r.settledAt || r.endTime)
+    time: getRelativeTime(r.settledAt || r.endTime),
+    txHash: r.txHash
 })
 
 export default function MiningTable() {
@@ -119,6 +122,7 @@ export default function MiningTable() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [mounted, setMounted] = useState(false)
+    const [hoveredRow, setHoveredRow] = useState<number | null>(null)
     const rowsPerPage = 12
 
     // Resolve winner addresses to profiles (username + pfp)
@@ -240,7 +244,18 @@ export default function MiningTable() {
                     </thead>
                     <tbody>
                         {rounds.map((round, index) => (
-                            <tr key={round.round || index} style={styles.tr}>
+                            <tr
+                                key={round.round || index}
+                                style={{
+                                    ...styles.tr,
+                                    cursor: 'pointer',
+                                    background: hoveredRow === index ? '#1a1a1a' : 'transparent',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={() => setHoveredRow(index)}
+                                onMouseLeave={() => setHoveredRow(null)}
+                                onClick={() => window.open(`https://bscscan.com/tx/${round.txHash}`, '_blank')}
+                            >
                                 <td style={styles.td}>#{round.round.toLocaleString()}</td>
                                 <td style={styles.td}>#{round.block}</td>
                                 <td style={styles.td}>

@@ -96,9 +96,9 @@ npm run lint      # Linter
 - **app/page.tsx** — Also handles AutoMiner contract interactions via `handleAutoActivate` (calls `AutoMiner.setConfig` payable) and `handleAutoStop` (calls `AutoMiner.stop`). Dispatches `autoMinerActivated`/`autoMinerStopped` window events on success.
 - **SidebarControls.tsx / MobileControls.tsx** — Support both Manual and Auto mining modes. Auto mode: fetches `GET /api/automine/:address` on mount, uses `useSSE()` to subscribe to `autoMineExecuted`/`configDeactivated`/`stopped` events for real-time updates. When AutoMiner is active, hides Manual tab and shows active status (balance, strategy, rounds executed/total, per block/round). Configure view validates per-block amount against `MIN_DEPLOY_PER_BLOCK` accounting for `EXECUTOR_FEE_BPS` (0.5%). Calls `onAutoActivate`/`onAutoStop` props from page.tsx.
 - **MiningGrid.tsx** — Also uses `useSSE()` to subscribe to `autoMineExecuted` to highlight deployed blocks green. Additionally handles AutoMiner deployments in the global `deployed` SSE handler: when `isAutoMine === true` and user matches, fetches deployment history and decodes `blockMask` to mark deployed blocks.
-- **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where motherlode was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, BNB deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time.
-- **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), BNB Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view.
-- **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12` and `GET /api/leaderboard/earners?limit=12` on mount. Three tabs: Miners (total BNB deployed), Stakers (coming soon - empty state), Unrefined (unclaimed BEAN). Displays: Rank, Address (truncated), Value with icon (BNB or BEAN).
+- **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where motherlode was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, BNB deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time. **Clickable rows:** Each row links to the fulfilment transaction on BSCScan (`txHash` field from API).
+- **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), BNB Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view. **Clickable rows:** Each row links to the buyback transaction on BSCScan (`txHash` field from API).
+- **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12`, `GET /api/leaderboard/stakers?limit=12`, and `GET /api/leaderboard/earners?limit=12` on mount in parallel. Three tabs: Miners (total BNB deployed), Stakers (total BEAN staked), Unrefined (unclaimed BEAN). Displays: Rank, Address (with profile picture if available), Value with icon (BNB or BEAN). **Clickable rows:** Each row links to the wallet address on BSCScan. Uses `useProfileResolver` to get both `profiles` map (for pfp) and `resolve` function (for username).
 - **GlobalStats.tsx** — Fetches `GET /api/stats` and `GET /api/treasury/stats` on mount. Displays: Max Supply (hardcoded 3M), Circulating Supply (`totalMintedFormatted`), Burned (`totalBurnedFormatted`), Protocol Revenue (`totalVaultedFormatted`).
 - **app/stake/page.tsx** — Orchestrates staking contract interactions. Uses wagmi `useWriteContract` (2 instances) to handle the ERC20 approve→deposit chain: first `Bean.approve(Staking, amount)`, then `Staking.deposit(amount)` with optional `msg.value` for compound fee BNB. Chains transactions via `useWaitForTransactionReceipt` watching approval tx hash; on confirmation, fires deposit with stored `pendingApprovalAmount` and `pendingCompoundFee`. Also handles `Staking.withdraw(amount)`, `Staking.claimYield()`, and `Staking.compound()`. Reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`. Passes `onDeposit`, `onWithdraw`, `onClaimYield`, `onCompound` callbacks to StakePage component.
 - **StakePage.tsx** — Full staking interface connected to backend and smart contract. Fetches `GET /api/staking/stats` on mount for global stats (totalStaked, APR, TVL). Fetches `GET /api/staking/:address` when wallet connected for user stake info (balance, pendingRewards, compoundFeeReserve, canCompound). Uses `useSSE()` to subscribe to global `yieldDistributed` and user `stakeDeposited`/`stakeWithdrawn`/`yieldClaimed`/`yieldCompounded` events — all trigger data re-fetch. Summary section shows Total Deposits, APR, TVL. Deposit/withdraw section shows BEAN balance, input field, and auto-compound settings (toggle + BNB input, default 0.006). User position card (visible when staked > 0) shows total staked, pending rewards, "Claim" and "Claim & Deposit" buttons. Info icons ('i') on all metrics open tooltip dialogues on hover (desktop) or click (mobile). Includes APR Calculator modal using real APR from backend. **Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh on backend, SSE event handlers re-fetch immediately + again after 10s to catch cache updates.
@@ -306,7 +306,7 @@ The `/global` page displays protocol-wide statistics and historical data. Compon
 | **GlobalStats** | `GET /api/stats`, `GET /api/treasury/stats` | ✅ Connected |
 | **MiningTable** | `GET /api/rounds` | ✅ Connected |
 | **RevenueTable** | `GET /api/treasury/buybacks` | ✅ Connected |
-| **LeaderboardTable** | `GET /api/leaderboard/miners`, `GET /api/leaderboard/earners` | ✅ Connected (Stakers tab pending) |
+| **LeaderboardTable** | `GET /api/leaderboard/miners`, `GET /api/leaderboard/stakers`, `GET /api/leaderboard/earners` | ✅ Connected |
 
 **Hydration Pattern:** Components using dynamic data (API fetches or `Math.random()`) must return `null` until after mount to prevent SSR/client mismatch:
 
@@ -356,17 +356,18 @@ if (!mounted) {
 | Yield Generated | `beanToStakersFormatted` | `parseFloat()` → BEAN amount |
 
 **LeaderboardTable Data Flow:**
-1. Fetches both endpoints in parallel on mount:
+1. Fetches all three endpoints in parallel on mount:
    - `GET /api/leaderboard/miners?period=all&limit=12` for Miners tab
+   - `GET /api/leaderboard/stakers?limit=12` for Stakers tab
    - `GET /api/leaderboard/earners?limit=12` for Unrefined tab
 2. Transforms API responses to `LeaderboardEntry` format with rank, truncated address, and value
-3. Stakers tab shows "Coming soon" empty state (no staking contract yet)
+3. Uses `useProfileResolver` hook to resolve addresses to usernames via batch profile lookup
 
 **LeaderboardTable Column Mapping:**
 | Tab | API Endpoint | Value Field | Icon |
 |-----|--------------|-------------|------|
 | Miners | `/api/leaderboard/miners` | `totalDeployedFormatted` | BNB |
-| Stakers | N/A (coming soon) | - | BEAN |
+| Stakers | `/api/leaderboard/stakers` | `stakedBalanceFormatted` | BEAN |
 | Unrefined | `/api/leaderboard/earners` | `unclaimedFormatted` | BEAN |
 
 **GlobalStats Data Flow:**
@@ -524,7 +525,8 @@ Paginated list of rounds. Query params:
       "totalWinnings": "890000000000000000",
       "motherlodeAmount": "0",
       "settledAt": "2026-02-04T10:33:28.000Z",
-      "endTime": "2026-02-04T10:33:22.000Z"
+      "endTime": "2026-02-04T10:33:22.000Z",
+      "txHash": "0x1234...abcd"
     }
   ],
   "pagination": { "page": 1, "limit": 20, "total": 100, "pages": 5 }
@@ -595,6 +597,21 @@ Top miners by total BNB deployed. **Connected by LeaderboardTable.tsx** (Miners 
       "roundsPlayed": 42
     }
   ]
+}
+```
+
+#### `GET /api/leaderboard/stakers?limit=20`
+Top stakers by total BEAN staked. **Connected by LeaderboardTable.tsx** (Stakers tab).
+```json
+{
+  "stakers": [
+    {
+      "address": "0x...",
+      "stakedBalance": "1000000000000000000",
+      "stakedBalanceFormatted": "1.0"
+    }
+  ],
+  "pagination": { "page": 1, "limit": 20, "total": 50, "pages": 3 }
 }
 ```
 

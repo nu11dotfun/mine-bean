@@ -1,26 +1,45 @@
 'use client'
 
-import React, { useState, useRef } from 'react'
-import { useAccount, useBalance, useReadContract } from 'wagmi'
+import React, { useState, useRef, useEffect, useCallback } from 'react'
+import { useAccount, useBalance, useReadContract, useSignMessage } from 'wagmi'
 import BeanLogo from './BeanLogo'
+import { CONTRACTS } from '@/lib/contracts'
+import { useUserData } from '@/lib/UserDataContext'
+import { apiMutate } from '@/lib/api'
 
-const BEANS_ADDRESS = '0x000Ae314E2A2172a039B26378814C252734f556A'
+// ── Image resize utility ─────────────────────────────────────────────
 
-const erc20Abi = [
-  {
-    inputs: [{ name: 'account', type: 'address' }],
-    name: 'balanceOf',
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const
+const resizeImage = (file: File, maxSize: number = 200): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = maxSize
+      canvas.height = maxSize
+      const ctx = canvas.getContext('2d')!
+      // Center-crop: use the smaller dimension as source square
+      const min = Math.min(img.width, img.height)
+      const sx = (img.width - min) / 2
+      const sy = (img.height - min) / 2
+      ctx.drawImage(img, sx, sy, min, min, 0, 0, maxSize, maxSize)
+      resolve(canvas.toDataURL('image/jpeg', 0.85))
+    }
+    img.onerror = reject
+    img.src = URL.createObjectURL(file)
+  })
+}
+
+// ── Component ─────────────────────────────────────────────────────────
 
 export default function ProfilePage() {
-  const { address, isConnected } = useAccount()
+  const { address, isConnected, isReconnecting, isConnecting } = useAccount()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const { signMessageAsync } = useSignMessage()
 
-  // Profile state — will be loaded/saved to DB by your dev
+  // Shared user data from context
+  const { rewards, stakeInfo, profile: profileData, refetchProfile } = useUserData()
+
+  // Local edit state
   const [username, setUsername] = useState('')
   const [bio, setBio] = useState('')
   const [pfpUrl, setPfpUrl] = useState<string | null>(null)
@@ -29,37 +48,110 @@ export default function ProfilePage() {
   const [isEditingUsername, setIsEditingUsername] = useState(false)
   const [isEditingBio, setIsEditingBio] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
+
+  // Pre-populate fields from context when profile loads
+  const profileLoadedRef = useRef(false)
+  useEffect(() => {
+    if (profileData && !profileLoadedRef.current) {
+      profileLoadedRef.current = true
+      if (profileData.username) setUsername(profileData.username)
+      if (profileData.bio) setBio(profileData.bio)
+      if (profileData.pfpUrl) setPfpUrl(profileData.pfpUrl)
+      if (profileData.discord) {
+        setDiscordConnected(true)
+        setDiscordUsername(profileData.discord)
+      }
+    }
+  }, [profileData])
+
+  // Reset loaded ref when address changes
+  useEffect(() => {
+    profileLoadedRef.current = false
+  }, [address])
 
   const { data: bnbBalance } = useBalance({
     address: address as `0x${string}` | undefined,
   })
 
   const { data: beansBalanceRaw } = useReadContract({
-    address: BEANS_ADDRESS,
-    abi: erc20Abi,
+    address: CONTRACTS.Bean.address,
+    abi: CONTRACTS.Bean.abi,
     functionName: 'balanceOf',
     args: address ? [address as `0x${string}`] : undefined,
   })
 
   const beansBalance = beansBalanceRaw ? Number(beansBalanceRaw) / 1e18 : 0
 
+  // Real portfolio data from shared context
+  const stakedBalance = stakeInfo ? parseFloat(stakeInfo.balanceFormatted) : 0
+  const refinedBalance = rewards ? parseFloat(rewards.pendingBEAN.refinedFormatted) : 0
+  const unrefinedBalance = rewards ? parseFloat(rewards.pendingBEAN.unrefinedFormatted) : 0
+
   const portfolio = {
     wallet: beansBalance,
-    staked: 0,
-    roasted: 0,
-    unroasted: 0,
-    rewards: 0,
+    staked: stakedBalance,
+    refined: refinedBalance,
+    unrefined: unrefinedBalance,
   }
 
-  const total = portfolio.wallet + portfolio.staked + portfolio.roasted + portfolio.unroasted + portfolio.rewards
+  const total = portfolio.wallet + portfolio.staked + portfolio.refined + portfolio.unrefined
 
-  const handlePfpUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // For now, create a local preview. Your dev will handle upload to storage
-      const url = URL.createObjectURL(file)
-      setPfpUrl(url)
+  // ── Save profile with wallet signature ──────────────────────────────
+
+  const saveProfile = useCallback(async (fields: { username?: string; bio?: string; pfpUrl?: string | null }) => {
+    if (!address) return
+    setSaving(true)
+    setSaveError(null)
+    try {
+      const timestamp = Math.floor(Date.now() / 1000)
+      const message = `BEAN Protocol Profile Update\nAddress: ${address.toLowerCase()}\nTimestamp: ${timestamp}`
+      const signature = await signMessageAsync({ message })
+      await apiMutate(`/api/user/${address.toLowerCase()}/profile`, 'PUT', {
+        ...fields,
+        signature,
+        message,
+        timestamp,
+      })
+      refetchProfile()
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to save'
+      setSaveError(errorMessage)
+    } finally {
+      setSaving(false)
     }
+  }, [address, signMessageAsync, refetchProfile])
+
+  // ── Handlers ────────────────────────────────────────────────────────
+
+  const handlePfpUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      const base64 = await resizeImage(file, 200)
+      setPfpUrl(base64)
+      saveProfile({ pfpUrl: base64 })
+    } catch {
+      setSaveError('Failed to process image')
+    }
+  }
+
+  const handleRemovePfp = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    setPfpUrl(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
+    saveProfile({ pfpUrl: null })
+  }
+
+  const handleSaveUsername = () => {
+    setIsEditingUsername(false)
+    saveProfile({ username: username || '' })
+  }
+
+  const handleSaveBio = () => {
+    setIsEditingBio(false)
+    saveProfile({ bio: bio || '' })
   }
 
   const handleCopyAddress = () => {
@@ -72,6 +164,17 @@ export default function ProfilePage() {
 
   const truncateAddress = (addr: string) => {
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`
+  }
+
+  // Show loading state while wagmi rehydrates wallet from localStorage
+  if (isReconnecting || isConnecting) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.notConnected}>
+          <p style={styles.notConnectedText}>Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isConnected || !address) {
@@ -94,12 +197,20 @@ export default function ProfilePage() {
   return (
     <div style={styles.container}>
       <div style={styles.page}>
+        {/* Save Error Banner */}
+        {saveError && (
+          <div style={styles.errorBanner}>
+            <span>{saveError}</span>
+            <button onClick={() => setSaveError(null)} style={styles.errorClose}>✕</button>
+          </div>
+        )}
+
         {/* Profile Card */}
         <div style={styles.card}>
           {/* PFP Section */}
           <div style={styles.pfpSection}>
             <div style={{ position: 'relative' as const, display: 'inline-block' }}>
-              <div 
+              <div
                 style={styles.pfpContainer}
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -128,11 +239,7 @@ export default function ProfilePage() {
               </div>
               {pfpUrl && (
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setPfpUrl(null)
-                    if (fileInputRef.current) fileInputRef.current.value = ''
-                  }}
+                  onClick={handleRemovePfp}
                   style={styles.pfpRemoveButton}
                 >
                   ✕
@@ -155,11 +262,15 @@ export default function ProfilePage() {
                   style={styles.textInput}
                   autoFocus
                 />
-                <button 
-                  onClick={() => setIsEditingUsername(false)} 
-                  style={styles.saveButton}
+                <button
+                  onClick={handleSaveUsername}
+                  style={{
+                    ...styles.saveButton,
+                    ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                  }}
+                  disabled={saving}
                 >
-                  Save
+                  {saving ? '...' : 'Save'}
                 </button>
               </div>
             ) : (
@@ -167,8 +278,8 @@ export default function ProfilePage() {
                 <span style={styles.fieldValue}>
                   {username || 'Not set'}
                 </span>
-                <button 
-                  onClick={() => setIsEditingUsername(true)} 
+                <button
+                  onClick={() => setIsEditingUsername(true)}
                   style={styles.editButton}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -194,11 +305,15 @@ export default function ProfilePage() {
                   style={{ ...styles.textInput, resize: 'none' as const, minHeight: '72px' }}
                   autoFocus
                 />
-                <button 
-                  onClick={() => setIsEditingBio(false)} 
-                  style={styles.saveButton}
+                <button
+                  onClick={handleSaveBio}
+                  style={{
+                    ...styles.saveButton,
+                    ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                  }}
+                  disabled={saving}
                 >
-                  Save
+                  {saving ? '...' : 'Save'}
                 </button>
               </div>
             ) : (
@@ -206,8 +321,8 @@ export default function ProfilePage() {
                 <span style={{ ...styles.fieldValue, ...(bio ? {} : { fontStyle: 'italic' }) }}>
                   {bio || 'Not set'}
                 </span>
-                <button 
-                  onClick={() => setIsEditingBio(true)} 
+                <button
+                  onClick={() => setIsEditingBio(true)}
                   style={styles.editButton}
                 >
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -226,8 +341,8 @@ export default function ProfilePage() {
               <span style={{ ...styles.fieldValue, fontFamily: 'monospace' }}>
                 {truncateAddress(address)}
               </span>
-              <button 
-                onClick={handleCopyAddress} 
+              <button
+                onClick={handleCopyAddress}
                 style={styles.editButton}
               >
                 {copied ? (
@@ -251,11 +366,11 @@ export default function ProfilePage() {
               {discordConnected ? (
                 <span style={styles.fieldValue}>{discordUsername}</span>
               ) : (
-                <button 
+                <button
                   onClick={() => {
-                    // Your dev will implement Discord OAuth
+                    // Discord OAuth will be implemented later
                     console.log('Discord connect clicked')
-                  }} 
+                  }}
                   style={styles.discordButton}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -271,14 +386,14 @@ export default function ProfilePage() {
         {/* Portfolio Card */}
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Portfolio</h3>
-          
+
           <div style={styles.bnbRow}>
             <span style={styles.bnbRowLabel}>BNB Balance</span>
             <span style={styles.bnbRowValue}>
-              <img 
-                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public" 
-                alt="BNB" 
-                style={{ width: 16, height: 16 }} 
+              <img
+                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
+                alt="BNB"
+                style={{ width: 16, height: 16 }}
               />
               {bnbBalance ? parseFloat(bnbBalance.formatted).toFixed(4) : '0.0000'}
             </span>
@@ -290,9 +405,8 @@ export default function ProfilePage() {
             {[
               { label: 'Wallet', value: portfolio.wallet },
               { label: 'Staked', value: portfolio.staked },
-              { label: 'Roasted', value: portfolio.roasted },
-              { label: 'Unroasted', value: portfolio.unroasted },
-              { label: 'Rewards', value: portfolio.rewards },
+              { label: 'Refined', value: portfolio.refined },
+              { label: 'Unrefined', value: portfolio.unrefined },
             ].map((item) => (
               <div key={item.label} style={styles.portfolioItem}>
                 <span style={styles.portfolioItemLabel}>{item.label}</span>
@@ -352,6 +466,25 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '14px',
     color: '#666',
     margin: 0,
+  },
+  errorBanner: {
+    background: '#2a1515',
+    border: '1px solid #4a2020',
+    borderRadius: '10px',
+    padding: '12px 16px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    color: '#ff6b6b',
+    fontSize: '13px',
+  },
+  errorClose: {
+    background: 'transparent',
+    border: 'none',
+    color: '#ff6b6b',
+    cursor: 'pointer',
+    fontSize: '14px',
+    padding: '0 4px',
   },
   card: {
     background: '#111',

@@ -35,10 +35,18 @@ export interface RewardsData {
     uncheckpointedRound: string
 }
 
+export interface ProfileData {
+    username: string | null
+    bio: string | null
+    pfpUrl: string | null
+    discord: string | null
+}
+
 // ── SessionStorage helpers (survive page refresh) ──────────────────
 
 const REWARDS_KEY = (addr: string) => `beans_rewards_${addr}`
 const STAKE_KEY = (addr: string) => `beans_stake_${addr}`
+const PROFILE_KEY = (addr: string) => `beans_profile_${addr}`
 
 function readCache<T>(key: string): T | null {
     try {
@@ -60,8 +68,10 @@ function writeCache<T>(key: string, data: T): void {
 interface UserDataContextValue {
     rewards: RewardsData | null
     stakeInfo: UserStakeInfo | null
+    profile: ProfileData | null
     refetchRewards: () => void
     refetchStakeInfo: () => void
+    refetchProfile: () => void
 }
 
 const UserDataContext = createContext<UserDataContextValue | null>(null)
@@ -84,6 +94,9 @@ export function UserDataProvider({
     const [stakeInfo, setStakeInfo] = useState<UserStakeInfo | null>(() =>
         userAddress ? readCache<UserStakeInfo>(STAKE_KEY(userAddress)) : null
     )
+    const [profile, setProfile] = useState<ProfileData | null>(() =>
+        userAddress ? readCache<ProfileData>(PROFILE_KEY(userAddress)) : null
+    )
 
     // Ref to track current address for sessionStorage writes
     const addressRef = useRef(userAddress)
@@ -101,6 +114,13 @@ export function UserDataProvider({
         setStakeInfo(data)
         if (data && addressRef.current) {
             writeCache(STAKE_KEY(addressRef.current), data)
+        }
+    }, [])
+
+    const setProfileAndCache = useCallback((data: ProfileData | null) => {
+        setProfile(data)
+        if (data && addressRef.current) {
+            writeCache(PROFILE_KEY(addressRef.current), data)
         }
     }, [])
 
@@ -126,6 +146,21 @@ export function UserDataProvider({
         }
     }, [userAddress, setStakeInfoAndCache])
 
+    const fetchProfile = useCallback(async () => {
+        if (!userAddress) return
+        try {
+            const data = await apiFetch<ProfileData & { address: string }>(`/api/user/${userAddress}/profile`)
+            setProfileAndCache({
+                username: data.username,
+                bio: data.bio,
+                pfpUrl: data.pfpUrl,
+                discord: data.discord,
+            })
+        } catch {
+            // 429 or network error — state keeps current value (from sessionStorage or previous fetch)
+        }
+    }, [userAddress, setProfileAndCache])
+
     // ── Fetch on mount / address change ────────────────────────────
 
     useEffect(() => {
@@ -133,19 +168,23 @@ export function UserDataProvider({
             // Wallet disconnected — clear state
             setRewards(null)
             setStakeInfo(null)
+            setProfile(null)
             return
         }
         // Load from sessionStorage for this address (may already be set via useState initializer,
         // but handles address changes after initial mount)
         const cachedRewards = readCache<RewardsData>(REWARDS_KEY(userAddress))
         const cachedStake = readCache<UserStakeInfo>(STAKE_KEY(userAddress))
+        const cachedProfile = readCache<ProfileData>(PROFILE_KEY(userAddress))
         if (cachedRewards) setRewards(cachedRewards)
         if (cachedStake) setStakeInfo(cachedStake)
+        if (cachedProfile) setProfile(cachedProfile)
 
         // Then fetch fresh data (will overwrite cache on success, or keep cached on 429)
         fetchRewards()
         fetchStakeInfo()
-    }, [userAddress, fetchRewards, fetchStakeInfo])
+        fetchProfile()
+    }, [userAddress, fetchRewards, fetchStakeInfo, fetchProfile])
 
     // ── SSE subscriptions — update state from event payloads ───────
 
@@ -237,7 +276,22 @@ export function UserDataProvider({
             })
         })
 
-        return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6() }
+        // profileUpdated: user updated their profile
+        const unsub7 = subscribeUser('profileUpdated', (data: unknown) => {
+            const d = data as { username?: string | null; bio?: string | null; pfpUrl?: string | null }
+            setProfile(prev => {
+                const updated: ProfileData = {
+                    username: d.username !== undefined ? d.username : (prev?.username ?? null),
+                    bio: d.bio !== undefined ? d.bio : (prev?.bio ?? null),
+                    pfpUrl: d.pfpUrl !== undefined ? d.pfpUrl : (prev?.pfpUrl ?? null),
+                    discord: prev?.discord ?? null,
+                }
+                if (addressRef.current) writeCache(PROFILE_KEY(addressRef.current), updated)
+                return updated
+            })
+        })
+
+        return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6(); unsub7() }
     }, [subscribeUser])
 
     // settlementComplete window event — new mining rewards may be available
@@ -253,8 +307,10 @@ export function UserDataProvider({
         <UserDataContext.Provider value={{
             rewards,
             stakeInfo,
+            profile,
             refetchRewards: fetchRewards,
             refetchStakeInfo: fetchStakeInfo,
+            refetchProfile: fetchProfile,
         }}>
             {children}
         </UserDataContext.Provider>

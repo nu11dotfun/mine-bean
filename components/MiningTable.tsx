@@ -1,14 +1,16 @@
 'use client'
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useMemo } from "react"
 import BeanLogo from './BeanLogo'
 import { apiFetch } from '../lib/api'
+import { useProfileResolver } from '@/lib/useProfileResolver'
 
 // Display interface (for table rendering)
 interface Round {
     round: number
     block: number
     winner: string
+    rawWinner: string | null  // original address for profile lookup (null if split)
     winners: number
     deployed: number
     vaulted: number
@@ -98,6 +100,7 @@ const transformRound = (r: RoundFromAPI): Round => ({
     round: r.roundId,
     block: r.winningBlock,
     winner: r.isSplit ? "Split" : formatAddress(r.beanWinner || ''),
+    rawWinner: r.isSplit ? null : (r.beanWinner || null),
     winners: r.winnerCount || 0,
     deployed: formatWei(r.totalDeployed),
     vaulted: formatWei(r.vaultedAmount),
@@ -117,6 +120,13 @@ export default function MiningTable() {
     const [error, setError] = useState<string | null>(null)
     const [mounted, setMounted] = useState(false)
     const rowsPerPage = 12
+
+    // Resolve winner addresses to profiles (username + pfp)
+    const winnerAddresses = useMemo(() =>
+        rounds.map(r => r.rawWinner).filter((a): a is string => a !== null),
+        [rounds]
+    )
+    const { profiles, resolve } = useProfileResolver(winnerAddresses)
 
     // Prevent hydration mismatch by only rendering after mount
     useEffect(() => {
@@ -236,6 +246,17 @@ export default function MiningTable() {
                                 <td style={styles.td}>
                                     {round.winner === "Split" ? (
                                         <span style={styles.splitBadge}>Split</span>
+                                    ) : round.rawWinner ? (
+                                        <span style={styles.winnerCell}>
+                                            {(() => {
+                                                const info = profiles.get(round.rawWinner.toLowerCase())
+                                                if (info?.pfpUrl) {
+                                                    return <img src={info.pfpUrl} alt="" style={styles.winnerPfp} />
+                                                }
+                                                return null
+                                            })()}
+                                            <span>{resolve(round.rawWinner)}</span>
+                                        </span>
                                     ) : (
                                         <span>{round.winner}</span>
                                     )}
@@ -405,6 +426,18 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "4px 10px",
         fontSize: "12px",
         color: "#888",
+    },
+    winnerCell: {
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "8px",
+    },
+    winnerPfp: {
+        width: 20,
+        height: 20,
+        borderRadius: "50%",
+        objectFit: "cover" as const,
+        flexShrink: 0,
     },
     valueWithIcon: {
         display: "inline-flex",

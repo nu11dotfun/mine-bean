@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import BeanLogo from './BeanLogo'
 import { apiFetch } from "@/lib/api"
+import { useProfileResolver } from '@/lib/useProfileResolver'
 
 interface Miner {
     address: string
@@ -17,11 +18,6 @@ interface MinersResponse {
     miners: Miner[]
 }
 
-function truncateAddress(address: string): string {
-    if (address.length <= 13) return address
-    return `${address.slice(0, 6)}...${address.slice(-4)}`
-}
-
 export default function MinersPanel() {
     const [isOpen, setIsOpen] = useState(false)
     const [isHoveringTab, setIsHoveringTab] = useState(false)
@@ -29,6 +25,10 @@ export default function MinersPanel() {
     const [roundId, setRoundId] = useState<number | null>(null)
     const [winningBlock, setWinningBlock] = useState<number | null>(null)
     const [loading, setLoading] = useState(false)
+
+    // Resolve miner addresses to usernames via batch profile lookup
+    const minerAddresses = useMemo(() => miners.map(m => m.address), [miners])
+    const { resolve } = useProfileResolver(minerAddresses)
 
     // Store settled roundId so we can fetch miners after animation completes
     const settledRoundIdRef = useRef<string | null>(null)
@@ -134,7 +134,7 @@ export default function MinersPanel() {
                         miners.map((miner, index) => (
                             <div key={index} style={styles.minerRow}>
                                 <span style={styles.minerAddress}>
-                                    {truncateAddress(miner.address)}
+                                    {resolve(miner.address)}
                                 </span>
                                 <div style={styles.minerAmounts}>
                                     <span style={styles.bnbAmount}>

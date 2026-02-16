@@ -181,8 +181,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         marginBottom: "40px",
     },
     statBox: {
-        background: "transparent",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
         padding: "24px 20px",
         textAlign: "center" as const,
@@ -230,8 +230,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: "8px",
     },
     mobileStatBox: {
-        background: "transparent",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "10px",
         padding: "12px 10px",
         textAlign: "center" as const,

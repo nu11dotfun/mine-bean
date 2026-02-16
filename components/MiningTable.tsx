@@ -48,7 +48,7 @@ interface RoundsResponse {
 
 const BnbIcon = () => (
     <img
-        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
+        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
         alt="ETH"
         style={{ width: 16, height: 16, objectFit: "contain" as const }}
     />
@@ -202,9 +202,6 @@ export default function MiningTable() {
                     }}
                     onClick={() => handleTabChange("rounds")}
                 >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66.19-.34.05-.08.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z" />
-                    </svg>
                     Rounds
                 </button>
                 <button
@@ -214,9 +211,6 @@ export default function MiningTable() {
                     }}
                     onClick={() => handleTabChange("goldenbeans")}
                 >
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27 18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2z" />
-                    </svg>
                     Beanpot
                 </button>
             </div>

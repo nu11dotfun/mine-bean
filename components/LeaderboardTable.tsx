@@ -77,8 +77,8 @@ const transformStaker = (s: StakerFromAPI, i: number): LeaderboardEntry => ({
 // SVG Icons
 const BnbIcon = () => (
     <img
-        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-        alt="BNB"
+        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+        alt="ETH"
         style={{ width: 16, height: 16, objectFit: "contain" as const }}
     />
 )
@@ -167,7 +167,7 @@ export default function LeaderboardTable() {
     const getDescription = () => {
         switch (activeTab) {
             case "miners":
-                return "Top miners by total BNB deployed over their lifetime."
+                return "Top miners by total ETH deployed over their lifetime."
             case "stakers":
                 return "Top stakers by amount of BEANS staked."
             case "unrefined":
@@ -200,7 +200,7 @@ export default function LeaderboardTable() {
     const getValueIcon = () => {
         switch (activeTab) {
             case "miners":
-                return "bnb"
+                return "eth"
             case "stakers":
                 return "beans"
             case "unrefined":
@@ -228,7 +228,7 @@ export default function LeaderboardTable() {
                         }}
                         onClick={() => setActiveTab(tab.id as any)}
                     >
-                        {tab.icon}
+                        
                         {tab.label}
                     </button>
                 ))}
@@ -268,7 +268,7 @@ export default function LeaderboardTable() {
                                     }}
                                     onMouseEnter={() => setHoveredRow(index)}
                                     onMouseLeave={() => setHoveredRow(null)}
-                                    onClick={() => window.open(`https://bscscan.com/address/${entry.rawAddress}`, '_blank')}
+                                    onClick={() => window.open(`https://basescan.org/address/${entry.rawAddress}`, '_blank')}
                                 >
                                     <td style={styles.td}>#{entry.rank}</td>
                                     <td style={styles.td}>
@@ -284,7 +284,7 @@ export default function LeaderboardTable() {
                                         </span>
                                     </td>
                                     <td style={styles.tdRight}>
-                                        {getValueIcon() === "bnb" ? (
+                                        {getValueIcon() === "eth" ? (
                                             <span style={styles.valueWithIcon}>
                                                 <BnbIcon />
                                                 {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
@@ -350,7 +350,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 24px",
         fontSize: "14px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
@@ -366,24 +366,24 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "10px 8px",
         fontSize: "12px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
     tabActive: {
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.08)",
         color: "#fff",
     },
     description: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
         margin: 0,
         marginBottom: "24px",
     },
     descriptionMobile: {
         fontSize: "12px",
-        color: "#666",
+        color: "#999",
         margin: 0,
         marginBottom: "16px",
     },
@@ -400,7 +400,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
         whiteSpace: "nowrap" as const,
     },
@@ -409,7 +409,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
         whiteSpace: "nowrap" as const,
     },
@@ -452,12 +452,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         alignItems: "center",
         justifyContent: "center",
         padding: "48px 24px",
-        background: "#111",
+        background: "rgba(255, 255, 255, 0.04)",
         borderRadius: "8px",
     },
     emptyText: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
         margin: 0,
     },
 }

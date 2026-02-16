@@ -35,7 +35,7 @@ function WalletContent({
   const ready = mounted
   const connected = ready && account && chain
 
-  const { data: bnbBalance } = useBalance({
+  const { data: ethBalance } = useBalance({
     address: account?.address as `0x${string}` | undefined,
   })
 
@@ -89,7 +89,7 @@ function WalletContent({
           <img src={profile.pfp} alt="" style={styles.headerPfp} />
         ) : (
           <div style={styles.headerPfpPlaceholder}>
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="#666" stroke="none">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="#999" stroke="none">
               <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
             </svg>
           </div>
@@ -125,7 +125,7 @@ function WalletContent({
                 <img src={profile.pfp} alt="" style={styles.popupPfp} />
               ) : (
                 <div style={styles.popupPfpPlaceholder}>
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#555" stroke="none">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="#999" stroke="none">
                     <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                   </svg>
                 </div>
@@ -142,16 +142,11 @@ function WalletContent({
             </button>
           </div>
 
-          {/* BNB Balance */}
-          <div style={styles.bnbSection}>
-            <span style={styles.bnbLabel}>BNB Balance</span>
-            <span style={styles.bnbValue}>
-              <img
-                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-                alt="BNB"
-                style={{ width: 14, height: 14 }}
-              />
-              {bnbBalance ? parseFloat(bnbBalance.formatted).toFixed(4) : '0.0000'} BNB
+          {/* ETH Balance */}
+          <div style={styles.ethSection}>
+            <span style={styles.ethLabel}>ETH Balance</span>
+            <span style={styles.ethValue}>
+              {ethBalance ? parseFloat(ethBalance.formatted).toFixed(4) : '0.0000'} ETH
             </span>
           </div>
 
@@ -278,7 +273,7 @@ export default function WalletButton() {
 const styles: { [key: string]: React.CSSProperties } = {
   connectButton: {
     background: 'transparent',
-    border: '1px solid #333',
+    border: '1px solid #444',
     color: '#fff',
     fontWeight: 500,
     padding: '8px 16px',
@@ -299,7 +294,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   accountButton: {
     background: '#1a1a1a',
-    border: '1px solid #333',
+    border: '1px solid #444',
     color: '#fff',
     fontWeight: 500,
     padding: '6px 14px 6px 8px',
@@ -378,18 +373,18 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   profileAddress: {
     fontSize: '12px',
-    color: '#666',
+    color: '#999',
     fontFamily: 'monospace',
   },
   closeButton: {
     background: 'transparent',
     border: 'none',
-    color: '#666',
+    color: '#999',
     fontSize: '16px',
     cursor: 'pointer',
     padding: '4px',
   },
-  bnbSection: {
+  ethSection: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -398,11 +393,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     borderRadius: '10px',
     marginBottom: '20px',
   },
-  bnbLabel: {
+  ethLabel: {
     fontSize: '13px',
-    color: '#888',
+    color: '#bbb',
   },
-  bnbValue: {
+  ethValue: {
     fontSize: '13px',
     color: '#fff',
     fontFamily: 'monospace',
@@ -436,7 +431,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   portfolioLabel: {
     fontSize: '13px',
-    color: '#888',
+    color: '#bbb',
   },
   portfolioLabelTotal: {
     fontSize: '13px',
@@ -453,8 +448,8 @@ const styles: { [key: string]: React.CSSProperties } = {
   viewProfileButton: {
     width: '100%',
     background: 'transparent',
-    border: '1px solid #F0B90B',
-    color: '#F0B90B',
+    border: '1px solid #0052FF',
+    color: '#0052FF',
     fontWeight: 500,
     padding: '10px',
     borderRadius: '10px',
@@ -472,7 +467,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '100%',
     background: '#111',
     border: '1px solid #222',
-    color: '#666',
+    color: '#999',
     fontWeight: 500,
     padding: '10px',
     borderRadius: '10px',

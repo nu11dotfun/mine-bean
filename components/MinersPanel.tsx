@@ -90,7 +90,7 @@ export default function MinersPanel() {
                     onMouseEnter={() => setIsHoveringTab(true)}
                     onMouseLeave={() => setIsHoveringTab(false)}
                 >
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#666">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="#999">
                         <path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94.63 1.5 1.98 2.63 3.61 2.96V19H7v2h10v-2h-4v-3.1c1.63-.33 2.98-1.46 3.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2zM5 8V7h2v3.82C5.84 10.4 5 9.3 5 8zm14 0c0 1.3-.84 2.4-2 2.82V7h2v1z" />
                     </svg>
                 </div>
@@ -138,7 +138,7 @@ export default function MinersPanel() {
                                 </span>
                                 <div style={styles.minerAmounts}>
                                     <span style={styles.bnbAmount}>
-                                        <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public" alt="BNB" style={{width: 14, height: 14, marginRight: 4}} />
+                                        <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public" alt="ETH" style={{width: 14, height: 14, marginRight: 4}} />
                                         {parseFloat(miner.bnbRewardFormatted).toFixed(6)}
                                     </span>
                                     {parseFloat(miner.beanRewardFormatted) > 0 && (
@@ -170,7 +170,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         position: "fixed",
         left: 0,
         top: "100px",
-        background: "#111",
+        background: "rgba(255, 255, 255, 0.04)",
         borderRadius: "0 8px 8px 0",
         padding: "14px 12px",
         cursor: "pointer",
@@ -179,7 +179,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         justifyContent: "center",
         zIndex: 100,
         transition: "border-width 0.15s ease",
-        border: "1px solid #F0B90B",
+        border: "1px solid #0052FF",
         borderLeft: "none",
     },
 
@@ -190,7 +190,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         top: 0,
         bottom: 0,
         width: "360px",
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.02)",
         borderRight: "1px solid #222",
         display: "flex",
         flexDirection: "column",
@@ -221,7 +221,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     closeBtn: {
         background: "transparent",
         border: "none",
-        color: "#666",
+        color: "#999",
         fontSize: "18px",
         cursor: "pointer",
         padding: "4px 8px",
@@ -239,11 +239,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     roundLabel: {
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
     },
     minerCount: {
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
     },
 
     // Miners List
@@ -271,23 +271,23 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     beansAmount: {
         fontSize: "13px",
-        color: "#F0B90B",
+        color: "#0052FF",
         fontWeight: 500,
     },
     plusSign: {
         fontSize: "11px",
-        color: "#444",
+        color: "#666",
     },
     bnbAmount: {
         fontSize: "13px",
-        color: "#888",
+        color: "#bbb",
         display: "flex",
         alignItems: "center",
     },
     emptyState: {
         padding: "40px 20px",
         textAlign: "center",
-        color: "#555",
+        color: "#888",
         fontSize: "13px",
     },
 

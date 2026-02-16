@@ -4,7 +4,7 @@ import './globals.css'
 
 export const metadata: Metadata = {
   title: 'MineBean',
-  description: 'Decentralized mining protocol on BSC',
+  description: 'Decentralized mining protocol on Base',
   icons: {
     icon: '/favicon.svg',
   },

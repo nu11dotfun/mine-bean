@@ -10,20 +10,20 @@ import { parseEther } from 'viem'
 
 const BnbLogo = ({ size = 18 }: { size?: number }) => (
     <img
-        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-        alt="BNB"
+        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+        alt="ETH"
         style={{ width: size, height: size, objectFit: "contain" as const }}
     />
 )
 
 const WalletIcon = () => (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="#666">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="#999">
         <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
     </svg>
 )
 
 const BlocksIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#888">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="#bbb">
         <circle cx="7" cy="7" r="2.5" />
         <circle cx="17" cy="7" r="2.5" />
         <circle cx="7" cy="17" r="2.5" />
@@ -32,7 +32,7 @@ const BlocksIcon = () => (
 )
 
 const RoundsIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#888" strokeWidth="2">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bbb" strokeWidth="2">
         <line x1="4" y1="6" x2="20" y2="6" />
         <line x1="4" y1="12" x2="20" y2="12" />
         <line x1="4" y1="18" x2="20" y2="18" />
@@ -101,7 +101,7 @@ export default function SidebarControls({
     const [isHoveringTotalDeployed, setIsHoveringTotalDeployed] = useState(false)
     const [isHoveringYouDeployed, setIsHoveringYouDeployed] = useState(false)
 
-    const [bnbPrice, setBnbPrice] = useState<number>(0)
+    const [ethPrice, setEthPrice] = useState<number>(0)
     const [beansPrice, setBeansPrice] = useState<number>(0)
 
     // Fetch AutoMiner state from backend
@@ -228,7 +228,7 @@ export default function SidebarControls({
         const fetchPrices = () => {
             apiFetch<{ prices: { bean: { usd: string }, bnb: { usd: string } } }>('/api/stats')
                 .then((data) => {
-                    setBnbPrice(parseFloat(data.prices.bnb.usd) || 0)
+                    setEthPrice(parseFloat(data.prices.bnb.usd) || 0)
                     setBeansPrice(parseFloat(data.prices.bean.usd) || 0)
                 })
                 .catch((err) => console.error('Failed to fetch prices:', err))
@@ -383,7 +383,7 @@ export default function SidebarControls({
                     </div>
                     <div style={styles.statLabel}>
                         {isHoveringTotalDeployed && totalDeployed > 0
-                            ? `≈$${(totalDeployed * bnbPrice).toFixed(2)}`
+                            ? `≈$${(totalDeployed * ethPrice).toFixed(2)}`
                             : "Total deployed"}
                     </div>
                 </div>
@@ -399,7 +399,7 @@ export default function SidebarControls({
                     </div>
                     <div style={styles.statLabel}>
                         {isHoveringYouDeployed && userDeployed > 0
-                            ? `≈$${(userDeployed * bnbPrice).toFixed(2)}`
+                            ? `≈$${(userDeployed * ethPrice).toFixed(2)}`
                             : "You deployed"}
                     </div>
                 </div>
@@ -448,7 +448,7 @@ export default function SidebarControls({
                         <div style={styles.balanceRow}>
                             <div style={styles.balanceLeft}>
                                 <WalletIcon />
-                                <span style={styles.balanceAmount}>{userBalance.toFixed(5)} BNB</span>
+                                <span style={styles.balanceAmount}>Ξ {userBalance.toFixed(5)}</span>
                             </div>
                             <div style={styles.quickAmounts}>
                                 <button style={styles.quickBtn} onClick={() => handleQuickAmount(1)}>+1</button>
@@ -460,7 +460,7 @@ export default function SidebarControls({
                         <div style={styles.inputRow}>
                             <div style={styles.inputLeft}>
                                 <BnbLogo size={20} />
-                                <span style={styles.inputLabel}>BNB</span>
+                                <span style={styles.inputLabel}>ETH</span>
                             </div>
                             <input
                                 type="text"
@@ -498,7 +498,7 @@ export default function SidebarControls({
 
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total</span>
-                            <span style={styles.totalValue}>{manualTotal.toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {manualTotal.toFixed(5)}</span>
                         </div>
 
                         {isConnected ? (
@@ -526,7 +526,7 @@ export default function SidebarControls({
                         <div style={styles.balanceRow}>
                             <div style={styles.balanceLeft}>
                                 <WalletIcon />
-                                <span style={styles.balanceAmount}>{userBalance.toFixed(5)} BNB</span>
+                                <span style={styles.balanceAmount}>Ξ {userBalance.toFixed(5)}</span>
                             </div>
                             <div style={styles.quickAmounts}>
                                 <button style={styles.quickBtn} onClick={() => handleQuickAmount(1)}>+1</button>
@@ -538,7 +538,7 @@ export default function SidebarControls({
                         <div style={styles.inputRow}>
                             <div style={styles.inputLeft}>
                                 <BnbLogo size={20} />
-                                <span style={styles.inputLabel}>BNB</span>
+                                <span style={styles.inputLabel}>ETH</span>
                             </div>
                             <input
                                 type="text"
@@ -608,12 +608,12 @@ export default function SidebarControls({
 
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Per round</span>
-                            <span style={styles.totalValue}>{autoPerRound.toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {autoPerRound.toFixed(5)}</span>
                         </div>
 
                         <div style={styles.totalRow}>
                             <span style={styles.rowLabel}>Total deposit</span>
-                            <span style={styles.totalValue}>{autoTotalDeposit.toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {autoTotalDeposit.toFixed(5)}</span>
                         </div>
 
                         {isConnected ? (
@@ -645,7 +645,7 @@ export default function SidebarControls({
 
                         <div style={styles.activeRow}>
                             <span style={styles.rowLabel}>Balance</span>
-                            <span style={styles.totalValue}>{parseFloat(autoMinerState.totalRefundableFormatted).toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {parseFloat(autoMinerState.totalRefundableFormatted).toFixed(5)}</span>
                         </div>
 
                         <div style={styles.activeRow}>
@@ -657,7 +657,7 @@ export default function SidebarControls({
 
                         <div style={styles.activeRow}>
                             <span style={styles.rowLabel}>Per round</span>
-                            <span style={styles.totalValue}>{parseFloat(autoMinerState.costPerRoundFormatted).toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {parseFloat(autoMinerState.costPerRoundFormatted).toFixed(5)}</span>
                         </div>
 
                         <div style={styles.activeRow}>
@@ -669,7 +669,7 @@ export default function SidebarControls({
 
                         <div style={{ ...styles.totalRow, borderTop: "1px solid #222" }}>
                             <span style={styles.rowLabel}>Per block</span>
-                            <span style={styles.totalValue}>{parseFloat(autoMinerState.amountPerBlockFormatted).toFixed(5)} BNB</span>
+                            <span style={styles.totalValue}>Ξ {parseFloat(autoMinerState.amountPerBlockFormatted).toFixed(5)}</span>
                         </div>
 
                         <button
@@ -678,7 +678,7 @@ export default function SidebarControls({
                         >
                             Stop AutoMiner
                         </button>
-                        <div style={styles.stopHint}>Cancel and refund remaining BNB</div>
+                        <div style={styles.stopHint}>Cancel and refund remaining ETH</div>
                     </>
                 )}
             </div>
@@ -700,14 +700,14 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: "12px",
     },
     statBox: {
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
         padding: "14px 12px",
         textAlign: "center",
     },
     beanpotBox: {
-        border: "1px solid #2a2a2a",
+        border: "1px solid rgba(255, 255, 255, 0.06)",
     },
     statValue: {
         display: "flex",
@@ -732,12 +732,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     statLabel: {
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
         fontWeight: 500,
     },
     controlsCard: {
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.05)", backdropFilter: "blur(20px)", WebkitBackdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
         padding: "16px",
         display: "flex",
@@ -748,7 +748,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: "8px",
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.03)",
         borderRadius: "8px",
         padding: "4px",
     },
@@ -759,18 +759,18 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "10px",
         fontSize: "14px",
         fontWeight: 600,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
     modeBtnActive: {
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.12)",
         color: "#fff",
     },
     modeBtnHover: {
-        background: "#1a1a1a",
-        color: "#888",
+        background: "rgba(255, 255, 255, 0.06)",
+        color: "#bbb",
     },
     balanceRow: {
         display: "flex",
@@ -781,7 +781,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         gap: "8px",
-        color: "#666",
+        color: "#999",
         fontSize: "14px",
         fontWeight: 500,
     },
@@ -794,13 +794,13 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: "8px",
     },
     quickBtn: {
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
         borderRadius: "6px",
         padding: "6px 12px",
         fontSize: "12px",
         fontWeight: 600,
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         fontFamily: "inherit",
     },
@@ -808,8 +808,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "8px",
         padding: "10px 14px",
     },
@@ -856,7 +856,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "none",
         fontSize: "24px",
         fontWeight: 700,
-        color: "#666",
+        color: "#999",
         textAlign: "right" as const,
         width: "60px",
         fontFamily: "inherit",
@@ -870,7 +870,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     rowLabel: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
         fontWeight: 500,
     },
     rowRight: {
@@ -879,20 +879,20 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: "12px",
     },
     allBtn: {
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
         borderRadius: "6px",
         padding: "6px 16px",
         fontSize: "13px",
         fontWeight: 600,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
     },
     allBtnActive: {
-        background: "#444",
+        background: "rgba(255, 255, 255, 0.15)",
         color: "#fff",
-        borderColor: "#666",
+        borderColor: "#888",
     },
     blockCount: {
         fontSize: "15px",
@@ -918,36 +918,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     deployBtn: {
         width: "100%",
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.06)",
         border: "none",
         borderRadius: "8px",
         padding: "14px",
         fontSize: "14px",
         fontWeight: 600,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
     deployBtnActive: {
-        background: "#F0B90B",
-        color: "#000",
+        background: "#0052FF",
+        color: "#fff",
         cursor: "pointer",
     },
     deployBtnDisabled: {
-        background: "#1a1a1a",
-        color: "#444",
+        background: "rgba(255, 255, 255, 0.03)",
+        color: "#666",
         cursor: "not-allowed",
     },
     connectBtn: {
         width: "100%",
-        background: "#F0B90B",
+        background: "#0052FF",
         border: "none",
         borderRadius: "8px",
         padding: "14px",
         fontSize: "14px",
         fontWeight: 700,
-        color: "#000",
+        color: "#fff",
         cursor: "pointer",
         fontFamily: "inherit",
     },
@@ -990,7 +990,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     stopHint: {
         fontSize: "12px",
-        color: "#666",
+        color: "#999",
         textAlign: "center",
         marginTop: "-4px",
     },

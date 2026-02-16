@@ -10,18 +10,18 @@ interface LandingPageProps {
 }
 
 export default function LandingPage({ onStartMining }: LandingPageProps) {
-  const [bnbPrice, setBnbPrice] = useState<string>('--')
+  const [ethPrice, setEthPrice] = useState<string>('--')
   const [beansPrice, setBeansPrice] = useState<string>('--')
   const [hoveredTab, setHoveredTab] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchBnbPrice = async () => {
       try {
-        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
+        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
         const data = await response.json()
-        if (data.price) setBnbPrice(parseFloat(data.price).toFixed(2))
+        if (data.price) setEthPrice(parseFloat(data.price).toFixed(2))
       } catch {
-        setBnbPrice('580.00')
+        setEthPrice('580.00')
       }
     }
     fetchBnbPrice()
@@ -32,7 +32,7 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
   useEffect(() => {
     const fetchBeansPrice = async () => {
       try {
-        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
+        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/base/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
         const data = await response.json()
         if (data.pair?.priceUsd) setBeansPrice(parseFloat(data.pair.priceUsd).toFixed(4))
       } catch {
@@ -81,7 +81,7 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
                     style={{
                       ...styles.navUnderline,
                       opacity: isHovered ? 1 : 0,
-                      boxShadow: isHovered ? '0 0 8px 2px rgba(240, 185, 11, 0.5)' : 'none',
+                      boxShadow: isHovered ? '0 0 8px 2px rgba(0, 82, 255, 0.5)' : 'none',
                     }}
                   />
                 </Link>
@@ -97,15 +97,6 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
             <span style={styles.priceValue}>${beansPrice}</span>
           </div>
 
-          <div style={styles.priceTag}>
-            <img
-              src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-              alt="BNB"
-              style={styles.bnbLogo}
-            />
-            <span style={styles.priceSymbol}>BNB</span>
-            <span style={styles.priceValue}>${bnbPrice}</span>
-          </div>
 
           <div style={styles.socials}>
             <a href="#" style={styles.socialLink} target="_blank" rel="noopener noreferrer">
@@ -136,10 +127,10 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
             <BeanLogo size={80} />
           </div>
           
-          <h1 style={styles.headline}>The BSC Mining Game</h1>
+          <div style={{...styles.headline, paddingLeft: "24px"}}><BeansTextLogo height={80} /></div>
           
           <p style={styles.subheadline}>
-            Deploy BNB. Compete for blocks. Win rewards every 60 seconds.
+            Deploy ETH. Compete for blocks. Win rewards every 60 seconds.
           </p>
           
           <div style={styles.ctaContainer}>
@@ -159,27 +150,27 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
 const styles: { [key: string]: React.CSSProperties } = {
   container: { minHeight: '100vh', background: '#0a0a0a', position: 'relative', overflow: 'hidden', fontFamily: "'Inter', -apple-system, sans-serif" },
   gridBackground: { position: 'absolute', inset: 0, backgroundImage: 'linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px)', backgroundSize: '60px 60px' },
-  glowEffect: { position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '400px', background: 'radial-gradient(ellipse, rgba(240, 185, 11, 0.15) 0%, transparent 70%)', pointerEvents: 'none' },
+  glowEffect: { position: 'absolute', top: '30%', left: '50%', transform: 'translate(-50%, -50%)', width: '600px', height: '400px', background: 'radial-gradient(ellipse, rgba(0, 82, 255, 0.15) 0%, transparent 70%)', pointerEvents: 'none' },
   header: { position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 40px', borderBottom: '1px solid #1a1a1a', zIndex: 20 },
   logoSection: { display: 'flex', alignItems: 'center', gap: '40px' },
   logo: { display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' },
   nav: { display: 'flex', gap: '8px' },
   navItem: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', padding: '8px 16px', fontSize: '14px', fontWeight: 500, cursor: 'pointer', transition: 'color 0.2s', textDecoration: 'none', position: 'relative' },
-  navUnderline: { width: '100%', height: '2px', background: '#F0B90B', borderRadius: '1px', transition: 'opacity 0.2s, box-shadow 0.2s' },
+  navUnderline: { width: '100%', height: '2px', background: '#0052FF', borderRadius: '1px', transition: 'opacity 0.2s, box-shadow 0.2s' },
   headerRight: { display: 'flex', alignItems: 'center', gap: '20px' },
   priceTag: { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#fff' },
-  bnbLogo: { width: '18px', height: '18px', objectFit: 'contain' as const },
-  priceSymbol: { color: '#666' },
+  ethLogo: { width: '18px', height: '18px', objectFit: 'contain' as const },
+  priceSymbol: { color: '#999' },
   priceValue: { color: '#fff', fontWeight: 500 },
   socials: { display: 'flex', gap: '16px', alignItems: 'center' },
-  socialLink: { color: '#666', textDecoration: 'none', transition: 'color 0.15s', display: 'flex', alignItems: 'center' },
+  socialLink: { color: '#999', textDecoration: 'none', transition: 'color 0.15s', display: 'flex', alignItems: 'center' },
   main: { position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 80px)', padding: '0 24px', zIndex: 10 },
   heroContent: { display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginTop: '-60px' },
   beanLogoWrapper: { position: 'relative', marginBottom: '40px' },
-  beanLogoGlow: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(240, 185, 11, 0.3) 0%, transparent 70%)', pointerEvents: 'none' },
+  beanLogoGlow: { position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: '160px', height: '160px', background: 'radial-gradient(circle, rgba(0, 82, 255, 0.3) 0%, transparent 70%)', pointerEvents: 'none' },
   headline: { fontSize: '64px', fontWeight: 700, color: '#fff', margin: '0 0 20px 0', letterSpacing: '-2px', lineHeight: 1.1 },
-  subheadline: { fontSize: '20px', color: '#666', margin: '0 0 48px 0', maxWidth: '500px', lineHeight: 1.5 },
+  subheadline: { fontSize: '20px', color: '#999', margin: '0 0 48px 0', maxWidth: '500px', lineHeight: 1.5 },
   ctaContainer: { display: 'flex', gap: '16px' },
-  primaryCta: { background: '#F0B90B', color: '#000', border: 'none', borderRadius: '8px', padding: '16px 48px', fontSize: '16px', fontWeight: 600, cursor: 'pointer' },
-  secondaryCta: { background: 'transparent', color: '#fff', border: '1px solid #333', borderRadius: '8px', padding: '16px 48px', fontSize: '16px', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
+  primaryCta: { background: '#0052FF', color: '#fff', border: 'none', borderRadius: '8px', padding: '16px 48px', fontSize: '16px', fontWeight: 600, cursor: 'pointer' },
+  secondaryCta: { background: 'transparent', color: '#fff', border: '1px solid #444', borderRadius: '8px', padding: '16px 48px', fontSize: '16px', fontWeight: 500, textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 }

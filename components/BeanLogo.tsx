@@ -8,8 +8,8 @@ export default function BeanLogo({ size = 32 }: { size?: number }) {
       <ellipse cx="38" cy="35" rx="8" ry="6" fill="white" opacity="0.3" />
       <defs>
         <linearGradient id="beanGradient" x1="50" y1="5" x2="50" y2="95" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFD54F" />
-          <stop offset="100%" stopColor="#F0B90B" />
+          <stop offset="0%" stopColor="#3B7BFF" />
+          <stop offset="100%" stopColor="#0052FF" />
         </linearGradient>
       </defs>
     </svg>
@@ -20,7 +20,7 @@ export function BeansTextLogo({ height = 24 }: { height?: number }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: height, letterSpacing: '-0.02em', fontFamily: "'Inter', -apple-system, sans-serif" }}>
       <span style={{ color: '#fff' }}>BE</span>
-      <span style={{ color: '#F0B90B' }}>ANS</span>
+      <span style={{ color: '#0052FF' }}>ANS</span>
       <span style={{ color: '#fff', marginLeft: '2px' }}>.</span>
     </span>
   )

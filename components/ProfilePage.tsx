@@ -71,7 +71,7 @@ export default function ProfilePage() {
     profileLoadedRef.current = false
   }, [address])
 
-  const { data: bnbBalance } = useBalance({
+  const { data: ethBalance } = useBalance({
     address: address as `0x${string}` | undefined,
   })
 
@@ -182,7 +182,7 @@ export default function ProfilePage() {
       <div style={styles.container}>
         <div style={styles.notConnected}>
           <div style={styles.notConnectedIcon}>
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#333" strokeWidth="1.5">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#555" strokeWidth="1.5">
               <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
               <path d="M7 11V7a5 5 0 0 1 10 0v4" />
             </svg>
@@ -218,7 +218,7 @@ export default function ProfilePage() {
                   <img src={pfpUrl} alt="Profile" style={styles.pfpImage} />
                 ) : (
                   <div style={styles.pfpPlaceholder}>
-                    <svg width="36" height="36" viewBox="0 0 24 24" fill="#444" stroke="none">
+                    <svg width="36" height="36" viewBox="0 0 24 24" fill="#666" stroke="none">
                       <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
                     </svg>
                   </div>
@@ -346,7 +346,7 @@ export default function ProfilePage() {
                 style={styles.editButton}
               >
                 {copied ? (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F0B90B" strokeWidth="2">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0052FF" strokeWidth="2">
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
                 ) : (
@@ -387,15 +387,15 @@ export default function ProfilePage() {
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Portfolio</h3>
 
-          <div style={styles.bnbRow}>
-            <span style={styles.bnbRowLabel}>BNB Balance</span>
-            <span style={styles.bnbRowValue}>
+          <div style={styles.ethRow}>
+            <span style={styles.ethRowLabel}>ETH Balance</span>
+            <span style={styles.ethRowValue}>
               <img
-                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-                alt="BNB"
+                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+                alt="ETH"
                 style={{ width: 16, height: 16 }}
               />
-              {bnbBalance ? parseFloat(bnbBalance.formatted).toFixed(4) : '0.0000'}
+              {ethBalance ? parseFloat(ethBalance.formatted).toFixed(4) : '0.0000'}
             </span>
           </div>
 
@@ -464,7 +464,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   notConnectedText: {
     fontSize: '14px',
-    color: '#666',
+    color: '#999',
     margin: 0,
   },
   errorBanner: {
@@ -545,7 +545,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     width: '24px',
     height: '24px',
     borderRadius: '50%',
-    background: '#333',
+    background: '#444',
     border: '2px solid #0a0a0a',
     color: '#fff',
     fontSize: '12px',
@@ -561,7 +561,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   fieldLabel: {
     fontSize: '12px',
-    color: '#666',
+    color: '#999',
     display: 'block',
     marginBottom: '8px',
     textTransform: 'uppercase' as const,
@@ -584,7 +584,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   textInput: {
     flex: 1,
     background: '#0a0a0a',
-    border: '1px solid #333',
+    border: '1px solid #444',
     borderRadius: '8px',
     padding: '10px 12px',
     color: '#fff',
@@ -595,7 +595,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   editButton: {
     background: 'transparent',
     border: 'none',
-    color: '#666',
+    color: '#999',
     cursor: 'pointer',
     padding: '4px',
     display: 'flex',
@@ -603,7 +603,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     transition: 'color 0.2s',
   },
   saveButton: {
-    background: '#F0B90B',
+    background: '#0052FF',
     border: 'none',
     color: '#000',
     fontWeight: 600,
@@ -626,17 +626,17 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     gap: '8px',
   },
-  bnbRow: {
+  ethRow: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     padding: '12px 0',
   },
-  bnbRowLabel: {
+  ethRowLabel: {
     fontSize: '14px',
-    color: '#888',
+    color: '#bbb',
   },
-  bnbRowValue: {
+  ethRowValue: {
     fontSize: '14px',
     color: '#fff',
     fontFamily: 'monospace',
@@ -663,7 +663,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   portfolioItemLabel: {
     fontSize: '14px',
-    color: '#888',
+    color: '#bbb',
   },
   portfolioItemValue: {
     fontSize: '14px',

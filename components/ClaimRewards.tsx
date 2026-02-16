@@ -11,14 +11,14 @@ interface ClaimRewardsProps {
 
 const BnbLogo = ({ size = 16 }: { size?: number }) => (
   <img
-    src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-    alt="BNB"
+    src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+    alt="ETH"
     style={{ width: size, height: size, objectFit: "contain" as const }}
   />
 )
 
 const BeanIcon = ({ size = 16 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="#F0B90B">
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="#0052FF">
     <ellipse cx="12" cy="12" rx="8" ry="10" />
   </svg>
 )
@@ -44,10 +44,10 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
         <div style={styles.row}>
           <div style={styles.rowLabel}>
             <BnbLogo size={16} />
-            <span>BNB Rewards</span>
+            <span>ETH Rewards</span>
           </div>
           <div style={{ ...styles.rowValue, color: hasBNB ? "#fff" : "#555" }}>
-            {parseFloat(rewards.pendingBNBFormatted).toFixed(6)} BNB
+            {parseFloat(rewards.pendingBNBFormatted).toFixed(6)} ETH
           </div>
         </div>
 
@@ -85,7 +85,7 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
           disabled={!hasBNB}
           onClick={onClaimBNB}
         >
-          Claim BNB
+          Claim ETH
         </button>
       </div>
     </div>
@@ -94,7 +94,7 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
 
 const styles: { [key: string]: React.CSSProperties } = {
   card: {
-    background: "#111",
+    background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)",
     border: "1px solid #222",
     borderRadius: 12,
     padding: 16,
@@ -136,8 +136,8 @@ const styles: { [key: string]: React.CSSProperties } = {
   btnActive: {
     flex: 1,
     padding: "10px 0",
-    background: "#F0B90B",
-    color: "#000",
+    background: "#0052FF",
+    color: "#fff",
     border: "none",
     borderRadius: 8,
     fontSize: 13,
@@ -147,7 +147,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   btnDisabled: {
     flex: 1,
     padding: "10px 0",
-    background: "#222",
+    background: "rgba(255, 255, 255, 0.06)",
     color: "#555",
     border: "none",
     borderRadius: 8,

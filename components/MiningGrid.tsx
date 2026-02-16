@@ -510,8 +510,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     cell: {
         aspectRatio: "1",
-        background: "transparent",
-        border: "2px solid #333",
+        background: "rgba(255, 255, 255, 0.05)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "10px",
         padding: "14px",
         cursor: "pointer",
@@ -524,7 +524,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         outline: "none",
     },
     cellSelected: {
-        border: "2px solid #F0B90B",
+        border: "2px solid rgba(0, 82, 255, 0.7)", background: "rgba(0, 82, 255, 0.12)", boxShadow: "0 0 24px rgba(0, 82, 255, 0.25), inset 0 0 24px rgba(0, 82, 255, 0.08)",
     },
     cellDeployed: {
         border: "2px solid #2d5a2d",
@@ -539,11 +539,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     cellEliminated: {
         opacity: 0.2,
         transform: "scale(0.95)",
-        border: "2px solid #222",
+        border: "1px solid rgba(255, 255, 255, 0.04)",
     },
     cellWinner: {
-        border: "2px solid #F0B90B",
-        boxShadow: "0 0 20px rgba(240, 185, 11, 0.3)",
+        border: "1.5px solid rgba(0, 82, 255, 0.7)", background: "rgba(0, 82, 255, 0.12)",
+        boxShadow: "0 0 30px rgba(0, 82, 255, 0.2), inset 0 0 30px rgba(0, 82, 255, 0.08)",
     },
     cellDisabled: {
         opacity: 0.5,
@@ -557,12 +557,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     cellId: {
         fontSize: "12px",
         fontWeight: 600,
-        color: "#666",
+        color: "#999",
     },
     minerCount: {
         fontSize: "10px",
         fontWeight: 600,
-        color: "#888",
+        color: "#aaa",
     },
     cellAmount: {
         fontSize: "14px",

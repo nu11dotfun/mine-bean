@@ -17,7 +17,7 @@ export default function Header({
   isMobile: propIsMobile,
 }: HeaderProps) {
   const [hoveredTab, setHoveredTab] = useState<string | null>(null)
-  const [bnbPrice, setBnbPrice] = useState<string>('--')
+  const [ethPrice, setEthPrice] = useState<string>('--')
   const [beansPrice, setBeansPrice] = useState<string>('--')
   const [isMobile, setIsMobile] = useState(false)
 
@@ -31,11 +31,11 @@ export default function Header({
   useEffect(() => {
     const fetchBnbPrice = async () => {
       try {
-        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT')
+        const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
         const data = await response.json()
-        if (data.price) setBnbPrice(parseFloat(data.price).toFixed(2))
+        if (data.price) setEthPrice(parseFloat(data.price).toFixed(2))
       } catch {
-        setBnbPrice('580.00')
+        setEthPrice('580.00')
       }
     }
     fetchBnbPrice()
@@ -46,7 +46,7 @@ export default function Header({
   useEffect(() => {
     const fetchBeansPrice = async () => {
       try {
-        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
+        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/base/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
         const data = await response.json()
         if (data.pair?.priceUsd) setBeansPrice(parseFloat(data.pair.priceUsd).toFixed(4))
       } catch {
@@ -109,7 +109,7 @@ export default function Header({
           <BeansTextLogo height={22} />
         </Link>
 
-        <nav style={styles.nav}>
+        <nav style={styles.pillNav}>
           {tabs.map((tab) => {
             const isHovered = hoveredTab === tab.id
             const isActive = currentPage === tab.id
@@ -118,20 +118,14 @@ export default function Header({
                 key={tab.id}
                 href={tab.href}
                 style={{
-                  ...styles.navItem,
-                  color: isHovered || isActive ? '#fff' : '#666',
+                  ...styles.pillLink,
+                  ...(isActive ? styles.pillLinkActive : {}),
+                  ...(isHovered && !isActive ? { color: 'rgba(255,255,255,0.7)' } : {}),
                 }}
                 onMouseEnter={() => setHoveredTab(tab.id)}
                 onMouseLeave={() => setHoveredTab(null)}
               >
-                <span>{tab.label}</span>
-                <div
-                  style={{
-                    ...styles.navUnderline,
-                    opacity: isHovered || isActive ? 1 : 0,
-                    boxShadow: isHovered || isActive ? '0 0 8px 2px rgba(240, 185, 11, 0.5)' : 'none',
-                  }}
-                />
+                {tab.label}
               </Link>
             )
           })}
@@ -143,16 +137,6 @@ export default function Header({
           <BeanLogo size={18} />
           <span style={styles.priceSymbol}>BEANS</span>
           <span style={styles.priceValue}>${beansPrice}</span>
-        </div>
-
-        <div style={styles.priceTag}>
-          <img
-            src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-            alt="BNB"
-            style={styles.bnbLogo}
-          />
-          <span style={styles.priceSymbol}>BNB</span>
-          <span style={styles.priceValue}>${bnbPrice}</span>
         </div>
 
         <div style={styles.socials}>
@@ -185,9 +169,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '12px 16px',
-    borderBottom: '1px solid #1a1a1a',
-    background: '#0a0a0a',
-    fontFamily: "'Inter', -apple-system, sans-serif",
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+    background: 'rgba(255, 255, 255, 0.03)',
+    position: 'relative' as const,    fontFamily: "'Inter', -apple-system, sans-serif",
   },
   mobileRight: {
     display: 'flex',
@@ -204,9 +188,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: '16px 40px',
-    borderBottom: '1px solid #1a1a1a',
-    background: '#0a0a0a',
-    fontFamily: "'Inter', -apple-system, sans-serif",
+    borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+    background: 'rgba(255, 255, 255, 0.03)',
+    position: 'relative' as const,    fontFamily: "'Inter', -apple-system, sans-serif",
   },
   logoSection: {
     display: 'flex',
@@ -239,9 +223,36 @@ const styles: { [key: string]: React.CSSProperties } = {
   navUnderline: {
     width: '100%',
     height: '2px',
-    background: '#F0B90B',
+    background: '#0052FF',
     borderRadius: '1px',
     transition: 'opacity 0.2s, box-shadow 0.2s',
+  },
+  pillNav: {
+    display: "flex",
+    gap: "2px",
+    padding: "4px",
+    background: "rgba(255, 255, 255, 0.04)",
+    border: "1px solid rgba(255, 255, 255, 0.06)",
+    borderRadius: "50px",
+    
+    
+    
+  },
+  pillLink: {
+    padding: "8px 20px",
+    borderRadius: "50px",
+    fontSize: "13px",
+    fontWeight: 500,
+    color: "rgba(255,255,255,0.4)",
+    textDecoration: "none",
+    transition: "all 0.2s",
+    textAlign: "center",
+  },
+  pillLinkActive: {
+    background: "rgba(0, 82, 255, 0.15)",
+    color: "#fff",
+    fontWeight: 600,
+    border: "1px solid rgba(0, 82, 255, 0.3)",
   },
   headerRight: {
     display: 'flex',
@@ -255,13 +266,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '14px',
     color: '#fff',
   },
-  bnbLogo: {
+  ethLogo: {
     width: '18px',
     height: '18px',
     objectFit: 'contain' as const,
   },
   priceSymbol: {
-    color: '#666',
+    color: '#999',
   },
   priceValue: {
     color: '#fff',
@@ -273,7 +284,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: 'center',
   },
   socialLink: {
-    color: '#666',
+    color: '#fff',
     textDecoration: 'none',
     transition: 'color 0.15s',
     display: 'flex',

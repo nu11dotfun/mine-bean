@@ -64,10 +64,9 @@ export default function AboutPage({
             title: "Overview",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: paragraphGap }}>
-                    <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on BNB Chain where players compete in continuous 60-second rounds to earn BNB and BEANS tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
-                    <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy BNB onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. A 1% admin fee is taken from all deployed BNB, and a 10% vault fee is applied to the losers&apos; pool. The remaining BNB from losing blocks is redistributed to miners on the winning block — proportional to how much each player deployed.</p>
-                    <p style={{ margin: 0 }}>On top of BNB rewards, 1 BEAN is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEANS bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEANS.</p>
-                    <SectionImage alt="BEANS mining grid overview" placeholder="beansmininggrid.png" maxWidth="520px" />
+                    <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on Base where players compete in continuous 60-second rounds to earn ETH and BEANS tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
+                    <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy ETH onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is applied to the losers&apos; pool. The remaining ETH from losing blocks is redistributed to miners on the winning block — proportional to how much each player deployed.</p>
+                    <p style={{ margin: 0 }}>On top of ETH rewards, 1 BEAN is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEANS bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEANS.</p>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Why BEANS?</strong>
                         <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEANS tokens reward patience. When you win BEANS, they start as &quot;unroasted&quot; — raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEANS. The longer you let your BEANS roast, the more roasted BEANS you accumulate from others claiming before you.</p>
@@ -79,13 +78,13 @@ export default function AboutPage({
             title: "Getting Started",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Getting started with BEANS takes less than a minute. All you need is a Web3 wallet with some BNB on the BNB Smart Chain (BSC) network.</p>
+                    <p style={{ margin: 0 }}>Getting started with BEANS takes less than a minute. All you need is a Web3 wallet with some ETH on the Base network.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>What You Need</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>A Web3 wallet</strong> — MetaMask, Trust Wallet, Rabby, or any WalletConnect-compatible wallet. Make sure it&apos;s configured for the BNB Smart Chain network.</li>
-                            <li><strong>BNB for mining</strong> — This is what you deploy on the grid each round. You can start with as little as 0.00001 BNB to get a feel for the game.</li>
-                            <li><strong>A small amount of BNB for gas</strong> — Transaction fees on BSC are very low (typically under $0.05 per transaction).</li>
+                            <li><strong>A Web3 wallet</strong> — MetaMask, Trust Wallet, Rabby, or any WalletConnect-compatible wallet. Make sure it&apos;s configured for the Base network.</li>
+                            <li><strong>ETH for mining</strong> — This is what you deploy on the grid each round. You can start with as little as 0.00001 ETH to get a feel for the game.</li>
+                            <li><strong>A small amount of ETH for gas</strong> — Transaction fees on Base are very low (typically under $0.05 per transaction).</li>
                         </ol>
                     </div>
                     <div>
@@ -97,18 +96,18 @@ export default function AboutPage({
                         <p style={{ margin: 0 }}>Click your address in the header to open the Account panel. Here you can see:</p>
                         <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
                             <li><strong>Wallet Address</strong> — Your connected address with a copy button for easy sharing.</li>
-                            <li><strong>BNB Balance</strong> — Your current BNB balance on BSC, used for deploying and gas fees.</li>
+                            <li><strong>ETH Balance</strong> — Your current ETH balance on Base, used for deploying and gas fees.</li>
                             <li><strong>Portfolio</strong> — Your BEANS token breakdown across three categories: Wallet (BEANS in your wallet), Staked (BEANS deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
                         </ul>
                         <SectionImage alt="Account panel showing wallet and portfolio" placeholder="accountpanel.png" maxWidth="280px" />
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Live Price Feeds</h3>
-                        <p style={{ margin: 0 }}>The header displays real-time prices for both BEANS and BNB. The BEANS price is pulled from the on-chain BEAN/BNB liquidity pool on PancakeSwap, and the BNB price comes from Binance. These update automatically so you always know the current value of your holdings.</p>
+                        <p style={{ margin: 0 }}>The header displays real-time prices for both BEANS and ETH. The BEANS price is pulled from the on-chain BEAN/ETH liquidity pool on Uniswap, and the ETH price comes from the market. These update automatically so you always know the current value of your holdings.</p>
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Quick Start</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Once connected, you&apos;re ready to mine. Head to the main page, select some blocks on the grid, enter a BNB amount, and hit Deploy. Your first round takes about 60 seconds to settle — watch the elimination animation and see if your blocks win. Check the About sections below to understand the full mechanics before deploying larger amounts.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Once connected, you&apos;re ready to mine. Head to the main page, select some blocks on the grid, enter an ETH amount, and hit Deploy. Your first round takes about 60 seconds to settle — watch the elimination animation and see if your blocks win. Check the About sections below to understand the full mechanics before deploying larger amounts.</p>
                     </div>
                 </div>
             ),
@@ -122,25 +121,25 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How a Round Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Select your blocks</strong> — Click on any of the 25 blocks on the grid. You can select as few as 1 or as many as all 25. Selected blocks are highlighted with a yellow border. Each block shows the total BNB deployed on it by all miners and the number of miners on that block.</li>
-                            <li><strong>Set your per-block amount</strong> — Enter how much BNB to deploy per block in the controls panel. The minimum is 0.00001 BNB per block. Your total cost is calculated as the per-block amount multiplied by the number of blocks selected.</li>
+                            <li><strong>Select your blocks</strong> — Click on any of the 25 blocks on the grid. You can select as few as 1 or as many as all 25. Selected blocks are highlighted with a yellow border. Each block shows the total ETH deployed on it by all miners and the number of miners on that block.</li>
+                            <li><strong>Set your per-block amount</strong> — Enter how much ETH to deploy per block in the controls panel. The minimum is 0.00001 ETH per block. Your total cost is calculated as the per-block amount multiplied by the number of blocks selected.</li>
                             <li><strong>Deploy</strong> — Hit the Deploy button to submit your transaction on-chain. Once confirmed, your blocks are locked in for the round and shown with a green border and checkmark. You can only deploy once per round — the smart contract enforces this.</li>
                             <li><strong>Round settles</strong> — When the 60-second timer expires, blocks are eliminated one by one in a rapid animation until only the winning block remains. The winning block is selected using a secure on-chain random number that cannot be predicted or manipulated.</li>
-                            <li><strong>Rewards distributed</strong> — A 1% admin fee is deducted from all deployed BNB. The losers&apos; pool (BNB from non-winning blocks) then has a 10% vault fee applied. The remaining BNB is distributed to miners on the winning block, proportional to each miner&apos;s share of that block.</li>
+                            <li><strong>Rewards distributed</strong> — A 1% admin fee is deducted from all deployed ETH. The losers&apos; pool (ETH from non-winning blocks) then has a 10% vault fee applied. The remaining ETH is distributed to miners on the winning block, proportional to each miner&apos;s share of that block.</li>
                         </ol>
                     </div>
                     <SideBySideImages left={{ alt: "Manual controls panel", placeholder: "manualcontrolpanel.png" }} right={{ alt: "Auto controls panel", placeholder: "autocontrolpanel.png" }} />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>You deploy <strong>0.01 BNB</strong> on Block #7. Across all 25 blocks, a total of <strong>0.5 BNB</strong> is deployed this round. Block #7 has a total of <strong>0.15 BNB</strong> from all miners, making your share of the block <strong>6.67%</strong> (0.01 / 0.15).</p>
-                            <p style={{ margin: "12px 0 0 0" }}>Block #7 wins. First, a 1% admin fee is taken from the total (0.005 BNB). The losers&apos; pool is 0.35 BNB (total minus winners&apos; deployed). After the losers&apos; admin share and 10% vault fee, roughly <strong>0.312 BNB</strong> is distributed to winners. Your 6.67% share earns you <strong>~0.021 BNB</strong> in winnings, plus you get back your original deployment minus the admin fee.</p>
+                            <p style={{ margin: 0 }}>You deploy <strong>0.01 ETH</strong> on Block #7. Across all 25 blocks, a total of <strong>0.5 ETH</strong> is deployed this round. Block #7 has a total of <strong>0.15 ETH</strong> from all miners, making your share of the block <strong>6.67%</strong> (0.01 / 0.15).</p>
+                            <p style={{ margin: "12px 0 0 0" }}>Block #7 wins. First, a 1% admin fee is taken from the total (0.005 ETH). The losers&apos; pool is 0.35 ETH (total minus winners&apos; deployed). After the losers&apos; admin share and 10% vault fee, roughly <strong>0.312 ETH</strong> is distributed to winners. Your 6.67% share earns you <strong>~0.0.1 ETH</strong> in winnings, plus you get back your original deployment minus the admin fee.</p>
                             <p style={{ margin: "12px 0 0 0" }}>You also have a chance at the 1 BEAN token reward and, if triggered, a share of the Beanpot.</p>
                         </div>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>What You See on the Grid</h3>
-                        <p style={{ margin: 0 }}>Each block on the grid displays two pieces of information in real time: the total BNB deployed on it and the number of miners. This updates live as other players deploy during the round. After the round settles, the winning block is highlighted in gold before the grid resets for the next round.</p>
+                        <p style={{ margin: 0 }}>Each block on the grid displays two pieces of information in real time: the total ETH deployed on it and the number of miners. This updates live as other players deploy during the round. After the round settles, the winning block is highlighted in gold before the grid resets for the next round.</p>
                     </div>
                 </div>
             ),
@@ -169,7 +168,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEANS</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 BNB on the winning block, which has 0.1 BNB total. Your <strong>20% share</strong> earns you <strong>40 BEANS</strong> from the Beanpot — on top of your normal BNB rewards and BEAN reward for the round.</p>
+                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEANS</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 ETH on the winning block, which has 0.1 ETH total. Your <strong>20% share</strong> earns you <strong>40 BEANS</strong> from the Beanpot — on top of your normal ETH rewards and BEAN reward for the round.</p>
                         </div>
                     </div>
                 </div>
@@ -182,7 +181,7 @@ export default function AboutPage({
                     <p style={{ margin: 0 }}>Every round, <strong>1 BEAN</strong> is minted and awarded to miners on the winning block. This is the primary way new BEANS enter circulation — there is no pre-mine or team allocation. Every BEANS in existence was earned through mining.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How the Winner is Chosen</h3>
-                        <p style={{ margin: 0 }}>Each round, it&apos;s a 50/50 chance whether the 1 BEAN goes to a single miner or is split among all miners on the winning block. If a single winner is chosen, the selection is weighted — miners who deployed more BNB to the winning block have a proportionally higher chance. All outcomes are determined on-chain using a verifiable random seed, ensuring fair and tamper-proof results.</p>
+                        <p style={{ margin: 0 }}>Each round, it&apos;s a 50/50 chance whether the 1 BEAN goes to a single miner or is split among all miners on the winning block. If a single winner is chosen, the selection is weighted — miners who deployed more ETH to the winning block have a proportionally higher chance. All outcomes are determined on-chain using a verifiable random seed, ensuring fair and tamper-proof results.</p>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Split Rounds</h3>
@@ -191,7 +190,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}><strong>Single winner round:</strong> Three miners are on the winning block with 0.05, 0.03, and 0.02 BNB deployed. The weighted random selection gives the miner with 0.05 BNB a 50% chance, the 0.03 BNB miner a 30% chance, and the 0.02 BNB miner a 20% chance. One of them receives the full 1 BEAN.</p>
+                            <p style={{ margin: 0 }}><strong>Single winner round:</strong> Three miners are on the winning block with 0.05, 0.03, and 0.02 ETH deployed. The weighted random selection gives the miner with 0.05 ETH a 50% chance, the 0.03 ETH miner a 30% chance, and the 0.02 ETH miner a 20% chance. One of them receives the full 1 BEAN.</p>
                             <p style={{ margin: "12px 0 0 0" }}><strong>Split round:</strong> Same three miners. The 1 BEAN is split proportionally: 0.5 BEAN, 0.3 BEAN, and 0.2 BEAN respectively.</p>
                         </div>
                     </div>
@@ -231,16 +230,16 @@ export default function AboutPage({
             title: "AutoMiner",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The <strong>AutoMiner</strong> lets you mine across multiple rounds without manually deploying each time. Deposit BNB upfront, configure your strategy, and the protocol handles deployment on your behalf every round until your balance runs out or you stop it.</p>
+                    <p style={{ margin: 0 }}>The <strong>AutoMiner</strong> lets you mine across multiple rounds without manually deploying each time. Deposit ETH upfront, configure your strategy, and the protocol handles deployment on your behalf every round until your balance runs out or you stop it.</p>
                     <p style={{ margin: 0 }}>This can be especially useful for maximizing Beanpot chances and roasting fee accumulation — consistent presence across many rounds can be more profitable than sporadic manual mining.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li><strong>Choose a strategy</strong> — Select between <strong>All Blocks</strong> (deploys to all 25 blocks every round, guaranteeing you&apos;re on the winning block) or <strong>Random</strong> (deploys to a set number of randomly selected blocks each round for higher risk/reward).</li>
-                            <li><strong>Set rounds and amount</strong> — Choose how many rounds to run and your BNB per block. The interface calculates your total deposit, per-round cost, and shows exactly what you&apos;ll be spending.</li>
-                            <li><strong>Activate</strong> — A single transaction deposits your BNB into the AutoMiner contract and starts it. From that point, the protocol deploys on your behalf each round automatically.</li>
+                            <li><strong>Set rounds and amount</strong> — Choose how many rounds to run and your ETH per block. The interface calculates your total deposit, per-round cost, and shows exactly what you&apos;ll be spending.</li>
+                            <li><strong>Activate</strong> — A single transaction deposits your ETH into the AutoMiner contract and starts it. From that point, the protocol deploys on your behalf each round automatically.</li>
                             <li><strong>Monitor</strong> — While active, you can see your remaining balance, rounds executed vs total, strategy, and per-block amount in the controls panel. Your auto-deployed blocks are highlighted green on the grid each round.</li>
-                            <li><strong>Stop anytime</strong> — Hit Stop to deactivate the AutoMiner. Any remaining unspent BNB is refunded to your wallet immediately.</li>
+                            <li><strong>Stop anytime</strong> — Hit Stop to deactivate the AutoMiner. Any remaining unspent ETH is refunded to your wallet immediately.</li>
                         </ol>
                     </div>
                     <div>
@@ -250,9 +249,9 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>You activate AutoMiner with the <strong>All Blocks</strong> strategy, <strong>0.001 BNB per block</strong>, for <strong>100 rounds</strong>. Total deposit: 25 blocks × 0.001 BNB × 100 rounds = <strong>2.5 BNB</strong> + 1% executor fee = <strong>2.525 BNB</strong>.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>Each round, 0.025 BNB is deployed across all 25 blocks. Since you&apos;re on every block, you&apos;re guaranteed to be on the winning block every round. The admin fee is deducted and the vault fee only applies to the losers&apos; pool, so you keep the majority of your deployment. You also accumulate BEAN rewards and Beanpot chances across all 100 rounds.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>After 73 rounds, you decide to stop. The remaining 27 rounds&apos; worth of BNB is refunded to your wallet.</p>
+                            <p style={{ margin: 0 }}>You activate AutoMiner with the <strong>All Blocks</strong> strategy, <strong>0.001 ETH per block</strong>, for <strong>100 rounds</strong>. Total deposit: 25 blocks × 0.0.1 ETH × 100 rounds = <strong>2.5 ETH</strong> + 1% executor fee = <strong>2.525 ETH</strong>.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>Each round, 0.025 ETH is deployed across all 25 blocks. Since you&apos;re on every block, you&apos;re guaranteed to be on the winning block every round. The admin fee is deducted and the vault fee only applies to the losers&apos; pool, so you keep the majority of your deployment. You also accumulate BEAN rewards and Beanpot chances across all 100 rounds.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>After 73 rounds, you decide to stop. The remaining 27 rounds&apos; worth of ETH is refunded to your wallet.</p>
                         </div>
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
@@ -286,7 +285,7 @@ export default function AboutPage({
                     </div>
                     <div style={{ ...styles.warningBox, ...(isMobile ? { padding: "14px", fontSize: "13px" } : {}) }}>
                         <strong>⚠️ Risk Disclaimer</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>BEANS mining involves financial risk. Only one block wins each round — the other 24 blocks lose their deployed BNB. If your selected blocks don&apos;t include the winner, your BNB for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>BEANS mining involves financial risk. Only one block wins each round — the other 24 blocks lose their deployed ETH. If your selected blocks don&apos;t include the winner, your ETH for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
                         <p style={{ margin: "12px 0 0 0" }}>Even covering all 25 blocks guarantees being on the winning block but still incurs admin fees each round. There are no guaranteed ways to profit. Never deploy more than you can afford to lose.</p>
                     </div>
                 </div>
@@ -302,7 +301,7 @@ export default function AboutPage({
                         <table style={styles.table}>
                             <tbody>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Token Name</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BEANS</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Network</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BNB Chain (BSC)</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Network</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>Base</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Max Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>3,000,000 BEANS</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Initial Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0 (fair launch)</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Emission</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>1 BEAN per round</td></tr>
@@ -323,7 +322,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Supply Timeline</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>At 1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,440 BEANS per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more BNB is deployed, the burn rate scales up — creating the potential for net deflation where more BEANS are burned than minted.</p>
+                            <p style={{ margin: 0 }}>At 1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,440 BEANS per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more ETH is deployed, the burn rate scales up — creating the potential for net deflation where more BEANS are burned than minted.</p>
                         </div>
                     </div>
                 </div>
@@ -333,13 +332,13 @@ export default function AboutPage({
             title: "Protocol Revenue",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The protocol generates revenue through two fees: a <strong>1% admin fee</strong> on all deployed BNB and a <strong>10% vault fee</strong> on the losers&apos; pool. This revenue actively supports the BEANS token through automated buybacks and burns.</p>
+                    <p style={{ margin: 0 }}>The protocol generates revenue through two fees: a <strong>1% admin fee</strong> on all deployed ETH.and a <strong>10% vault fee</strong> on the losers&apos; pool. This revenue actively supports the BEANS token through automated buybacks and burns.</p>
                     <SectionImage alt="Global page showing protocol revenue stats" placeholder="protocolrev.png" maxWidth="680px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Flow</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Collection</strong> — A 1% admin fee is taken from all deployed BNB, and a 10% vault fee is taken from the losers&apos; pool. This revenue is sent to the Treasury contract automatically each round.</li>
-                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated BNB to buy BEANS from the BEAN/BNB liquidity pool on PancakeSwap.</li>
+                            <li><strong>Collection</strong> — A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is taken from the losers&apos; pool. This revenue is sent to the Treasury contract automatically each round.</li>
+                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated ETH to buy BEANS from the BEAN/ETH liquidity pool on Uniswap.</li>
                             <li><strong>Burn</strong> — 90% of purchased BEANS are permanently burned — removed from circulation forever.</li>
                             <li><strong>Staker Rewards</strong> — The remaining 10% of purchased BEANS are distributed to BEANS stakers as yield.</li>
                         </ol>
@@ -356,7 +355,7 @@ export default function AboutPage({
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Transparency</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much BNB was spent, how much BEANS was burned, and how much yield was generated for stakers — all verifiable on BSCScan.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much ETH was spent, how much BEANS was burned, and how much yield was generated for stakers — all verifiable on BaseScan.</p>
                     </div>
                 </div>
             ),
@@ -370,7 +369,7 @@ export default function AboutPage({
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Burns Work</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li>The Treasury collects protocol revenue from admin fees and vault fees each round.</li>
-                            <li>This BNB is used to buy BEANS from the on-chain BEAN/BNB liquidity pool.</li>
+                            <li>This ETH is used to buy BEANS from the on-chain BEAN/ETH liquidity pool.</li>
                             <li>90% of purchased BEANS are sent to the burn address — permanently removed from circulation.</li>
                             <li>The remaining 10% is distributed to stakers.</li>
                         </ol>
@@ -378,7 +377,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Deflationary Dynamics</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>The more BNB deployed across rounds, the more revenue the protocol generates, and the more BEANS are burned. This creates a positive feedback loop: increased mining activity → more vault fees collected → more buybacks → more tokens burned → increased scarcity.</p>
+                            <p style={{ margin: 0 }}>The more ETH deployed across rounds, the more revenue the protocol generates, and the more BEANS are burned. This creates a positive feedback loop: increased mining activity → more vault fees collected → more buybacks → more tokens burned → increased scarcity.</p>
                             <p style={{ margin: "12px 0 0 0" }}>At high enough mining volumes, the burn rate can exceed the emission rate of 1,440 BEANS per day — making the circulating supply actively shrink. Current burn totals and buyback history are visible on the Global stats page.</p>
                         </div>
                     </div>
@@ -430,11 +429,11 @@ export default function AboutPage({
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is BEANS?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>BEANS is a gamified mining protocol on BNB Chain. Players deploy BNB on a 5×5 grid in 60-second rounds, competing to land on the randomly selected winning block and earn BNB rewards plus BEANS tokens. It&apos;s a fair-launch protocol with zero pre-mine or team allocation.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>BEANS is a gamified mining protocol on Base. Players deploy ETH on a 5×5 grid in 60-second rounds, competing to land on the randomly selected winning block and earn ETH rewards plus BEANS tokens. It&apos;s a fair-launch protocol with zero pre-mine or team allocation.</p>
                     </div>
                     <div style={styles.faqItem}>
-                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Can I lose my BNB?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>Yes. If none of your selected blocks are the winning block, your deployed BNB goes to the winners (minus fees). You can reduce risk by deploying on more blocks, or eliminate block selection risk entirely by covering all 25 — though admin fees still apply each round.</p>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Can I lose my ETH?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>Yes. If none of your selected blocks are the winning block, your deployed ETH.goes to the winners (minus fees). You can reduce risk by deploying on more blocks, or eliminate block selection risk entirely by covering all 25 — though admin fees still apply each round.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How many times can I deploy per round?</h4>
@@ -442,7 +441,7 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the minimum deployment?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>0.00001 BNB per block. If you select 5 blocks, your minimum total would be 0.00005 BNB.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>0.00001 ETH per block. If you select 5 blocks, your minimum total would be 0.0.005 ETH.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the Beanpot?</h4>
@@ -454,11 +453,11 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What does the AutoMiner do?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>AutoMiner lets you deposit BNB upfront and automatically deploy across multiple rounds without manual intervention. Choose a strategy (all blocks or random), set how many rounds to run, and the protocol handles deployment each round. A 1% executor fee covers gas costs. You can stop and refund remaining BNB anytime.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>AutoMiner lets you deposit ETH upfront and automatically deploy across multiple rounds without manual intervention. Choose a strategy (all blocks or random), set how many rounds to run, and the protocol handles deployment each round. A 1% executor fee covers gas costs. You can stop and refund remaining ETH anytime.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Where does protocol revenue come from?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed BNB each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEANS from the liquidity pool — 90% is burned permanently and 10% goes to stakers as yield.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed ETH.each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEANS from the liquidity pool — 90% is burned permanently and 10% goes to stakers as yield.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Is there a token pre-mine or team allocation?</h4>
@@ -470,11 +469,11 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Which wallets are supported?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>Any wallet that supports BNB Smart Chain and WalletConnect — including MetaMask, Trust Wallet, Rabby, Coinbase Wallet, and more. Connect via the button in the top-right corner of the page.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Any wallet that supports Base and WalletConnect — including MetaMask, Trust Wallet, Rabby, Coinbase Wallet, and more. Connect via the button in the top-right corner of the page.</p>
                     </div>
                     <div style={styles.faqItem}>
-                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How much BNB do I need to start?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>You can start with as little as 0.001 BNB to try the game. The minimum deployment is 0.00001 BNB per block. You&apos;ll also need a small amount for gas fees, which are typically under $0.05 per transaction on BSC.</p>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How much ETH do I need to start?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>You can start with as little as 0.0.1 ETH to try the game. The minimum deployment is 0.00001 ETH per block. You&apos;ll also need a small amount for gas fees, which are typically under $0.05 per transaction on Base.</p>
                     </div>
                 </div>
             ),
@@ -563,19 +562,19 @@ export default function AboutPage({
 }
 
 const styles: { [key: string]: React.CSSProperties } = {
-    container: { display: "flex", minHeight: "100vh", background: "#0a0a0a", fontFamily: "'Inter', -apple-system, sans-serif" },
+    container: { display: "flex", minHeight: "100vh", background: "transparent", fontFamily: "'Inter', -apple-system, sans-serif" },
     sidebar: { width: "280px", borderRight: "1px solid #1a1a1a", padding: "24px 0", position: "sticky", top: 0, height: "100vh", overflowY: "auto" },
     sidebarHeader: { display: "flex", alignItems: "center", gap: "10px", padding: "0 24px 24px", borderBottom: "1px solid #1a1a1a", marginBottom: "16px" },
     sidebarTitle: { fontSize: "18px", fontWeight: 700, color: "#fff" },
     sidebarNav: { padding: "0 12px" },
-    navItem: { display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "10px 12px", background: "transparent", border: "none", borderRadius: "6px", color: "#888", fontSize: "14px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
-    navItemActive: { background: "#1a1a1a", color: "#fff" },
-    navParent: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 12px", background: "transparent", border: "none", borderRadius: "6px", color: "#888", fontSize: "14px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    navItem: { display: "flex", alignItems: "center", gap: "8px", width: "100%", padding: "10px 12px", background: "transparent", border: "none", borderRadius: "6px", color: "#bbb", fontSize: "14px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    navItemActive: { background: "rgba(255, 255, 255, 0.06)", color: "#fff" },
+    navParent: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "10px 12px", background: "transparent", border: "none", borderRadius: "6px", color: "#bbb", fontSize: "14px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
     navParentExpanded: { color: "#fff" },
     chevron: { fontSize: "16px", transition: "transform 0.15s" },
     navChildren: { paddingLeft: "20px", marginTop: "4px" },
-    navChild: { display: "block", width: "100%", padding: "8px 12px", background: "transparent", border: "none", borderLeft: "2px solid #333", color: "#666", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
-    navChildActive: { borderLeftColor: "#F0B90B", color: "#fff", background: "#1a1a1a" },
+    navChild: { display: "block", width: "100%", padding: "8px 12px", background: "transparent", border: "none", borderLeft: "2px solid rgba(255, 255, 255, 0.1)", color: "#999", fontSize: "13px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    navChildActive: { borderLeftColor: "#0052FF", color: "#fff", background: "rgba(255, 255, 255, 0.06)" },
     main: { flex: 1, padding: "48px 48px 80px", maxWidth: "800px" },
     article: { color: "#fff" },
     title: { fontSize: "36px", fontWeight: 700, marginBottom: "40px", color: "#fff" },
@@ -583,31 +582,31 @@ const styles: { [key: string]: React.CSSProperties } = {
     h3: { fontSize: "20px", fontWeight: 600, color: "#fff", margin: "0 0 16px 0" },
     h4: { fontSize: "18px", fontWeight: 600, color: "#fff", margin: 0 },
     list: { margin: 0, paddingLeft: "24px", display: "flex", flexDirection: "column" },
-    infoBox: { background: "#1a1a1a", border: "1px solid #333", borderRadius: "12px", padding: "20px", marginTop: "8px" },
-    warningBox: { background: "#1a1a0a", border: "1px solid #443300", borderRadius: "12px", padding: "20px", marginTop: "8px" },
+    infoBox: { background: "rgba(255, 255, 255, 0.04)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "12px", padding: "20px", marginTop: "8px" },
+    warningBox: { background: "rgba(60, 40, 0, 0.15)", border: "1px solid rgba(255, 200, 0, 0.1)", borderRadius: "12px", padding: "20px", marginTop: "8px" },
     table: { width: "100%", borderCollapse: "collapse", marginTop: "8px" },
-    tableLabel: { padding: "14px 16px", borderBottom: "1px solid #222", color: "#888", fontWeight: 500, fontSize: "15px" },
-    tableValue: { padding: "14px 16px", borderBottom: "1px solid #222", color: "#fff", textAlign: "right", fontSize: "15px" },
-    faqItem: { borderBottom: "1px solid #222", paddingBottom: "32px" },
-    mobileContainer: { display: "flex", minHeight: "100vh", background: "#0a0a0a", fontFamily: "'Inter', -apple-system, sans-serif" },
+    tableLabel: { padding: "14px 16px", borderBottom: "1px solid #333", color: "#bbb", fontWeight: 500, fontSize: "15px" },
+    tableValue: { padding: "14px 16px", borderBottom: "1px solid #333", color: "#fff", textAlign: "right", fontSize: "15px" },
+    faqItem: { borderBottom: "1px solid #333", paddingBottom: "32px" },
+    mobileContainer: { display: "flex", minHeight: "100vh", background: "transparent", fontFamily: "'Inter', -apple-system, sans-serif" },
     mobileSidebar: { width: "120px", borderRight: "1px solid #1a1a1a", padding: "12px 0", flexShrink: 0 },
     mobileSidebarHeader: { padding: "0 10px 10px", borderBottom: "1px solid #1a1a1a", marginBottom: "8px" },
     mobileSidebarTitle: { fontSize: "13px", fontWeight: 700, color: "#fff" },
     mobileSidebarNav: { padding: "0 4px" },
-    mobileNavItem: { display: "flex", alignItems: "center", width: "100%", padding: "8px 6px", background: "transparent", border: "none", borderRadius: "4px", color: "#888", fontSize: "12px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
-    mobileNavItemActive: { background: "#1a1a1a", color: "#fff" },
-    mobileNavParent: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 6px", background: "transparent", border: "none", borderRadius: "4px", color: "#888", fontSize: "12px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    mobileNavItem: { display: "flex", alignItems: "center", width: "100%", padding: "8px 6px", background: "transparent", border: "none", borderRadius: "4px", color: "#bbb", fontSize: "12px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    mobileNavItemActive: { background: "rgba(255, 255, 255, 0.06)", color: "#fff" },
+    mobileNavParent: { display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", padding: "8px 6px", background: "transparent", border: "none", borderRadius: "4px", color: "#bbb", fontSize: "12px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
     mobileNavParentExpanded: { color: "#fff" },
     mobileNavChildren: { paddingLeft: "6px", marginTop: "2px" },
-    mobileNavChild: { display: "block", width: "100%", padding: "6px 6px", background: "transparent", border: "none", borderLeft: "2px solid #333", color: "#666", fontSize: "11px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
-    mobileNavChildActive: { borderLeftColor: "#F0B90B", color: "#fff", background: "#1a1a1a" },
+    mobileNavChild: { display: "block", width: "100%", padding: "6px 6px", background: "transparent", border: "none", borderLeft: "2px solid rgba(255, 255, 255, 0.1)", color: "#999", fontSize: "11px", fontWeight: 500, cursor: "pointer", textAlign: "left", fontFamily: "inherit" },
+    mobileNavChildActive: { borderLeftColor: "#0052FF", color: "#fff", background: "rgba(255, 255, 255, 0.06)" },
     mobileMain: { flex: 1, padding: "16px 16px 80px", overflowX: "hidden" },
     mobileArticle: { color: "#fff" },
     mobileTitle: { fontSize: "22px", fontWeight: 700, marginBottom: "24px", color: "#fff" },
     mobileContent: { fontSize: "14px", lineHeight: 1.7, color: "#ccc" },
     h3Mobile: { fontSize: "16px", fontWeight: 600, color: "#fff", margin: "0 0 12px 0" },
     h4Mobile: { fontSize: "15px", fontWeight: 600, color: "#fff", margin: 0 },
-    infoBoxMobile: { background: "#1a1a1a", border: "1px solid #333", borderRadius: "10px", padding: "14px", marginTop: "8px", fontSize: "13px" },
-    tableLabelMobile: { padding: "10px 10px", borderBottom: "1px solid #222", color: "#888", fontWeight: 500, fontSize: "13px" },
-    tableValueMobile: { padding: "10px 10px", borderBottom: "1px solid #222", color: "#fff", textAlign: "right", fontSize: "13px" },
+    infoBoxMobile: { background: "rgba(255, 255, 255, 0.04)", border: "1px solid rgba(255, 255, 255, 0.08)", borderRadius: "10px", padding: "14px", marginTop: "8px", fontSize: "13px" },
+    tableLabelMobile: { padding: "10px 10px", borderBottom: "1px solid #333", color: "#bbb", fontWeight: 500, fontSize: "13px" },
+    tableValueMobile: { padding: "10px 10px", borderBottom: "1px solid #333", color: "#fff", textAlign: "right", fontSize: "13px" },
 }

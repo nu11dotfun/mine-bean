@@ -49,7 +49,7 @@ interface RoundsResponse {
 const BnbIcon = () => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-        alt="BNB"
+        alt="ETH"
         style={{ width: 16, height: 16, objectFit: "contain" as const }}
     />
 )
@@ -254,7 +254,7 @@ export default function MiningTable() {
                                 }}
                                 onMouseEnter={() => setHoveredRow(index)}
                                 onMouseLeave={() => setHoveredRow(null)}
-                                onClick={() => window.open(`https://bscscan.com/tx/${round.txHash}`, '_blank')}
+                                onClick={() => window.open(`https://basescan.org/tx/${round.txHash}`, '_blank')}
                             >
                                 <td style={styles.td}>#{round.round.toLocaleString()}</td>
                                 <td style={styles.td}>#{round.block}</td>
@@ -366,18 +366,18 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 24px",
         fontSize: "14px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
     tabActive: {
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.08)",
         color: "#fff",
     },
     description: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
         margin: 0,
         marginBottom: "24px",
     },
@@ -393,7 +393,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
     },
     thCenter: {
@@ -401,7 +401,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
     },
     thRight: {
@@ -409,7 +409,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
     },
     tr: {
@@ -435,12 +435,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     splitBadge: {
         display: "inline-block",
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "6px",
         padding: "4px 10px",
         fontSize: "12px",
-        color: "#888",
+        color: "#bbb",
     },
     winnerCell: {
         display: "inline-flex",
@@ -461,7 +461,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         gap: "6px",
     },
     dash: {
-        color: "#444",
+        color: "#666",
     },
     pagination: {
         display: "flex",
@@ -476,9 +476,9 @@ const styles: { [key: string]: React.CSSProperties } = {
         width: "36px",
         height: "36px",
         background: "transparent",
-        border: "1px solid #333",
+        border: "1px solid #444",
         borderRadius: "8px",
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         transition: "all 0.15s",
     },

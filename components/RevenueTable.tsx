@@ -73,8 +73,8 @@ const ChevronRight = () => (
 // SVG Icons
 const BnbIcon = () => (
     <img
-        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-        alt="BNB"
+        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+        alt="ETH"
         style={{ width: 16, height: 16, objectFit: "contain" as const }}
     />
 )
@@ -180,7 +180,7 @@ export default function RevenueTable() {
                                 }}
                                 onMouseEnter={() => setHoveredRow(index)}
                                 onMouseLeave={() => setHoveredRow(null)}
-                                onClick={() => window.open(`https://bscscan.com/tx/${entry.txHash}`, '_blank')}
+                                onClick={() => window.open(`https://basescan.org/tx/${entry.txHash}`, '_blank')}
                             >
                                 <td style={styles.td}>{entry.time}</td>
                                 <td style={styles.tdRight}>
@@ -257,13 +257,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     description: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
         margin: 0,
         marginBottom: "24px",
     },
     descriptionMobile: {
         fontSize: "12px",
-        color: "#666",
+        color: "#999",
         margin: 0,
         marginBottom: "16px",
     },
@@ -280,7 +280,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
         whiteSpace: "nowrap" as const,
     },
@@ -289,7 +289,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px 16px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         borderBottom: "1px solid #1a1a1a",
         whiteSpace: "nowrap" as const,
     },
@@ -328,9 +328,9 @@ const styles: { [key: string]: React.CSSProperties } = {
         width: "36px",
         height: "36px",
         background: "transparent",
-        border: "1px solid #333",
+        border: "1px solid #444",
         borderRadius: "8px",
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         transition: "all 0.15s",
     },

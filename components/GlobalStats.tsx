@@ -84,7 +84,7 @@ export default function GlobalStats({
                 ? data.protocolRevenue.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
                 : "—",
             label: "Protocol Revenue",
-            iconType: "bnb",
+            iconType: "eth",
         },
     ]
 
@@ -106,10 +106,10 @@ export default function GlobalStats({
                         <div key={index} style={styles.mobileStatBox}>
                             <div style={styles.mobileStatValue}>
                                 {stat.iconType === "beans" && <BeanLogo size={14} />}
-                                {stat.iconType === "bnb" && (
+                                {stat.iconType === "eth" && (
                                     <img
-                                        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-                                        alt="BNB"
+                                        src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+                                        alt="ETH"
                                         style={styles.mobileIcon}
                                     />
                                 )}
@@ -137,11 +137,11 @@ export default function GlobalStats({
                     <div key={index} style={styles.statBox}>
                         <div style={styles.statValue}>
                             {stat.iconType === "beans" && <BeanLogo size={20} />}
-                            {stat.iconType === "bnb" && (
+                            {stat.iconType === "eth" && (
                                 <img
-                                    src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-                                    alt="BNB"
-                                    style={styles.bnbIcon}
+                                    src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+                                    alt="ETH"
+                                    style={styles.ethIcon}
                                 />
                             )}
                             <span>{stat.value}</span>
@@ -171,7 +171,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     subtitle: {
         fontSize: "16px",
-        color: "#666",
+        color: "#999",
         margin: 0,
     },
     container: {
@@ -197,14 +197,14 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: "#fff",
         marginBottom: "10px",
     },
-    bnbIcon: {
+    ethIcon: {
         width: "22px",
         height: "22px",
         objectFit: "contain" as const,
     },
     statLabel: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
     },
     mobileWrapper: {
         paddingBottom: "16px",
@@ -221,7 +221,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     mobileSubtitle: {
         fontSize: "12px",
-        color: "#666",
+        color: "#999",
         margin: 0,
     },
     mobileGrid: {
@@ -253,6 +253,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     mobileStatLabel: {
         fontSize: "10px",
-        color: "#666",
+        color: "#999",
     },
 }

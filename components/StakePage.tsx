@@ -65,7 +65,7 @@ export default function StakePage({
         const fetchBeansPrice = async () => {
             try {
                 const response = await fetch(
-                    "https://api.dexscreener.com/latest/dex/pairs/bsc/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47"
+                    "https://api.dexscreener.com/latest/dex/pairs/base/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47"
                 )
                 const data = await response.json()
                 if (data.pair?.priceUsd) {
@@ -224,7 +224,7 @@ export default function StakePage({
             onMouseEnter={() => { if (!isMobile) setActiveTooltip(id) }}
             onMouseLeave={() => { if (!isMobile) setActiveTooltip(null) }}
         >
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="#666">
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="#999">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
             </svg>
             {activeTooltip === id && (
@@ -271,7 +271,7 @@ export default function StakePage({
 
                     <div style={isMobile ? styles.balanceRowMobile : styles.balanceRow}>
                         <div style={styles.balanceLeft}>
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#666">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="#999">
                                 <path d="M21 18v1c0 1.1-.9 2-2 2H5c-1.11 0-2-.9-2-2V5c0-1.1.89-2 2-2h14c1.1 0 2 .9 2 2v1h-9c-1.11 0-2 .9-2 2v8c0 1.1.89 2 2 2h9zm-9-2h10V8H12v8zm4-2.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z" />
                             </svg>
                             <span style={isMobile ? styles.balanceTextMobile : styles.balanceText}>
@@ -315,12 +315,12 @@ export default function StakePage({
                                         style={{ position: 'relative', display: 'inline-flex', cursor: 'pointer' }}
                                         onClick={(e) => { e.stopPropagation(); setShowAutoCompoundInfo(!showAutoCompoundInfo) }}
                                     >
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#666">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="#999">
                                             <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
                                         </svg>
                                         {showAutoCompoundInfo && (
                                             <div style={isMobile ? styles.tooltipMobile : styles.tooltipWide}>
-                                                Auto-compounding automatically restakes your earned BEAN rewards daily. A small BNB reserve is needed to pay bots that trigger the compound transaction. Each compound costs 0.0002 BNB as a bounty. Unused BNB can be withdrawn at any time.
+                                                Auto-compounding automatically restakes your earned BEAN rewards daily. A small ETH reserve is needed to pay bots that trigger the compound transaction. Each compound costs 0.0002 ETH as a bounty. Unused ETH can be withdrawn at any time.
                                             </div>
                                         )}
                                     </div>
@@ -342,11 +342,11 @@ export default function StakePage({
                                 <div style={isMobile ? styles.compoundFeeInputRowMobile : styles.compoundFeeInputRow}>
                                     <div style={styles.inputLeft}>
                                         <img
-                                            src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/6ef1a5d5-3193-4f29-1af0-48bf41735000/public"
-                                            alt="BNB"
+                                            src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
+                                            alt="ETH"
                                             style={{ width: isMobile ? 18 : 20, height: isMobile ? 18 : 20, objectFit: 'contain' as const }}
                                         />
-                                        <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>BNB</span>
+                                        <span style={isMobile ? styles.inputLabelMobile : styles.inputLabel}>ETH</span>
                                     </div>
                                     <input
                                         type="text"
@@ -392,7 +392,7 @@ export default function StakePage({
                         </h2>
 
                         <div style={isMobile ? styles.positionRowMobile : styles.positionRow}>
-                            <span style={isMobile ? { fontSize: '13px', color: '#666' } : { fontSize: '14px', color: '#666' }}>Total Staked</span>
+                            <span style={isMobile ? { fontSize: '13px', color: '#999' } : { fontSize: '14px', color: '#999' }}>Total Staked</span>
                             <div style={styles.positionValue}>
                                 <BeanLogo size={14} />
                                 <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#fff' } : { fontSize: '15px', fontWeight: 500, color: '#fff' }}>
@@ -404,10 +404,10 @@ export default function StakePage({
                         {pendingRewards > 0 && (
                             <>
                                 <div style={{ ...isMobile ? styles.positionRowMobile : styles.positionRow, borderBottom: 'none' }}>
-                                    <span style={isMobile ? { fontSize: '13px', color: '#F0B90B' } : { fontSize: '14px', color: '#F0B90B' }}>Pending Rewards</span>
+                                    <span style={isMobile ? { fontSize: '13px', color: '#0052FF' } : { fontSize: '14px', color: '#0052FF' }}>Pending Rewards</span>
                                     <div style={styles.positionValue}>
                                         <BeanLogo size={14} />
-                                        <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#F0B90B' } : { fontSize: '15px', fontWeight: 500, color: '#F0B90B' }}>
+                                        <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#0052FF' } : { fontSize: '15px', fontWeight: 500, color: '#0052FF' }}>
                                             {pendingRewards.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                                         </span>
                                     </div>
@@ -552,14 +552,14 @@ export default function StakePage({
 
 const styles: { [key: string]: React.CSSProperties } = {
     container: {
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.02)",
         fontFamily: "'Inter', -apple-system, sans-serif",
         display: "flex",
         justifyContent: "center",
         paddingTop: "30px",
     },
     containerMobile: {
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.02)",
         fontFamily: "'Inter', -apple-system, sans-serif",
         padding: "0 16px",
     },
@@ -593,24 +593,24 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     subtitle: {
         fontSize: "16px",
-        color: "#666",
+        color: "#999",
         margin: 0,
     },
     subtitleMobile: {
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
         margin: 0,
     },
     card: {
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "16px",
         padding: "24px",
         marginBottom: "28px",
     },
     cardMobile: {
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)", backdropFilter: "blur(20px)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "14px",
         padding: "16px",
         marginBottom: "20px",
@@ -619,7 +619,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: "8px",
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.03)",
         borderRadius: "12px",
         padding: "8px",
         marginBottom: "24px",
@@ -628,7 +628,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "grid",
         gridTemplateColumns: "1fr 1fr",
         gap: "6px",
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.03)",
         borderRadius: "10px",
         padding: "6px",
         marginBottom: "16px",
@@ -640,7 +640,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "14px",
         fontSize: "14px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
@@ -652,13 +652,13 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: "12px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
         transition: "all 0.15s",
     },
     tabActive: {
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.1)",
         color: "#fff",
     },
     balanceRow: {
@@ -680,35 +680,35 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     balanceText: {
         fontSize: "14px",
-        color: "#666",
+        color: "#999",
     },
     balanceTextMobile: {
         fontSize: "12px",
-        color: "#666",
+        color: "#999",
     },
     quickBtns: {
         display: "flex",
         gap: "8px",
     },
     quickBtn: {
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "6px",
         padding: "8px 16px",
         fontSize: "12px",
         fontWeight: 600,
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         fontFamily: "inherit",
     },
     quickBtnMobile: {
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "6px",
         padding: "6px 12px",
         fontSize: "11px",
         fontWeight: 600,
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         fontFamily: "inherit",
     },
@@ -716,8 +716,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
         padding: "16px 20px",
         marginBottom: "16px",
@@ -726,8 +726,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "10px",
         padding: "14px 16px",
         marginBottom: "12px",
@@ -795,10 +795,10 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: 0,
     },
     toggleOn: {
-        background: "#F0B90B",
+        background: "#0052FF",
     },
     toggleOff: {
-        background: "#333",
+        background: "rgba(255, 255, 255, 0.12)",
     },
     toggleKnob: {
         width: "20px",
@@ -819,8 +819,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "12px",
         padding: "12px 16px",
     },
@@ -828,8 +828,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.03)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "10px",
         padding: "10px 14px",
     },
@@ -858,36 +858,36 @@ const styles: { [key: string]: React.CSSProperties } = {
     // Action buttons
     actionBtn: {
         width: "100%",
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.06)",
         border: "none",
         borderRadius: "12px",
         padding: "18px",
         fontSize: "16px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
     },
     actionBtnMobile: {
         width: "100%",
-        background: "#222",
+        background: "rgba(255, 255, 255, 0.06)",
         border: "none",
         borderRadius: "10px",
         padding: "14px",
         fontSize: "15px",
         fontWeight: 500,
-        color: "#666",
+        color: "#999",
         cursor: "pointer",
         fontFamily: "inherit",
     },
     actionBtnEnabled: {
-        background: "#F0B90B",
-        color: "#000",
+        background: "#0052FF",
+        color: "#fff",
         fontWeight: 600,
     },
     actionBtnDisabled: {
-        background: "#1a1a1a",
-        color: "#444",
+        background: "rgba(255, 255, 255, 0.03)",
+        color: "#666",
         cursor: "not-allowed",
     },
     // Position card
@@ -917,8 +917,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     rewardBtn: {
         flex: 1,
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "10px",
         padding: "14px",
         fontSize: "14px",
@@ -930,8 +930,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     rewardBtnMobile: {
         flex: 1,
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "8px",
         padding: "12px",
         fontSize: "13px",
@@ -942,9 +942,9 @@ const styles: { [key: string]: React.CSSProperties } = {
         transition: "all 0.15s",
     },
     rewardBtnPrimary: {
-        background: "#F0B90B",
-        border: "1px solid #F0B90B",
-        color: "#000",
+        background: "#0052FF",
+        border: "1px solid #0052FF",
+        color: "#fff",
         fontWeight: 600,
     },
     // Summary
@@ -987,7 +987,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         alignItems: "center",
         gap: "6px",
         fontSize: "15px",
-        color: "#666",
+        color: "#999",
     },
     summaryValue: {
         display: "flex",
@@ -1011,8 +1011,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         bottom: "calc(100% + 8px)",
         left: "50%",
         transform: "translateX(-50%)",
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
         fontSize: "12px",
@@ -1026,8 +1026,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         position: "absolute" as const,
         bottom: "calc(100% + 8px)",
         left: "0",
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
         fontSize: "11px",
@@ -1041,8 +1041,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         bottom: "calc(100% + 8px)",
         left: "50%",
         transform: "translateX(-50%)",
-        background: "#1a1a1a",
-        border: "1px solid #333",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
         fontSize: "12px",
@@ -1059,12 +1059,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         justifyContent: "center",
         gap: "10px",
         background: "transparent",
-        border: "1px solid #333",
+        border: "1px solid #444",
         borderRadius: "12px",
         padding: "16px",
         fontSize: "14px",
         fontWeight: 500,
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         fontFamily: "inherit",
     },
@@ -1075,12 +1075,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         justifyContent: "center",
         gap: "8px",
         background: "transparent",
-        border: "1px solid #333",
+        border: "1px solid #444",
         borderRadius: "10px",
         padding: "12px",
         fontSize: "13px",
         fontWeight: 500,
-        color: "#888",
+        color: "#bbb",
         cursor: "pointer",
         fontFamily: "inherit",
     },
@@ -1098,8 +1098,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "16px",
         padding: "24px",
         width: "90%",
@@ -1111,8 +1111,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        background: "#111",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.04)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "14px",
         padding: "20px",
         width: "90%",
@@ -1140,7 +1140,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     closeBtn: {
         background: "transparent",
         border: "none",
-        color: "#666",
+        color: "#999",
         fontSize: "18px",
         cursor: "pointer",
         padding: "4px 8px",
@@ -1151,15 +1151,15 @@ const styles: { [key: string]: React.CSSProperties } = {
     calcLabel: {
         display: "block",
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
         marginBottom: "8px",
     },
     calcInputWrapper: {
         display: "flex",
         alignItems: "center",
         gap: "10px",
-        background: "#0a0a0a",
-        border: "1px solid #222",
+        background: "rgba(255, 255, 255, 0.02)",
+        border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "10px",
         padding: "12px 14px",
     },
@@ -1174,7 +1174,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         outline: "none",
     },
     calcResults: {
-        background: "#0a0a0a",
+        background: "rgba(255, 255, 255, 0.02)",
         borderRadius: "10px",
         padding: "12px",
         marginBottom: "12px",
@@ -1188,7 +1188,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     calcResultLabel: {
         fontSize: "13px",
-        color: "#666",
+        color: "#999",
     },
     calcResultValue: {
         display: "flex",
@@ -1199,7 +1199,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: "#fff",
     },
     calcUsd: {
-        color: "#666",
+        color: "#999",
         fontSize: "12px",
     },
     calcNote: {

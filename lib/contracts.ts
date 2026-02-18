@@ -6,7 +6,7 @@ import StakingABI from './abis/Staking.json'
 
 export const CONTRACTS = {
   GridMining: {
-    address: '0x3fd29fd722433c0aAd30B2B62C95d6A457A87c7e' as `0x${string}`,
+    address: '0xcc9dA9277D83A0b17B555246DaBF7dA9a3d5c9f0' as `0x${string}`,
     abi: GridMiningABI,
   },
   Bean: {

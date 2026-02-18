@@ -219,3 +219,10 @@ body > * {
 body {
   min-height: 100vh;
 }
+
+/* Mining grid cell hover glow - only subtle brightening */
+.mining-cell:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}

@@ -101,7 +101,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         padding: '4px 8px',
     },
     navItemActive: {
-        color: '#0052FF',
+        color: '#999',
     },
     navLabel: {
         fontSize: '10px',

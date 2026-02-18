@@ -561,7 +561,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     containerMobile: {
         background: "rgba(255, 255, 255, 0.02)",
         fontFamily: "'Inter', -apple-system, sans-serif",
-        padding: "0 16px",
+        padding: "20px 16px 0 16px",
     },
     content: {
         width: "100%",

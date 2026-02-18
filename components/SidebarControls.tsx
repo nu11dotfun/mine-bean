@@ -5,7 +5,7 @@ import { useConnectModal } from '@rainbow-me/rainbowkit'
 import BeanLogo from './BeanLogo'
 import { apiFetch } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
-import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
+import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS, BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
 import { parseEther } from 'viem'
 
 const EthLogo = ({ size = 18 }: { size?: number }) => (
@@ -280,7 +280,7 @@ export default function SidebarControls({
     useEffect(() => {
         const tick = () => {
             if (endTimeRef.current > 0) {
-                const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
+                const remaining = Math.max(0, Math.ceil(endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - Date.now() / 1000))
                 setTimer(remaining)
             }
         }

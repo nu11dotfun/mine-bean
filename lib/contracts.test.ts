@@ -16,8 +16,8 @@ describe('contracts', () => {
     }
   })
 
-  it('MIN_DEPLOY_PER_BLOCK equals 0.00001', () => {
-    expect(MIN_DEPLOY_PER_BLOCK).toBe(0.00001)
+  it('MIN_DEPLOY_PER_BLOCK equals 0.0000025', () => {
+    expect(MIN_DEPLOY_PER_BLOCK).toBe(0.0000025)
   })
 
   it('EXECUTOR_FEE_BPS equals 100 (1%)', () => {

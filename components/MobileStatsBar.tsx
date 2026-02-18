@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState, useEffect, useRef } from "react"
+import { BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
 
 // Move icons OUTSIDE component to prevent re-creation on each render
 const BeanIcon = () => (
@@ -54,7 +55,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
     useEffect(() => {
         const tick = () => {
             if (endTimeRef.current > 0) {
-                const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
+                const remaining = Math.max(0, Math.ceil(endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - Date.now() / 1000))
                 setTimer(remaining)
             }
         }

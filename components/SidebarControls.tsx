@@ -8,7 +8,7 @@ import { useSSE } from '@/lib/SSEContext'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
 import { parseEther } from 'viem'
 
-const BnbLogo = ({ size = 18 }: { size?: number }) => (
+const EthLogo = ({ size = 18 }: { size?: number }) => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
         alt="ETH"
@@ -92,7 +92,7 @@ export default function SidebarControls({
     const endTimeRef = useRef(0)
 
     // Stats
-    const [motherlodePool, setMotherlodePool] = useState(0)
+    const [beanpotPool, setBeanpotPool] = useState(0)
     const [totalDeployed, setTotalDeployed] = useState(0)
     const [userDeployed, setUserDeployed] = useState(0)
 
@@ -245,7 +245,7 @@ export default function SidebarControls({
             const d = event.detail
             if (d.roundId) setCurrentRound(d.roundId)
             if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
-            if (d.motherlodePoolFormatted) setMotherlodePool(parseFloat(d.motherlodePoolFormatted) || 0)
+            if (d.beanpotPoolFormatted) setBeanpotPool(parseFloat(d.beanpotPoolFormatted) || 0)
             if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
             if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
             // New round data means we're back to counting
@@ -347,12 +347,12 @@ export default function SidebarControls({
                     <div style={styles.statValue}>
                         <BeanLogo size={20} />
                         <span style={styles.beanpotValue}>
-                            {motherlodePool > 0 ? motherlodePool.toFixed(1) : '—'}
+                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : '—'}
                         </span>
                     </div>
                     <div style={styles.statLabel}>
-                        {isHoveringBeanpot && motherlodePool > 0
-                            ? `≈$${(motherlodePool * beansPrice).toFixed(2)}`
+                        {isHoveringBeanpot && beanpotPool > 0
+                            ? `≈$${(beanpotPool * beansPrice).toFixed(2)}`
                             : "Beanpot"}
                     </div>
                 </div>
@@ -376,7 +376,7 @@ export default function SidebarControls({
                     onMouseLeave={() => setIsHoveringTotalDeployed(false)}
                 >
                     <div style={styles.statValue}>
-                        <BnbLogo size={20} />
+                        <EthLogo size={20} />
                         <span style={styles.statValueText}>
                             {totalDeployed > 0 ? totalDeployed.toFixed(5) : '—'}
                         </span>
@@ -394,7 +394,7 @@ export default function SidebarControls({
                     onMouseLeave={() => setIsHoveringYouDeployed(false)}
                 >
                     <div style={styles.statValue}>
-                        <BnbLogo size={20} />
+                        <EthLogo size={20} />
                         <span style={styles.statValueText}>{userDeployed > 0 ? userDeployed.toFixed(5) : '—'}</span>
                     </div>
                     <div style={styles.statLabel}>
@@ -459,7 +459,7 @@ export default function SidebarControls({
 
                         <div style={styles.inputRow}>
                             <div style={styles.inputLeft}>
-                                <BnbLogo size={20} />
+                                <EthLogo size={20} />
                                 <span style={styles.inputLabel}>ETH</span>
                             </div>
                             <input
@@ -537,7 +537,7 @@ export default function SidebarControls({
 
                         <div style={styles.inputRow}>
                             <div style={styles.inputLeft}>
-                                <BnbLogo size={20} />
+                                <EthLogo size={20} />
                                 <span style={styles.inputLabel}>ETH</span>
                             </div>
                             <input

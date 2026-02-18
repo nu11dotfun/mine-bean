@@ -17,8 +17,8 @@ interface RoundResponse {
     endTime: number
     totalDeployed: string
     totalDeployedFormatted: string
-    motherlodePool: string
-    motherlodePoolFormatted: string
+    beanpotPool: string
+    beanpotPoolFormatted: string
     settled: boolean
     blocks: BlockData[]
     userDeployed?: string
@@ -43,7 +43,7 @@ interface RoundSettledEvent {
     topMiner: string
     totalWinnings: string
     topMinerReward: string
-    motherlodeAmount: string
+    beanpotAmount: string
     isSplit: boolean
 }
 
@@ -51,8 +51,8 @@ interface GameStartedEvent {
     roundId: string
     startTime: number
     endTime: number
-    motherlodePool: string
-    motherlodePoolFormatted: string
+    beanpotPool: string
+    beanpotPoolFormatted: string
 }
 
 interface RoundTransitionEvent {

@@ -47,12 +47,12 @@ export default function Home() {
     })
   }, [isConnected, writeContract])
 
-  const handleClaimBNB = useCallback(() => {
+  const handleClaimETH = useCallback(() => {
     if (!isConnected) return
     writeContract({
       address: CONTRACTS.GridMining.address,
       abi: CONTRACTS.GridMining.abi,
-      functionName: 'claimBNB',
+      functionName: 'claimETH',
       args: [],
     })
   }, [isConnected, writeContract])
@@ -108,7 +108,7 @@ export default function Home() {
           <MobileStatsBar userAddress={address} />
           <MiningGrid userAddress={address} />
           <MobileControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
-          <ClaimRewards userAddress={address} onClaimBNB={handleClaimBNB} onClaimBEAN={handleClaimBEAN} />
+          <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
         <BottomNav currentPage="mine" />
       </div>
@@ -125,7 +125,7 @@ export default function Home() {
         </div>
         <div style={styles.controlsSection}>
           <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
-          <ClaimRewards userAddress={address} onClaimBNB={handleClaimBNB} onClaimBEAN={handleClaimBEAN} />
+          <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
       </div>
     </div>

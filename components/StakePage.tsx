@@ -65,7 +65,7 @@ export default function StakePage({
         const fetchBeansPrice = async () => {
             try {
                 const response = await fetch(
-                    "https://api.dexscreener.com/latest/dex/pairs/base/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47"
+                    "https://api.dexscreener.com/latest/dex/pairs/base/0x3e9b01e1C30ea92Adc8B02C0BCf3f0DE509aCbD3"
                 )
                 const data = await response.json()
                 if (data.pair?.priceUsd) {

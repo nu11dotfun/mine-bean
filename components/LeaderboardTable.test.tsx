@@ -121,7 +121,7 @@ describe('LeaderboardTable', () => {
     expect(mockApiFetch).toHaveBeenCalledWith('/api/leaderboard/earners?limit=12')
   })
 
-  it('miners tab shows addresses and BNB values', async () => {
+  it('miners tab shows addresses and ETH values', async () => {
     render(<LeaderboardTable />)
 
     await waitFor(() => {
@@ -159,17 +159,17 @@ describe('LeaderboardTable', () => {
     }
   })
 
-  it('unrefined tab shows addresses and BEAN values', async () => {
+  it('unroasted tab shows addresses and BEAN values', async () => {
     render(<LeaderboardTable />)
 
     await waitFor(() => {
       expect(screen.getByText('Leaderboard')).toBeInTheDocument()
     })
 
-    // Click Unrefined tab
-    const unrefinedTab = screen.getAllByText('Unrefined').find(el => el.tagName === 'BUTTON')
-    if (unrefinedTab) {
-      fireEvent.click(unrefinedTab)
+    // Click Unroasted tab
+    const unroastedTab = screen.getAllByText('Unroasted').find(el => el.tagName === 'BUTTON')
+    if (unroastedTab) {
+      fireEvent.click(unroastedTab)
 
       // Check for earners content
       await waitFor(() => {
@@ -197,8 +197,8 @@ describe('LeaderboardTable', () => {
       expect(screen.getByText(/0x2222\.\.\.2222/)).toBeInTheDocument()
     })
 
-    // Switch to Unrefined tab
-    fireEvent.click(screen.getByText('Unrefined'))
+    // Switch to Unroasted tab
+    fireEvent.click(screen.getByText('Unroasted'))
     await waitFor(() => {
       expect(screen.getByText(/0x4444\.\.\.4444/)).toBeInTheDocument()
     })
@@ -210,7 +210,7 @@ describe('LeaderboardTable', () => {
     })
   })
 
-  it('row links to BSCScan address page', async () => {
+  it('row links to BaseScan address page', async () => {
     // Mock window.open
     const mockOpen = vi.fn()
     window.open = mockOpen
@@ -226,7 +226,7 @@ describe('LeaderboardTable', () => {
     fireEvent.click(firstRow!)
 
     expect(mockOpen).toHaveBeenCalledWith(
-      'https://bscscan.com/address/0x1234567890123456789012345678901234567890',
+      'https://basescan.org/address/0x1234567890123456789012345678901234567890',
       '_blank'
     )
   })
@@ -261,12 +261,12 @@ describe('LeaderboardTable', () => {
       })
     }
 
-    // Unrefined tab - Unrefined (check for TH element to avoid button confusion)
-    const unrefinedTab = screen.getAllByText('Unrefined').find(el => el.tagName === 'BUTTON')
-    if (unrefinedTab) {
-      fireEvent.click(unrefinedTab)
+    // Unroasted tab - Unroasted (check for TH element to avoid button confusion)
+    const unroastedTab = screen.getAllByText('Unroasted').find(el => el.tagName === 'BUTTON')
+    if (unroastedTab) {
+      fireEvent.click(unroastedTab)
       await waitFor(() => {
-        expect(screen.getAllByText('Unrefined').filter(el => el.tagName === 'TH').length).toBeGreaterThan(0)
+        expect(screen.getAllByText('Unroasted').filter(el => el.tagName === 'TH').length).toBeGreaterThan(0)
       })
     }
   })
@@ -280,7 +280,7 @@ describe('LeaderboardTable', () => {
 
     // Miners tab description
     await waitFor(() => {
-      expect(screen.getByText('Top miners by total BNB deployed over their lifetime.')).toBeInTheDocument()
+      expect(screen.getByText('Top miners by total ETH deployed over their lifetime.')).toBeInTheDocument()
     })
 
     // Stakers tab description
@@ -289,10 +289,10 @@ describe('LeaderboardTable', () => {
       expect(screen.getByText('Top stakers by amount of BEANS staked.')).toBeInTheDocument()
     })
 
-    // Unrefined tab description
-    fireEvent.click(screen.getByText('Unrefined'))
+    // Unroasted tab description
+    fireEvent.click(screen.getByText('Unroasted'))
     await waitFor(() => {
-      expect(screen.getByText('Top miners by amount of unrefined BEANS.')).toBeInTheDocument()
+      expect(screen.getByText('Top miners by amount of unroasted BEANS.')).toBeInTheDocument()
     })
   })
 

@@ -18,7 +18,7 @@ interface MobileStatsBarProps {
 
 export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
     const [timer, setTimer] = useState(0)
-    const [motherlodePool, setMotherlodePool] = useState(0)
+    const [beanpotPool, setBeanpotPool] = useState(0)
     const [totalDeployed, setTotalDeployed] = useState(0)
     const [userDeployed, setUserDeployed] = useState(0)
     const endTimeRef = useRef(0)
@@ -28,7 +28,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
         const handleRoundData = (event: CustomEvent) => {
             const d = event.detail
             if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
-            if (d.motherlodePoolFormatted) setMotherlodePool(parseFloat(d.motherlodePoolFormatted) || 0)
+            if (d.beanpotPoolFormatted) setBeanpotPool(parseFloat(d.beanpotPoolFormatted) || 0)
             if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
             if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
         }
@@ -76,7 +76,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
                     <div style={styles.valueRow}>
                         <BeanIcon />
                         <span style={styles.value}>
-                            {motherlodePool > 0 ? motherlodePool.toFixed(1) : '—'}
+                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : '—'}
                         </span>
                     </div>
                     <span style={styles.label}>Beanpot</span>

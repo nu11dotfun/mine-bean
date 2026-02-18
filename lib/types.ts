@@ -4,7 +4,7 @@ export interface RoundData {
   roundId: string
   startTime: number
   endTime: number
-  motherlodePoolFormatted: string
+  beanpotPoolFormatted: string
   totalDeployedFormatted: string
   userDeployedFormatted?: string
   blocks?: Array<{ id: number; deployed: string; deployedFormatted: string; minerCount: number }>
@@ -16,7 +16,7 @@ export interface RoundSettledEvent {
   topMiner: string
   totalWinnings: string
   topMinerReward: string
-  motherlodeAmount: string
+  beanpotAmount: string
   isSplit: boolean
 }
 
@@ -52,8 +52,8 @@ export interface RoundTransitionEvent {
     roundId: string
     startTime: number
     endTime: number
-    motherlodePool: string
-    motherlodePoolFormatted: string
+    beanpotPool: string
+    beanpotPoolFormatted: string
   }
 }
 

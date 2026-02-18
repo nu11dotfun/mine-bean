@@ -27,8 +27,8 @@ describe('RevenueTable', () => {
   const mockBuybacksResponse = {
     buybacks: [
       {
-        bnbSpent: '1000000000000000000',
-        bnbSpentFormatted: '1.0',
+        ethSpent: '1000000000000000000',
+        ethSpentFormatted: '1.0',
         beanReceived: '500000000000000000000',
         beanReceivedFormatted: '500.0',
         beanBurned: '250000000000000000000',
@@ -40,8 +40,8 @@ describe('RevenueTable', () => {
         timestamp: new Date(Date.now() - 3600000).toISOString(),
       },
       {
-        bnbSpent: '2000000000000000000',
-        bnbSpentFormatted: '2.0',
+        ethSpent: '2000000000000000000',
+        ethSpentFormatted: '2.0',
         beanReceived: '1000000000000000000000',
         beanReceivedFormatted: '1000.0',
         beanBurned: '500000000000000000000',
@@ -143,7 +143,7 @@ describe('RevenueTable', () => {
     }
   })
 
-  it('row links to BSCScan via txHash', async () => {
+  it('row links to BaseScan via txHash', async () => {
     mockApiFetch.mockResolvedValue(mockBuybacksResponse)
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
 
@@ -159,7 +159,7 @@ describe('RevenueTable', () => {
       fireEvent.click(firstRow)
 
       expect(windowOpenSpy).toHaveBeenCalledWith(
-        'https://bscscan.com/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        'https://basescan.org/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
         '_blank'
       )
     }
@@ -301,8 +301,8 @@ describe('RevenueTable', () => {
     const response = {
       buybacks: [
         {
-          bnbSpent: '123456789012345678',
-          bnbSpentFormatted: '0.12345678',
+          ethSpent: '123456789012345678',
+          ethSpentFormatted: '0.12345678',
           beanReceived: '500000000000000000000',
           beanReceivedFormatted: '500.0',
           beanBurned: '250000000000000000000',

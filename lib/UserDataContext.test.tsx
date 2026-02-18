@@ -29,13 +29,13 @@ vi.mock('@/lib/api', () => ({
 const TEST_ADDRESS = '0x1234567890abcdef1234567890abcdef12345678'
 
 const mockRewards: RewardsData = {
-  pendingBNB: '1000000000000000000',
-  pendingBNBFormatted: '1.0',
+  pendingETH: '1000000000000000000',
+  pendingETHFormatted: '1.0',
   pendingBEAN: {
-    unrefined: '500000000000000000',
-    unrefinedFormatted: '0.5',
-    refined: '200000000000000000',
-    refinedFormatted: '0.2',
+    unroasted: '500000000000000000',
+    unroastedFormatted: '0.5',
+    roasted: '200000000000000000',
+    roastedFormatted: '0.2',
     gross: '700000000000000000',
     grossFormatted: '0.7',
     fee: '50000000000000000',
@@ -201,7 +201,7 @@ describe('UserDataContext', () => {
       })
 
       // Should still have cached data after fetch failure
-      expect(result.current.rewards?.pendingBNBFormatted).toBe('1.0')
+      expect(result.current.rewards?.pendingETHFormatted).toBe('1.0')
     })
   })
 
@@ -282,22 +282,22 @@ describe('UserDataContext', () => {
       })
 
       const bean = result.current.rewards!.pendingBEAN
-      expect(bean.unrefinedFormatted).toBe('0')
-      expect(bean.refinedFormatted).toBe('0')
+      expect(bean.unroastedFormatted).toBe('0')
+      expect(bean.roastedFormatted).toBe('0')
       expect(bean.grossFormatted).toBe('0')
       expect(bean.feeFormatted).toBe('0')
       expect(bean.netFormatted).toBe('0')
     })
 
-    it('claimedBNB zeroes BNB reward', async () => {
+    it('claimedETH zeroes ETH reward', async () => {
       const { result } = await renderWithData()
 
       act(() => {
-        mockSSE.emitUser('claimedBNB', {})
+        mockSSE.emitUser('claimedETH', {})
       })
 
-      expect(result.current.rewards?.pendingBNBFormatted).toBe('0')
-      expect(result.current.rewards?.pendingBNB).toBe('0')
+      expect(result.current.rewards?.pendingETHFormatted).toBe('0')
+      expect(result.current.rewards?.pendingETH).toBe('0')
     })
 
     it('profileUpdated updates profile fields selectively', async () => {

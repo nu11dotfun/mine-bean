@@ -15,8 +15,8 @@ interface BuybackEntry {
 
 // API response interfaces
 interface BuybackFromAPI {
-    bnbSpent: string
-    bnbSpentFormatted: string
+    ethSpent: string
+    ethSpentFormatted: string
     beanReceived: string
     beanReceivedFormatted: string
     beanBurned: string
@@ -51,7 +51,7 @@ const getRelativeTime = (timestamp: string): string => {
 
 const transformBuyback = (b: BuybackFromAPI): BuybackEntry => ({
     time: getRelativeTime(b.timestamp),
-    spent: parseFloat(b.bnbSpentFormatted),
+    spent: parseFloat(b.ethSpentFormatted),
     burned: parseFloat(b.beanBurnedFormatted),
     yieldGenerated: parseFloat(b.beanToStakersFormatted),
     txHash: b.txHash
@@ -71,7 +71,7 @@ const ChevronRight = () => (
 )
 
 // SVG Icons
-const BnbIcon = () => (
+const EthIcon = () => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
         alt="ETH"
@@ -185,7 +185,7 @@ export default function RevenueTable() {
                                 <td style={styles.td}>{entry.time}</td>
                                 <td style={styles.tdRight}>
                                     <span style={styles.valueWithIcon}>
-                                        <BnbIcon />
+                                        <EthIcon />
                                         {entry.spent.toFixed(4)}
                                     </span>
                                 </td>

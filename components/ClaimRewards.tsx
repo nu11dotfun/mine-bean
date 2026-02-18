@@ -5,11 +5,11 @@ import { useUserData } from '@/lib/UserDataContext'
 
 interface ClaimRewardsProps {
   userAddress?: string
-  onClaimBNB: () => void
+  onClaimETH: () => void
   onClaimBEAN: () => void
 }
 
-const BnbLogo = ({ size = 16 }: { size?: number }) => (
+const EthLogo = ({ size = 16 }: { size?: number }) => (
   <img
     src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
     alt="ETH"
@@ -23,18 +23,18 @@ const BeanIcon = ({ size = 16 }: { size?: number }) => (
   </svg>
 )
 
-export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: ClaimRewardsProps) {
+export default function ClaimRewards({ userAddress, onClaimETH, onClaimBEAN }: ClaimRewardsProps) {
   // Shared rewards data from context (no local fetching)
   const { rewards } = useUserData()
 
   if (!userAddress || !rewards) return null
 
-  const hasBNB = rewards.pendingBNB !== "0"
+  const hasETH = rewards.pendingETH !== "0"
   const hasBEAN = rewards.pendingBEAN.gross !== "0"
-  if (!hasBNB && !hasBEAN) return null
+  if (!hasETH && !hasBEAN) return null
 
-  const hasUnrefined = rewards.pendingBEAN.unrefined !== "0"
-  const hasRefined = rewards.pendingBEAN.refined !== "0"
+  const hasUnroasted = rewards.pendingBEAN.unroasted !== "0"
+  const hasRoasted = rewards.pendingBEAN.roasted !== "0"
 
   return (
     <div style={styles.card}>
@@ -43,31 +43,31 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
       <div style={styles.rows}>
         <div style={styles.row}>
           <div style={styles.rowLabel}>
-            <BnbLogo size={16} />
+            <EthLogo size={16} />
             <span>ETH Rewards</span>
           </div>
-          <div style={{ ...styles.rowValue, color: hasBNB ? "#fff" : "#555" }}>
-            {parseFloat(rewards.pendingBNBFormatted).toFixed(6)} ETH
+          <div style={{ ...styles.rowValue, color: hasETH ? "#fff" : "#555" }}>
+            {parseFloat(rewards.pendingETHFormatted).toFixed(6)} ETH
           </div>
         </div>
 
         <div style={styles.row}>
           <div style={styles.rowLabel}>
             <BeanIcon size={16} />
-            <span>Unrefined BEAN</span>
+            <span>Unroasted BEAN</span>
           </div>
-          <div style={{ ...styles.rowValue, color: hasUnrefined ? "#fff" : "#555" }}>
-            {parseFloat(rewards.pendingBEAN.unrefinedFormatted).toFixed(4)} BEAN
+          <div style={{ ...styles.rowValue, color: hasUnroasted ? "#fff" : "#555" }}>
+            {parseFloat(rewards.pendingBEAN.unroastedFormatted).toFixed(4)} BEAN
           </div>
         </div>
 
         <div style={styles.row}>
           <div style={styles.rowLabel}>
             <BeanIcon size={16} />
-            <span>Refined BEAN</span>
+            <span>Roasted BEAN</span>
           </div>
-          <div style={{ ...styles.rowValue, color: hasRefined ? "#fff" : "#555" }}>
-            {parseFloat(rewards.pendingBEAN.refinedFormatted).toFixed(4)} BEAN
+          <div style={{ ...styles.rowValue, color: hasRoasted ? "#fff" : "#555" }}>
+            {parseFloat(rewards.pendingBEAN.roastedFormatted).toFixed(4)} BEAN
           </div>
         </div>
       </div>
@@ -81,9 +81,9 @@ export default function ClaimRewards({ userAddress, onClaimBNB, onClaimBEAN }: C
           Claim BEAN
         </button>
         <button
-          style={hasBNB ? styles.btnActive : styles.btnDisabled}
-          disabled={!hasBNB}
-          onClick={onClaimBNB}
+          style={hasETH ? styles.btnActive : styles.btnDisabled}
+          disabled={!hasETH}
+          onClick={onClaimETH}
         >
           Claim ETH
         </button>

@@ -48,13 +48,13 @@ const mockMinersResponse = {
   miners: [
     {
       address: '0x1234567890abcdef1234567890abcdef12345678',
-      bnbRewardFormatted: '0.5',
+      ethRewardFormatted: '0.5',
       beanRewardFormatted: '10.0',
       deployedFormatted: '1.0',
     },
     {
       address: '0xabcdef1234567890abcdef1234567890abcdef12',
-      bnbRewardFormatted: '0.3',
+      ethRewardFormatted: '0.3',
       beanRewardFormatted: '0',
       deployedFormatted: '0.5',
     },
@@ -127,7 +127,7 @@ describe('MinersPanel', () => {
     })
   })
 
-  it('displays miner addresses and BNB rewards', async () => {
+  it('displays miner addresses and ETH rewards', async () => {
     mockApiFetch.mockResolvedValue(mockMinersResponse)
 
     render(<MinersPanel />)
@@ -228,11 +228,12 @@ describe('MinersPanel', () => {
     })
 
     // The overlay is a fixed div with onClick that closes the panel
-    // It's rendered as the last child with position:fixed and background: rgba
+    // It's rendered as the last child with position:fixed and a dark semi-transparent background
     const overlays = container.querySelectorAll('div[style*="position: fixed"]')
     // Find the overlay (not the panel itself which is also position:fixed)
+    // The overlay uses rgba(0,0,0,...) while the panel uses rgba(255,...)
     const overlay = Array.from(overlays).find(el =>
-      (el as HTMLElement).style.background?.includes('rgba')
+      (el as HTMLElement).style.background?.includes('rgba(0')
     )
     expect(overlay).toBeDefined()
     fireEvent.click(overlay!)

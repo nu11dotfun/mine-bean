@@ -86,17 +86,17 @@ export default function ProfilePage() {
 
   // Real portfolio data from shared context
   const stakedBalance = stakeInfo ? parseFloat(stakeInfo.balanceFormatted) : 0
-  const refinedBalance = rewards ? parseFloat(rewards.pendingBEAN.refinedFormatted) : 0
-  const unrefinedBalance = rewards ? parseFloat(rewards.pendingBEAN.unrefinedFormatted) : 0
+  const roastedBalance = rewards ? parseFloat(rewards.pendingBEAN.roastedFormatted) : 0
+  const unroastedBalance = rewards ? parseFloat(rewards.pendingBEAN.unroastedFormatted) : 0
 
   const portfolio = {
     wallet: beansBalance,
     staked: stakedBalance,
-    refined: refinedBalance,
-    unrefined: unrefinedBalance,
+    roasted: roastedBalance,
+    unroasted: unroastedBalance,
   }
 
-  const total = portfolio.wallet + portfolio.staked + portfolio.refined + portfolio.unrefined
+  const total = portfolio.wallet + portfolio.staked + portfolio.roasted + portfolio.unroasted
 
   // ── Save profile with wallet signature ──────────────────────────────
 
@@ -405,8 +405,8 @@ export default function ProfilePage() {
             {[
               { label: 'Wallet', value: portfolio.wallet },
               { label: 'Staked', value: portfolio.staked },
-              { label: 'Refined', value: portfolio.refined },
-              { label: 'Unrefined', value: portfolio.unrefined },
+              { label: 'Roasted', value: portfolio.roasted },
+              { label: 'Unroasted', value: portfolio.unroasted },
             ].map((item) => (
               <div key={item.label} style={styles.portfolioItem}>
                 <span style={styles.portfolioItemLabel}>{item.label}</span>

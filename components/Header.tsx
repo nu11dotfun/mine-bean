@@ -29,7 +29,7 @@ export default function Header({
   }, [propIsMobile])
 
   useEffect(() => {
-    const fetchBnbPrice = async () => {
+    const fetchEthPrice = async () => {
       try {
         const response = await fetch('https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT')
         const data = await response.json()
@@ -38,15 +38,15 @@ export default function Header({
         setEthPrice('580.00')
       }
     }
-    fetchBnbPrice()
-    const interval = setInterval(fetchBnbPrice, 10000)
+    fetchEthPrice()
+    const interval = setInterval(fetchEthPrice, 10000)
     return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
     const fetchBeansPrice = async () => {
       try {
-        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/base/0x7e58f160b5b77b8b24cd9900c09a3e730215ac47')
+        const response = await fetch('https://api.dexscreener.com/latest/dex/pairs/base/0x3e9b01e1C30ea92Adc8B02C0BCf3f0DE509aCbD3')
         const data = await response.json()
         if (data.pair?.priceUsd) setBeansPrice(parseFloat(data.pair.priceUsd).toFixed(4))
       } catch {

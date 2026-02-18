@@ -30,7 +30,7 @@ interface RoundFromAPI {
     totalDeployed: string
     vaultedAmount: string
     totalWinnings: string
-    motherlodeAmount: string
+    beanpotAmount: string
     endTime: number | string    // Unix timestamp or ISO date string
     settledAt?: number | string // Unix timestamp or ISO date string
     txHash: string              // fulfilment transaction hash
@@ -46,7 +46,7 @@ interface RoundsResponse {
     }
 }
 
-const BnbIcon = () => (
+const EthIcon = () => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
         alt="ETH"
@@ -107,8 +107,8 @@ const transformRound = (r: RoundFromAPI): Round => ({
     deployed: formatWei(r.totalDeployed),
     vaulted: formatWei(r.vaultedAmount),
     winnings: formatWei(r.totalWinnings),
-    goldenBean: r.motherlodeAmount && parseFloat(r.motherlodeAmount) > 0
-        ? formatWei(r.motherlodeAmount)
+    goldenBean: r.beanpotAmount && parseFloat(r.beanpotAmount) > 0
+        ? formatWei(r.beanpotAmount)
         : null,
     time: getRelativeTime(r.settledAt || r.endTime),
     txHash: r.txHash
@@ -273,19 +273,19 @@ export default function MiningTable() {
                                 <td style={styles.tdCenter}>{round.winners}</td>
                                 <td style={styles.tdRight}>
                                     <span style={styles.valueWithIcon}>
-                                        <BnbIcon />
+                                        <EthIcon />
                                         {round.deployed.toFixed(4)}
                                     </span>
                                 </td>
                                 <td style={styles.tdRight}>
                                     <span style={styles.valueWithIcon}>
-                                        <BnbIcon />
+                                        <EthIcon />
                                         {round.vaulted.toFixed(4)}
                                     </span>
                                 </td>
                                 <td style={styles.tdRight}>
                                     <span style={styles.valueWithIcon}>
-                                        <BnbIcon />
+                                        <EthIcon />
                                         {round.winnings.toFixed(4)}
                                     </span>
                                 </td>

@@ -78,7 +78,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "bnbSpent",
+        "name": "ethSpent",
         "type": "uint256"
       },
       {
@@ -301,7 +301,7 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "_vaultedBNB",
+        "name": "_vaultedETH",
         "type": "uint256"
       },
       {
@@ -508,7 +508,7 @@
   },
   {
     "inputs": [],
-    "name": "vaultedBNB",
+    "name": "vaultedETH",
     "outputs": [
       {
         "internalType": "uint256",

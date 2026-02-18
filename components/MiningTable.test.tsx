@@ -42,7 +42,7 @@ describe('MiningTable', () => {
         totalDeployed: '1000000000000000000',
         vaultedAmount: '100000000000000000',
         totalWinnings: '890000000000000000',
-        motherlodeAmount: '0',
+        beanpotAmount: '0',
         settledAt: new Date(Date.now() - 3600000).toISOString(),
         endTime: new Date(Date.now() - 3610000).toISOString(),
         txHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
@@ -56,7 +56,7 @@ describe('MiningTable', () => {
         totalDeployed: '2000000000000000000',
         vaultedAmount: '200000000000000000',
         totalWinnings: '1780000000000000000',
-        motherlodeAmount: '500000000000000000000',
+        beanpotAmount: '500000000000000000000',
         settledAt: new Date(Date.now() - 7200000).toISOString(),
         endTime: new Date(Date.now() - 7210000).toISOString(),
         txHash: '0x1111111111111111111111111111111111111111111111111111111111111111',
@@ -183,11 +183,11 @@ describe('MiningTable', () => {
     const splitBadge = screen.getByText('Split')
     expect(splitBadge).toHaveStyle({
       display: 'inline-block',
-      background: '#1a1a1a',
+      background: 'rgba(255, 255, 255, 0.04)',
     })
   })
 
-  it('row links to BSCScan via txHash', async () => {
+  it('row links to BaseScan via txHash', async () => {
     mockApiFetch.mockResolvedValue(mockRoundsResponse)
     const windowOpenSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
 
@@ -203,7 +203,7 @@ describe('MiningTable', () => {
       fireEvent.click(firstRow)
 
       expect(windowOpenSpy).toHaveBeenCalledWith(
-        'https://bscscan.com/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
+        'https://basescan.org/tx/0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890',
         '_blank'
       )
     }
@@ -231,7 +231,7 @@ describe('MiningTable', () => {
     })
   })
 
-  it('displays motherlode amount when present', async () => {
+  it('displays beanpot amount when present', async () => {
     mockApiFetch.mockResolvedValue(mockRoundsResponse)
 
     render(<MiningTable />)
@@ -241,12 +241,12 @@ describe('MiningTable', () => {
     })
   })
 
-  it('displays dash for zero motherlode', async () => {
-    const responseWithZeroMotherlode = {
+  it('displays dash for zero beanpot', async () => {
+    const responseWithZeroBeanpot = {
       rounds: [
         {
           ...mockRoundsResponse.rounds[0],
-          motherlodeAmount: '0',
+          beanpotAmount: '0',
         },
       ],
       pagination: {
@@ -257,7 +257,7 @@ describe('MiningTable', () => {
       },
     }
 
-    mockApiFetch.mockResolvedValue(responseWithZeroMotherlode)
+    mockApiFetch.mockResolvedValue(responseWithZeroBeanpot)
 
     render(<MiningTable />)
 

@@ -30,8 +30,8 @@ const mockRoundResponse = {
   endTime: (Date.now() / 1000) + 60,
   totalDeployed: '1000000000000000000',
   totalDeployedFormatted: '1.0',
-  motherlodePool: '5000000000000000000',
-  motherlodePoolFormatted: '5.0',
+  beanpotPool: '5000000000000000000',
+  beanpotPoolFormatted: '5.0',
   settled: false,
   blocks: [
     { id: 0, deployed: '100000000000000000', deployedFormatted: '0.1', minerCount: 2 },
@@ -151,7 +151,7 @@ describe('MiningGrid', () => {
         expect(eventListener).toHaveBeenCalled()
         const detail = eventListener.mock.calls[0][0].detail
         expect(detail.roundId).toBe('1')
-        expect(detail.motherlodePoolFormatted).toBe('5.0')
+        expect(detail.beanpotPoolFormatted).toBe('5.0')
       })
 
       window.removeEventListener('roundData', eventListener as any)
@@ -751,15 +751,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '10000000000000000000',
             topMinerReward: '5000000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -789,15 +789,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '5000000000000000000',
             topMinerReward: '2000000000000000000',
-            motherlodeAmount: '1000000000000000000',
+            beanpotAmount: '1000000000000000000',
             isSplit: true,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -835,15 +835,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '1000000000000000000',
             topMinerReward: '500000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '6000000000000000000',
-            motherlodePoolFormatted: '6.0',
+            beanpotPool: '6000000000000000000',
+            beanpotPoolFormatted: '6.0',
           }
         } as RoundTransitionEvent)
       })
@@ -880,15 +880,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '2000000000000000000',
             topMinerReward: '1000000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -937,15 +937,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '1000000000000000000',
             topMinerReward: '500000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -983,8 +983,8 @@ describe('MiningGrid', () => {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -1108,15 +1108,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '1000000000000000000',
             topMinerReward: '500000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })
@@ -1162,15 +1162,15 @@ describe('MiningGrid', () => {
             topMiner: '0xwinner',
             totalWinnings: '1000000000000000000',
             topMinerReward: '500000000000000000',
-            motherlodeAmount: '0',
+            beanpotAmount: '0',
             isSplit: false,
           },
           newRound: {
             roundId: '2',
             startTime: Date.now() / 1000,
             endTime: (Date.now() / 1000) + 60,
-            motherlodePool: '5000000000000000000',
-            motherlodePoolFormatted: '5.0',
+            beanpotPool: '5000000000000000000',
+            beanpotPoolFormatted: '5.0',
           }
         } as RoundTransitionEvent)
       })

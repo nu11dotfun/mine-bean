@@ -7,7 +7,7 @@ import { useProfileResolver } from '@/lib/useProfileResolver'
 
 interface Miner {
     address: string
-    bnbRewardFormatted: string
+    ethRewardFormatted: string
     beanRewardFormatted: string
     deployedFormatted: string
 }
@@ -139,7 +139,7 @@ export default function MinersPanel() {
                                 <div style={styles.minerAmounts}>
                                     <span style={styles.bnbAmount}>
                                         <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public" alt="ETH" style={{width: 14, height: 14, marginRight: 4}} />
-                                        {parseFloat(miner.bnbRewardFormatted).toFixed(6)}
+                                        {parseFloat(miner.ethRewardFormatted).toFixed(6)}
                                     </span>
                                     {parseFloat(miner.beanRewardFormatted) > 0 && (
                                         <>

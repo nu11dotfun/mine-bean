@@ -2,7 +2,7 @@
 
 ## Overview
 
-Gamified mining protocol on BNB Chain. Users compete in 60-second rounds on a 5×5 grid of blocks, deploying BNB to earn BEANS tokens and BNB rewards. Built with Next.js 14 (App Router), React 18, TypeScript, and Wagmi/RainbowKit for wallet integration.
+Gamified mining protocol on Base. Users compete in 60-second rounds on a 5×5 grid of blocks, deploying ETH to earn BEANS tokens and ETH rewards. Built with Next.js 14 (App Router), React 18, TypeScript, and Wagmi/RainbowKit for wallet integration.
 
 ## Tech Stack
 
@@ -24,14 +24,14 @@ app/
   globals.css       — Global styles
 
 components/
-  Header.tsx          — Top nav with BNB/BEAN price feeds, wallet button
+  Header.tsx          — Top nav with ETH/BEAN price feeds, wallet button
   BottomNav.tsx       — Mobile bottom navigation
   LandingPage.tsx     — Landing/intro screen with CTA
   MiningGrid.tsx      — 5×5 interactive block grid
   SidebarControls.tsx — Desktop mining controls (manual/auto modes)
   MobileControls.tsx  — Mobile mining controls
-  ClaimRewards.tsx    — Rewards display + claim buttons (BNB, unrefined/refined BEAN)
-  MinersPanel.tsx     — Winning miners sliding panel (BNB + BEAN rewards per round)
+  ClaimRewards.tsx    — Rewards display + claim buttons (ETH, unroasted/roasted BEAN)
+  MinersPanel.tsx     — Winning miners sliding panel (ETH + BEAN rewards per round)
   MobileMiners.tsx    — Mobile miners panel
   MobileStatsBar.tsx  — Mobile stats bar
   GlobalStats.tsx     — Protocol metrics (supply, burned, revenue)
@@ -48,7 +48,7 @@ lib/
   SSEContext.tsx    — Centralized SSE provider (useSSE hook for subscribeGlobal/subscribeUser)
   contracts.ts      — Contract addresses, ABIs, and constants (MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS)
   providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, SSEProvider)
-  wagmi.ts          — Chain config (BSC mainnet + testnet)
+  wagmi.ts          — Chain config (Base mainnet + testnet)
   abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20, Staking)
 ```
 
@@ -74,37 +74,37 @@ npm run lint      # Linter
 | Contract    | Address                                      |
 |-------------|----------------------------------------------|
 | BEANS Token | `0x000Ae314E2A2172a039B26378814C252734f556A` |
-| Bean        | `0xBe4764ccE14B7BF478597AA00F5f6A5D42547925` |
-| GridMining  | `0x103182b4E9E530ff2e0c69b0CC2a43EE7bb262`   |
-| Treasury    | `0x0093DB20543d17F294F58432D08c4FA47C70dfe9` |
-| AutoMiner   | `0x89286f7B9aFc0249CbB67fA661a9eB1039fe75dB` |
-| Staking     | `0x3bf1F3dA47061eF07423750879FE9ccB2d484b95` |
-| BEAN/BNB LP | `0x7e58f160b5b77b8b24cd9900c09a3e730215ac47` |
+| Bean        | `0xDAB7B7B5f295F558dE32025873CA2F561c6512DE` |
+| GridMining  | `0xDC5E4327F8bCF1019bfBAEcf5f606db7Ecd44Ee3` |
+| Treasury    | `0x4A0BCc34287769f18DB27101cE41C8EF5a25fD43` |
+| AutoMiner   | `0x0C3cf6aA29B0e1cd5a05CB77448cC3A43BE4CAf2` |
+| Staking     | `0x4C95D7F61C8D259d1c0a9a4dA1D0d57D9388A0bB` |
+| BEAN/ETH LP | `0x3e9b01e1C30ea92Adc8B02C0BCf3f0DE509aCbD3` |
 
 **ABI source:** `lib/abis/GridMining.json` is extracted from Hardhat artifacts (`hardhat/artifacts/contracts/GridMining.sol/GridMining.json`). Includes `AlreadyDeployedThisRound` custom error, `ResetRequested` event, and `topMinerSeed`/`winnersDeployed` fields in `RoundSettled` event.
 
 ## Integration Status
 
 ### Connected to Backend + Smart Contract
-- **app/page.tsx** — Orchestrates deploy and claim flows. Uses wagmi `useWriteContract` to call `GridMining.deploy(uint8[] blockIds)` payable, `GridMining.claimBNB()`, and `GridMining.claimBEAN()`. On deploy tx success, dispatches `userDeployed` window event for optimistic block tracking. Passes `onDeploy`, `onClaimBNB`, `onClaimBEAN` callbacks to child components.
+- **app/page.tsx** — Orchestrates deploy and claim flows. Uses wagmi `useWriteContract` to call `GridMining.deploy(uint8[] blockIds)` payable, `GridMining.claimETH()`, and `GridMining.claimBEAN()`. On deploy tx success, dispatches `userDeployed` window event for optimistic block tracking. Passes `onDeploy`, `onClaimETH`, `onClaimBEAN` callbacks to child components.
 - **MiningGrid.tsx** — Fetches `GET /api/round/current?user=` on mount (with wallet address when connected), uses `useSSE()` to subscribe to global events (`deployed`, `roundSettled`, `gameStarted`) and user events (`autoMineExecuted`). Dispatches `roundData`, `roundDeployed`, and `roundSettled` window events. Tracks `userDeployedBlocks` (blocks user already deployed to this round) via `GET /api/user/:address/history?type=deploy&roundId=X` on load and optimistic `userDeployed` events. Deployed blocks are visually marked (green border + ✓) and unclickable. **One deploy per round:** `hasDeployedThisRound` boolean locks ALL grid blocks after the first deploy — set `true` on `userDeployed` event or when backend history shows existing deploys, reset to `false` in `resetForNewRound()`. The `selectAllBlocks` listener is also ignored when `hasDeployedThisRound` is true. **AutoMiner grid lock:** When in auto mode (`autoMode.enabled`), all grid cells are disabled to prevent manual selection.
-- **SidebarControls.tsx** — Receives round data (beanpot, timer, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Uses `useSSE()` to subscribe to user events (`autoMineExecuted`, `configDeactivated`, `stopped`) for AutoMiner real-time updates. Fetches BNB and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (perBlock >= MIN_DEPLOY_PER_BLOCK, blocks > 0, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. **Input is per-block amount** — total is calculated as `perBlock × selectedBlocks`.
+- **SidebarControls.tsx** — Receives round data (beanpot, timer, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Uses `useSSE()` to subscribe to user events (`autoMineExecuted`, `configDeactivated`, `stopped`) for AutoMiner real-time updates. Fetches ETH and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (perBlock >= MIN_DEPLOY_PER_BLOCK, blocks > 0, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. **Input is per-block amount** — total is calculated as `perBlock × selectedBlocks`.
 - **MobileControls.tsx** — Same as SidebarControls but mobile layout. Uses `useSSE()` for user event subscriptions. Phase-aware deploy button with same `canDeploy` logic. Tracks `userDeployed` via `roundData` and `roundDeployed` window events (matches `user` field against connected `userAddress` prop). Shows "✓ Deployed" when locked.
 - **MobileStatsBar.tsx** — Receives beanpot, timer, total deployed, and user deployed via `roundData`/`roundDeployed` window events.
-- **ClaimRewards.tsx** — Fetches `GET /api/user/:address/rewards` on mount. Re-fetches on `settlementComplete` window event (after 8s animation). Uses `useSSE()` to subscribe to `claimedBNB`/`claimedBEAN` events to refresh after on-chain claim. Shows BNB rewards, unrefined BEAN, refined BEAN separately. Conditionally rendered — hidden when all rewards are zero. Claim buttons call `GridMining.claimBNB()` and `GridMining.claimBEAN()` via wagmi `useWriteContract`.
-- **MinersPanel.tsx** — Sliding left panel showing winning miners from the last settled round. Listens to `roundSettled` window event to capture the settled roundId (stored in a ref), then on `settlementComplete` (after 8s animation) fetches `GET /api/round/:id/miners` to get computed BNB and BEAN rewards per winner. Uses a consume-once ref pattern: `settledRoundIdRef` is set by `roundSettled` and cleared after consumption by `settlementComplete`, so empty rounds (no `roundSettled` event) don't re-trigger old data. Panel auto-opens when winners data arrives; collapsed state shows a trophy icon tab on the left edge. If the round had no deployments (empty miners response), keeps showing the previous round's data without re-opening.
+- **ClaimRewards.tsx** — Fetches `GET /api/user/:address/rewards` on mount. Re-fetches on `settlementComplete` window event (after 8s animation). Uses `useSSE()` to subscribe to `claimedETH`/`claimedBEAN` events to refresh after on-chain claim. Shows ETH rewards, unroasted BEAN, roasted BEAN separately. Conditionally rendered — hidden when all rewards are zero. Claim buttons call `GridMining.claimETH()` and `GridMining.claimBEAN()` via wagmi `useWriteContract`.
+- **MinersPanel.tsx** — Sliding left panel showing winning miners from the last settled round. Listens to `roundSettled` window event to capture the settled roundId (stored in a ref), then on `settlementComplete` (after 8s animation) fetches `GET /api/round/:id/miners` to get computed ETH and BEAN rewards per winner. Uses a consume-once ref pattern: `settledRoundIdRef` is set by `roundSettled` and cleared after consumption by `settlementComplete`, so empty rounds (no `roundSettled` event) don't re-trigger old data. Panel auto-opens when winners data arrives; collapsed state shows a trophy icon tab on the left edge. If the round had no deployments (empty miners response), keeps showing the previous round's data without re-opening.
 - **app/page.tsx** — Also handles AutoMiner contract interactions via `handleAutoActivate` (calls `AutoMiner.setConfig` payable) and `handleAutoStop` (calls `AutoMiner.stop`). Dispatches `autoMinerActivated`/`autoMinerStopped` window events on success.
 - **SidebarControls.tsx / MobileControls.tsx** — Support both Manual and Auto mining modes. Auto mode: fetches `GET /api/automine/:address` on mount, uses `useSSE()` to subscribe to `autoMineExecuted`/`configDeactivated`/`stopped` events for real-time updates. When AutoMiner is active, hides Manual tab and shows active status (balance, strategy, rounds executed/total, per block/round). Configure view validates per-block amount against `MIN_DEPLOY_PER_BLOCK` accounting for `EXECUTOR_FEE_BPS` (0.5%). Calls `onAutoActivate`/`onAutoStop` props from page.tsx.
 - **MiningGrid.tsx** — Also uses `useSSE()` to subscribe to `autoMineExecuted` to highlight deployed blocks green. Additionally handles AutoMiner deployments in the global `deployed` SSE handler: when `isAutoMine === true` and user matches, fetches deployment history and decodes `blockMask` to mark deployed blocks.
-- **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where motherlode was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, BNB deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time. **Clickable rows:** Each row links to the fulfilment transaction on BSCScan (`txHash` field from API).
-- **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), BNB Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view. **Clickable rows:** Each row links to the buyback transaction on BSCScan (`txHash` field from API).
-- **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12`, `GET /api/leaderboard/stakers?limit=12`, and `GET /api/leaderboard/earners?limit=12` on mount in parallel. Three tabs: Miners (total BNB deployed), Stakers (total BEAN staked), Unrefined (unclaimed BEAN). Displays: Rank, Address (with profile picture if available), Value with icon (BNB or BEAN). **Clickable rows:** Each row links to the wallet address on BSCScan. Uses `useProfileResolver` to get both `profiles` map (for pfp) and `resolve` function (for username).
+- **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where beanpot was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, ETH deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time. **Clickable rows:** Each row links to the fulfilment transaction on BaseScan (`txHash` field from API).
+- **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), ETH Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view. **Clickable rows:** Each row links to the buyback transaction on BaseScan (`txHash` field from API).
+- **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12`, `GET /api/leaderboard/stakers?limit=12`, and `GET /api/leaderboard/earners?limit=12` on mount in parallel. Three tabs: Miners (total ETH deployed), Stakers (total BEAN staked), Unroasted (unclaimed BEAN). Displays: Rank, Address (with profile picture if available), Value with icon (ETH or BEAN). **Clickable rows:** Each row links to the wallet address on BaseScan. Uses `useProfileResolver` to get both `profiles` map (for pfp) and `resolve` function (for username).
 - **GlobalStats.tsx** — Fetches `GET /api/stats` and `GET /api/treasury/stats` on mount. Displays: Max Supply (hardcoded 3M), Circulating Supply (`totalMintedFormatted`), Burned (`totalBurnedFormatted`), Protocol Revenue (`totalVaultedFormatted`).
-- **app/stake/page.tsx** — Orchestrates staking contract interactions. Uses wagmi `useWriteContract` (2 instances) to handle the ERC20 approve→deposit chain: first `Bean.approve(Staking, amount)`, then `Staking.deposit(amount)` with optional `msg.value` for compound fee BNB. Chains transactions via `useWaitForTransactionReceipt` watching approval tx hash; on confirmation, fires deposit with stored `pendingApprovalAmount` and `pendingCompoundFee`. Also handles `Staking.withdraw(amount)`, `Staking.claimYield()`, and `Staking.compound()`. Reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`. Passes `onDeposit`, `onWithdraw`, `onClaimYield`, `onCompound` callbacks to StakePage component.
-- **StakePage.tsx** — Full staking interface connected to backend and smart contract. Fetches `GET /api/staking/stats` on mount for global stats (totalStaked, APR, TVL). Fetches `GET /api/staking/:address` when wallet connected for user stake info (balance, pendingRewards, compoundFeeReserve, canCompound). Uses `useSSE()` to subscribe to global `yieldDistributed` and user `stakeDeposited`/`stakeWithdrawn`/`yieldClaimed`/`yieldCompounded` events — all trigger data re-fetch. Summary section shows Total Deposits, APR, TVL. Deposit/withdraw section shows BEAN balance, input field, and auto-compound settings (toggle + BNB input, default 0.006). User position card (visible when staked > 0) shows total staked, pending rewards, "Claim" and "Claim & Deposit" buttons. Info icons ('i') on all metrics open tooltip dialogues on hover (desktop) or click (mobile). Includes APR Calculator modal using real APR from backend. **Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh on backend, SSE event handlers re-fetch immediately + again after 10s to catch cache updates.
+- **app/stake/page.tsx** — Orchestrates staking contract interactions. Uses wagmi `useWriteContract` (2 instances) to handle the ERC20 approve→deposit chain: first `Bean.approve(Staking, amount)`, then `Staking.deposit(amount)` with optional `msg.value` for compound fee ETH. Chains transactions via `useWaitForTransactionReceipt` watching approval tx hash; on confirmation, fires deposit with stored `pendingApprovalAmount` and `pendingCompoundFee`. Also handles `Staking.withdraw(amount)`, `Staking.claimYield()`, and `Staking.compound()`. Reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`. Passes `onDeposit`, `onWithdraw`, `onClaimYield`, `onCompound` callbacks to StakePage component.
+- **StakePage.tsx** — Full staking interface connected to backend and smart contract. Fetches `GET /api/staking/stats` on mount for global stats (totalStaked, APR, TVL). Fetches `GET /api/staking/:address` when wallet connected for user stake info (balance, pendingRewards, compoundFeeReserve, canCompound). Uses `useSSE()` to subscribe to global `yieldDistributed` and user `stakeDeposited`/`stakeWithdrawn`/`yieldClaimed`/`yieldCompounded` events — all trigger data re-fetch. Summary section shows Total Deposits, APR, TVL. Deposit/withdraw section shows BEAN balance, input field, and auto-compound settings (toggle + ETH input, default 0.006). User position card (visible when staked > 0) shows total staked, pending rewards, "Claim" and "Claim & Deposit" buttons. Info icons ('i') on all metrics open tooltip dialogues on hover (desktop) or click (mobile). Includes APR Calculator modal using real APR from backend. **Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh on backend, SSE event handlers re-fetch immediately + again after 10s to catch cache updates.
 
 ### Still Using Mock/Hardcoded Data
-- **Header.tsx** — Price feeds from Binance/DexScreener directly.
+- **Header.tsx** — Price feeds from DexScreener directly.
 - **MobileMiners.tsx** — Hardcoded miner list (not yet connected to `/api/round/:id/miners`).
 - **WalletButton.tsx** — Wallet connection functional, balance reads via wagmi.
 
@@ -138,7 +138,7 @@ Components communicate via `window.dispatchEvent` / `window.addEventListener`:
 
 | Event | Dispatched By | Consumed By | Payload |
 |-------|--------------|-------------|---------|
-| `roundData` | MiningGrid | SidebarControls, MobileControls, MobileStatsBar | Full round metadata: `{ roundId, startTime, endTime, motherlodePoolFormatted, totalDeployedFormatted, userDeployedFormatted, ... }` |
+| `roundData` | MiningGrid | SidebarControls, MobileControls, MobileStatsBar | Full round metadata: `{ roundId, startTime, endTime, beanpotPoolFormatted, totalDeployedFormatted, userDeployedFormatted, ... }` |
 | `roundDeployed` | MiningGrid | SidebarControls, MobileControls, MobileStatsBar | Live deployment update: `{ totalDeployed, totalDeployedFormatted, user, userDeployedFormatted }` |
 | `roundSettled` | MiningGrid | SidebarControls, MobileControls, MinersPanel | Settlement data: `{ roundId, winningBlock, topMiner, totalWinnings, ... }` |
 | `blocksChanged` | MiningGrid | SidebarControls, MobileControls | `{ blocks: number[], count: number }` |
@@ -151,14 +151,14 @@ Components communicate via `window.dispatchEvent` / `window.addEventListener`:
 The `GET /api/round/:id/miners` endpoint computes per-winner rewards entirely off-chain from MongoDB data:
 
 1. **Filter winners:** Query deployments for the round, filter by `blockMask & (1 << winningBlock) !== 0`
-2. **BNB rewards:** `(totalWinnings × userDeployed) / totalWinnersDeployed` — proportional for all rounds
+2. **ETH rewards:** `(totalWinnings × userDeployed) / totalWinnersDeployed` — proportional for all rounds
 3. **BEAN rewards (split, `isSplit=true`):** `(topMinerReward × userDeployed) / totalWinnersDeployed`
 4. **BEAN rewards (non-split, `isSplit=false`):** Weighted random replay:
    - `sample = topMinerSeed % winnersDeployed`
    - Replay deployments to winning block in `blockNumber + logIndex` order
    - Each adds `amountPerBlock` to cumulative; first to exceed `sample` is BEAN winner
    - Winner gets full `topMinerReward`; others get 0 BEAN
-5. **Motherlode:** `(motherlodeAmount × userDeployed) / totalWinnersDeployed` — added to all winners
+5. **Beanpot:** `(beanpotAmount × userDeployed) / totalWinnersDeployed` — added to all winners
 
 `topMinerSeed` and `winnersDeployed` are emitted in the `RoundSettled` contract event and stored in the Round model. Deployment ordering relies on `blockNumber` + `logIndex` fields stored in the Deployment model (populated from QuickNode stream filter).
 
@@ -176,10 +176,10 @@ The GridMining contract enforces one deploy per round per user — calling `depl
 
 ### AutoMiner Integration
 
-The AutoMiner contract uses a single payable `setConfig(strategyId, numRounds, numBlocks)` to deposit BNB and configure in one transaction, and `stop()` to deactivate and refund remaining BNB.
+The AutoMiner contract uses a single payable `setConfig(strategyId, numRounds, numBlocks)` to deposit ETH and configure in one transaction, and `stop()` to deactivate and refund remaining ETH.
 
 **Frontend constants in `lib/contracts.ts`:**
-- `MIN_DEPLOY_PER_BLOCK = 0.00001` — minimum BNB per block
+- `MIN_DEPLOY_PER_BLOCK = 0.00001` — minimum ETH per block
 - `EXECUTOR_FEE_BPS = 100` — 1% executor fee deducted from deposits
 
 **Fee-adjusted validation:** Frontend mirrors contract formula to validate per-block amount:
@@ -189,7 +189,7 @@ const effectiveAmountPerBlock = (deposit × 10000) / (numBlocks × numRounds × 
 
 **UI States:**
 1. **Manual mode** — Normal block selection and deploy flow
-2. **Auto Configure** — Input BNB deposit, strategy (All/Random), blocks (if random), rounds. Shows calculated per-block and per-round amounts.
+2. **Auto Configure** — Input ETH deposit, strategy (All/Random), blocks (if random), rounds. Shows calculated per-block and per-round amounts.
 3. **Auto Active** — When `autoMinerState.active === true`. Hides Manual tab, shows status: balance (refundable), strategy, rounds executed/total, per block. Stop button triggers refund.
 
 **Real-time updates via `useSSE()`:**
@@ -214,19 +214,19 @@ const effectiveAmountPerBlock = (deposit × 10000) / (numBlocks × numRounds × 
 
 ### Staking Integration
 
-The staking page (`/stake`) allows users to deposit BEAN tokens to earn yield from protocol buybacks. Connected to `Staking` contract (`0x3bf1F3dA47061eF07423750879FE9ccB2d484b95`) via wagmi.
+The staking page (`/stake`) allows users to deposit BEAN tokens to earn yield from protocol buybacks. Connected to `Staking` contract (`0x4C95D7F61C8D259d1c0a9a4dA1D0d57D9388A0bB`) via wagmi.
 
-**Two-token distinction:** BEANS (`0x000Ae3...`) is the mining rewards ERC20; Bean (`0xBe4764...`) is the stakeable BEAN token. The staking contract accepts Bean, not BEANS. Frontend reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`.
+**Two-token distinction:** BEANS (`0x000Ae3...`) is the mining rewards ERC20; Bean (`0xDAB7B7...`) is the stakeable BEAN token. The staking contract accepts Bean, not BEANS. Frontend reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`.
 
 **Deposit flow (approve→deposit chain):**
-1. User enters BEAN amount + optional auto-compound toggle (BNB for `compoundFeeReserve`)
+1. User enters BEAN amount + optional auto-compound toggle (ETH for `compoundFeeReserve`)
 2. `app/stake/page.tsx` calls `Bean.approve(Staking, amount)` via `writeContract` (hook 1)
 3. `useWaitForTransactionReceipt` watches approval tx hash
-4. On confirmation, `useEffect` fires `Staking.deposit(amount)` with `value: compoundFeeBnb` via `writeContract2` (hook 2)
+4. On confirmation, `useEffect` fires `Staking.deposit(amount)` with `value: compoundFeeEth` via `writeContract2` (hook 2)
 5. `pendingApprovalAmount` and `pendingCompoundFee` state cleared after deposit tx sent
 
 **Contract functions used:**
-- `deposit(uint256 amount)` payable — deposit BEAN, optional BNB `msg.value` goes to `compoundFeeReserve`
+- `deposit(uint256 amount)` payable — deposit BEAN, optional ETH `msg.value` goes to `compoundFeeReserve`
 - `withdraw(uint256 amount)` — withdraw staked BEAN
 - `claimYield()` — claim accumulated BEAN yield
 - `compound()` — claim yield and re-deposit (label: "Claim & Deposit")
@@ -243,7 +243,7 @@ The staking page (`/stake`) allows users to deposit BEAN tokens to earn yield fr
 
 **UI components:**
 1. **Summary section** — Total Deposits (BEAN), APR (%), TVL (USD) from `/api/staking/stats`
-2. **Deposit/Withdraw** — Tab switch, BEAN balance display, amount input, MAX button. Deposit tab shows auto-compound toggle (default off) with BNB input (default 0.006) when enabled
+2. **Deposit/Withdraw** — Tab switch, BEAN balance display, amount input, MAX button. Deposit tab shows auto-compound toggle (default off) with ETH input (default 0.006) when enabled
 3. **User Position** — Visible when `userStakeInfo.balance > 0`. Shows total staked, pending rewards (accent color), "Claim" and "Claim & Deposit" buttons
 4. **APR Calculator** — Modal with real APR from backend, calculates projected earnings
 5. **Info icons** — Hover (desktop) / click (mobile) tooltips explaining each metric
@@ -278,14 +278,14 @@ useEffect(() => {
 
 // Subscribe to user-specific events (claims, autominer)
 useEffect(() => {
-  const unsub = subscribeUser('claimedBNB', (data) => { ... })
+  const unsub = subscribeUser('claimedETH', (data) => { ... })
   return () => unsub()
 }, [subscribeUser])
 ```
 
 **Connection lifecycle:**
 - **Global connection** (`/api/events/rounds`) — Opens on app mount, never closes. Listens for: `gameStarted`, `deployed`, `roundSettled`, `roundTransition`, `yieldDistributed`
-- **User connection** (`/api/user/{address}/events`) — Opens when wallet connects, closes on disconnect. Listens for: `autoMineExecuted`, `configDeactivated`, `stopped`, `claimedBNB`, `claimedBEAN`, `checkpointed`, `stakeDeposited`, `stakeWithdrawn`, `yieldClaimed`, `yieldCompounded`
+- **User connection** (`/api/user/{address}/events`) — Opens when wallet connects, closes on disconnect. Listens for: `autoMineExecuted`, `configDeactivated`, `stopped`, `claimedETH`, `claimedBEAN`, `checkpointed`, `stakeDeposited`, `stakeWithdrawn`, `yieldClaimed`, `yieldCompounded`
 
 **Components using `useSSE()`:**
 | Component | Global Events | User Events |
@@ -293,7 +293,7 @@ useEffect(() => {
 | MiningGrid | `deployed`, `roundSettled`, `gameStarted` | `autoMineExecuted` |
 | SidebarControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
 | MobileControls | — | `autoMineExecuted`, `configDeactivated`, `stopped` |
-| ClaimRewards | — | `claimedBNB`, `claimedBEAN` |
+| ClaimRewards | — | `claimedETH`, `claimedBEAN` |
 | StakePage | `yieldDistributed` | `stakeDeposited`, `stakeWithdrawn`, `yieldClaimed`, `yieldCompounded` |
 
 ### Global Page (`/global`)
@@ -325,7 +325,7 @@ if (!mounted) {
 
 **MiningTable Data Flow:**
 1. Fetches `GET /api/rounds?page=1&limit=12&settled=true` on mount
-2. For "Beanpot" tab, adds `&beanpot=true` to filter rounds where `motherlodeAmount > 0`
+2. For "Beanpot" tab, adds `&beanpot=true` to filter rounds where `beanpotAmount > 0`
 3. Transforms API response using `formatWei()` for amounts and `getRelativeTime()` for timestamps
 4. Server-side pagination via `page` query param
 
@@ -339,7 +339,7 @@ if (!mounted) {
 | Deployed | `totalDeployed` | `parseFloat(wei) / 1e18` |
 | Vaulted | `vaultedAmount` | `parseFloat(wei) / 1e18` |
 | Winnings | `totalWinnings` | `parseFloat(wei) / 1e18` |
-| Beanpot | `motherlodeAmount` | Format if > 0, else dash |
+| Beanpot | `beanpotAmount` | Format if > 0, else dash |
 | Time | `settledAt` or `endTime` | Relative time string |
 
 **RevenueTable Data Flow:**
@@ -351,7 +351,7 @@ if (!mounted) {
 | Column | API Field | Transform |
 |--------|-----------|-----------|
 | Time | `timestamp` | `getRelativeTime()` → relative time string |
-| Spent | `bnbSpentFormatted` | `parseFloat()` → BNB amount |
+| Spent | `ethSpentFormatted` | `parseFloat()` → ETH amount |
 | Burned | `beanBurnedFormatted` | `parseFloat()` → BEAN amount |
 | Yield Generated | `beanToStakersFormatted` | `parseFloat()` → BEAN amount |
 
@@ -359,16 +359,16 @@ if (!mounted) {
 1. Fetches all three endpoints in parallel on mount:
    - `GET /api/leaderboard/miners?period=all&limit=12` for Miners tab
    - `GET /api/leaderboard/stakers?limit=12` for Stakers tab
-   - `GET /api/leaderboard/earners?limit=12` for Unrefined tab
+   - `GET /api/leaderboard/earners?limit=12` for Unroasted tab
 2. Transforms API responses to `LeaderboardEntry` format with rank, truncated address, and value
 3. Uses `useProfileResolver` hook to resolve addresses to usernames via batch profile lookup
 
 **LeaderboardTable Column Mapping:**
 | Tab | API Endpoint | Value Field | Icon |
 |-----|--------------|-------------|------|
-| Miners | `/api/leaderboard/miners` | `totalDeployedFormatted` | BNB |
+| Miners | `/api/leaderboard/miners` | `totalDeployedFormatted` | ETH |
 | Stakers | `/api/leaderboard/stakers` | `stakedBalanceFormatted` | BEAN |
-| Unrefined | `/api/leaderboard/earners` | `unclaimedFormatted` | BEAN |
+| Unroasted | `/api/leaderboard/earners` | `unclaimedFormatted` | BEAN |
 
 **GlobalStats Data Flow:**
 1. Fetches both endpoints in parallel on mount:
@@ -400,9 +400,9 @@ Global protocol statistics.
   "totalSupplyFormatted": "string",
   "totalMinted": "string",
   "totalMintedFormatted": "string",
-  "motherlodePool": "string",
-  "motherlodePoolFormatted": "string",
-  "prices": { "bean": { "usd": "string" }, "bnb": { "usd": "string" } },
+  "beanpotPool": "string",
+  "beanpotPoolFormatted": "string",
+  "prices": { "bean": { "usd": "string" }, "eth": { "usd": "string" } },
   "fetchedAt": "ISO date"
 }
 ```
@@ -425,8 +425,8 @@ BEAN token price from DexScreener.
 Treasury and buyback stats.
 ```json
 {
-  "vaultedBNB": "string",
-  "vaultedBNBFormatted": "string",
+  "vaultedETH": "string",
+  "vaultedETHFormatted": "string",
   "totalBurned": "string",
   "totalBurnedFormatted": "string",
   "totalToStakers": "string",
@@ -443,8 +443,8 @@ Paginated list of buyback transactions. **Connected by RevenueTable.tsx**.
 {
   "buybacks": [
     {
-      "bnbSpent": "string",
-      "bnbSpentFormatted": "string",
+      "ethSpent": "string",
+      "ethSpentFormatted": "string",
       "beanReceived": "string",
       "beanReceivedFormatted": "string",
       "beanBurned": "string",
@@ -471,8 +471,8 @@ Current active round. Optional `user` query param adds user-specific deployment 
   "endTime": "number (unix)",
   "totalDeployed": "string",
   "totalDeployedFormatted": "string",
-  "motherlodePool": "string",
-  "motherlodePoolFormatted": "string",
+  "beanpotPool": "string",
+  "beanpotPoolFormatted": "string",
   "settled": false,
   "blocks": [
     { "id": 0, "deployed": "string", "deployedFormatted": "string", "minerCount": 0 }
@@ -483,10 +483,10 @@ Current active round. Optional `user` query param adds user-specific deployment 
 ```
 
 #### `GET /api/round/:id`
-Historical round by ID. Returns full round document including settlement data (`winningBlock`, `topMiner`, `topMinerReward`, `motherlodeAmount`, `isSplit`, `topMinerSeed`, `winnersDeployed`).
+Historical round by ID. Returns full round document including settlement data (`winningBlock`, `topMiner`, `topMinerReward`, `beanpotAmount`, `isSplit`, `topMinerSeed`, `winnersDeployed`).
 
 #### `GET /api/round/:id/miners`
-Computed winning miners for a settled round. Calculates BNB rewards (proportional), BEAN rewards (split: proportional, non-split: weighted random replay using `topMinerSeed`), and motherlode bonus. Requires deployments stored with `blockNumber` + `logIndex` for correct ordering. **Connected by MinersPanel.tsx**.
+Computed winning miners for a settled round. Calculates ETH rewards (proportional), BEAN rewards (split: proportional, non-split: weighted random replay using `topMinerSeed`), and beanpot bonus. Requires deployments stored with `blockNumber` + `logIndex` for correct ordering. **Connected by MinersPanel.tsx**.
 ```json
 {
   "roundId": 0,
@@ -494,7 +494,7 @@ Computed winning miners for a settled round. Calculates BNB rewards (proportiona
   "miners": [
     {
       "address": "string",
-      "bnbReward": "string", "bnbRewardFormatted": "string",
+      "ethReward": "string", "ethRewardFormatted": "string",
       "beanReward": "string", "beanRewardFormatted": "string",
       "deployed": "string", "deployedFormatted": "string"
     }
@@ -507,7 +507,7 @@ Paginated list of rounds. Query params:
 - `page` — Page number (1-indexed)
 - `limit` — Results per page
 - `settled=true` — Only return settled rounds
-- `beanpot=true` — Only return rounds where motherlode was won (`motherlodeAmount > 0`)
+- `beanpot=true` — Only return rounds where beanpot was won (`beanpotAmount > 0`)
 
 **Connected by MiningTable.tsx** for the Mining leaderboard on `/global` page.
 
@@ -523,7 +523,7 @@ Paginated list of rounds. Query params:
       "totalDeployed": "1000000000000000000",
       "vaultedAmount": "100000000000000000",
       "totalWinnings": "890000000000000000",
-      "motherlodeAmount": "0",
+      "beanpotAmount": "0",
       "settledAt": "2026-02-04T10:33:28.000Z",
       "endTime": "2026-02-04T10:33:22.000Z",
       "txHash": "0x1234...abcd"
@@ -555,14 +555,14 @@ User balances and game stats.
 ```
 
 #### `GET /api/user/:address/rewards`
-Pending claimable rewards. Calls `GridMining.getTotalPendingRewards(address)` which returns `(pendingBNB, pendingUnrefinedBEAN, pendingRefinedBEAN, uncheckpointedRound)`. Backend computes fee (10% of unrefined only) and net.
+Pending claimable rewards. Calls `GridMining.getTotalPendingRewards(address)` which returns `(pendingETH, pendingUnroastedBEAN, pendingRoastedBEAN, uncheckpointedRound)`. Backend computes fee (10% of unroasted only) and net.
 ```json
 {
-  "pendingBNB": "string",
-  "pendingBNBFormatted": "string",
+  "pendingETH": "string",
+  "pendingETHFormatted": "string",
   "pendingBEAN": {
-    "unrefined": "string", "unrefinedFormatted": "string",
-    "refined": "string", "refinedFormatted": "string",
+    "unroasted": "string", "unroastedFormatted": "string",
+    "roasted": "string", "roastedFormatted": "string",
     "gross": "string", "grossFormatted": "string",
     "fee": "string", "feeFormatted": "string",
     "net": "string", "netFormatted": "string"
@@ -585,7 +585,7 @@ User deployment and claim history.
 ### Leaderboards
 
 #### `GET /api/leaderboard/miners?period=24h|7d|30d|all&limit=20`
-Top miners by total BNB deployed. **Connected by LeaderboardTable.tsx** (Miners tab).
+Top miners by total ETH deployed. **Connected by LeaderboardTable.tsx** (Miners tab).
 ```json
 {
   "period": "all",
@@ -616,7 +616,7 @@ Top stakers by total BEAN staked. **Connected by LeaderboardTable.tsx** (Stakers
 ```
 
 #### `GET /api/leaderboard/earners?limit=20`
-Top users by unclaimed BEAN (unrefined). **Connected by LeaderboardTable.tsx** (Unrefined tab).
+Top users by unclaimed BEAN (unroasted). **Connected by LeaderboardTable.tsx** (Unroasted tab).
 ```json
 {
   "earners": [
@@ -684,16 +684,16 @@ User's AutoMiner configuration and state. Rate limited (5/min). **Connected by S
 
 #### `GET /api/events/rounds`
 Global real-time event stream. Events:
-- `gameStarted` — new round began (`{ roundId, startTime, endTime, motherlodePool, motherlodePoolFormatted }`)
-- `deployed` — a user deployed BNB to blocks (`{ roundId, user, totalAmount, isAutoMine, totalDeployed, totalDeployedFormatted, userDeployed, userDeployedFormatted, blocks[] }`) — note: `userDeployed*` fields are for the deploying user, not the receiving client
-- `roundSettled` — round completed with winner (`{ roundId, winningBlock, topMiner, totalWinnings, topMinerReward, motherlodeAmount, isSplit }`)
+- `gameStarted` — new round began (`{ roundId, startTime, endTime, beanpotPool, beanpotPoolFormatted }`)
+- `deployed` — a user deployed ETH to blocks (`{ roundId, user, totalAmount, isAutoMine, totalDeployed, totalDeployedFormatted, userDeployed, userDeployedFormatted, blocks[] }`) — note: `userDeployed*` fields are for the deploying user, not the receiving client
+- `roundSettled` — round completed with winner (`{ roundId, winningBlock, topMiner, totalWinnings, topMinerReward, beanpotAmount, isSplit }`)
 - `roundTransition` — round transition event
 - `yieldDistributed` — staking yield distributed from buyback (`{ amount, amountFormatted, timestamp }`)
 - `heartbeat` — keep-alive every 30s
 
 #### `GET /api/user/:address/events`
 User-specific event stream. **Connected by ClaimRewards.tsx, SidebarControls.tsx, MobileControls.tsx, MiningGrid.tsx, and StakePage.tsx**.
-- `claimedBNB` — user claimed BNB rewards (`{ amount, txHash, timestamp }`)
+- `claimedETH` — user claimed ETH rewards (`{ amount, txHash, timestamp }`)
 - `claimedBEAN` — user claimed BEAN rewards (`{ gross, fee, net, txHash, timestamp }`)
 - `checkpointed` — reward checkpoint processed
 - `autoMineExecuted` — AutoMiner deployed on user's behalf (`{ roundId, blocks[], totalDeployed, fee, roundsExecuted }`)

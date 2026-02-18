@@ -122,7 +122,7 @@ describe('SidebarControls', () => {
         detail: {
           roundId: '1',
           endTime: Date.now() / 1000 + 60,
-          motherlodePoolFormatted: '100',
+          beanpotPoolFormatted: '100',
           totalDeployedFormatted: '0',
           userDeployedFormatted: '0',
         },
@@ -398,7 +398,7 @@ describe('SidebarControls', () => {
     )
 
     const expectedTotal = perBlock * blockCount
-    expect(screen.getByText(`${expectedTotal.toFixed(5)} BNB`)).toBeInTheDocument()
+    expect(screen.getByText(`Ξ ${expectedTotal.toFixed(5)}`)).toBeInTheDocument()
   })
 
   it('roundData window event updates timer, beanpot, totalDeployed, userDeployed', () => {
@@ -411,7 +411,7 @@ describe('SidebarControls', () => {
       />
     )
 
-    const motherlodePool = 123.5
+    const beanpotPool = 123.5
     const totalDeployed = 45.67
     const userDeployed = 1.23
 
@@ -421,14 +421,14 @@ describe('SidebarControls', () => {
         detail: {
           roundId: '42',
           endTime: Date.now() / 1000 + 60,
-          motherlodePoolFormatted: String(motherlodePool),
+          beanpotPoolFormatted: String(beanpotPool),
           totalDeployedFormatted: String(totalDeployed),
           userDeployedFormatted: String(userDeployed),
         },
       })
     )
 
-    expect(screen.getByText(motherlodePool.toFixed(1))).toBeInTheDocument()
+    expect(screen.getByText(beanpotPool.toFixed(1))).toBeInTheDocument()
     expect(screen.getByText(totalDeployed.toFixed(5))).toBeInTheDocument()
     expect(screen.getByText(userDeployed.toFixed(5))).toBeInTheDocument()
   })
@@ -535,8 +535,8 @@ describe('SidebarControls', () => {
     const input = screen.getByDisplayValue('0')
     fireEvent.change(input, { target: { value: '0.01' } })
 
-    // Initial state - should show 0.00000 BNB total
-    expect(screen.getByText('0.00000 BNB')).toBeInTheDocument()
+    // Initial state - should show Ξ 0.00000 total
+    expect(screen.getByText('Ξ 0.00000')).toBeInTheDocument()
 
     // Simulate block selection
     fireEvent(
@@ -547,7 +547,7 @@ describe('SidebarControls', () => {
     )
 
     // Should update total to 0.01 × 3 = 0.03
-    expect(screen.getByText('0.03000 BNB')).toBeInTheDocument()
+    expect(screen.getByText('Ξ 0.03000')).toBeInTheDocument()
   })
 
   it('shows Connect Wallet button when not connected', () => {
@@ -892,7 +892,7 @@ describe('SidebarControls', () => {
     // Total blocks = 25 × 10 = 250
     // Deposit = 0.001 × 250 × (10000 + 100) / 10000 = 0.2525
     const expectedTotal = (0.001 * 250 * 10100) / 10000
-    expect(screen.getByText(`${expectedTotal.toFixed(5)} BNB`)).toBeInTheDocument()
+    expect(screen.getByText(`Ξ ${expectedTotal.toFixed(5)}`)).toBeInTheDocument()
   })
 
   it('Stop AutoMiner button calls onAutoStop', async () => {
@@ -968,7 +968,7 @@ describe('SidebarControls', () => {
 
     // Verify callback was called with correct parameters
     // strategyId = 1 (All), numRounds = 5, numBlocks = 25
-    // depositAmount = 0.001 × 25 × 5 × 10100 / 10000 = 0.126125 BNB in wei
+    // depositAmount = 0.001 × 25 × 5 × 10100 / 10000 = 0.126125 ETH in wei
     expect(mockOnAutoActivate).toHaveBeenCalledWith(
       1, // strategyId (All)
       5, // numRounds

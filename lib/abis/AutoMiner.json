@@ -57,6 +57,11 @@
   },
   {
     "inputs": [],
+    "name": "InsufficientGas",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidBlockCount",
     "type": "error"
   },
@@ -73,6 +78,11 @@
   {
     "inputs": [],
     "name": "InvalidFixedBlocks",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "InvalidGasLimits",
     "type": "error"
   },
   {
@@ -170,6 +180,37 @@
       }
     ],
     "name": "BatchExecuted",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint256",
+        "name": "stoppedAtIndex",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "total",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "successful",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "failed",
+        "type": "uint256"
+      }
+    ],
+    "name": "BatchStopped",
     "type": "event"
   },
   {
@@ -988,6 +1029,32 @@
   },
   {
     "inputs": [],
+    "name": "minGasForBatch",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "minGasReserve",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "owner",
     "outputs": [
       {
@@ -1051,6 +1118,24 @@
       }
     ],
     "name": "setExecutorFeeBps",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_minForBatch",
+        "type": "uint256"
+      },
+      {
+        "internalType": "uint256",
+        "name": "_minReserve",
+        "type": "uint256"
+      }
+    ],
+    "name": "setGasLimits",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"

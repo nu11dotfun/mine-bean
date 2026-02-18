@@ -18,13 +18,13 @@ export interface UserStakeInfo {
 }
 
 export interface RewardsData {
-    pendingBNB: string
-    pendingBNBFormatted: string
+    pendingETH: string
+    pendingETHFormatted: string
     pendingBEAN: {
-        unrefined: string
-        unrefinedFormatted: string
-        refined: string
-        refinedFormatted: string
+        unroasted: string
+        unroastedFormatted: string
+        roasted: string
+        roastedFormatted: string
         gross: string
         grossFormatted: string
         fee: string
@@ -241,7 +241,7 @@ export function UserDataProvider({
             })
         })
 
-        // claimedBEAN: mining rewards claimed — refined and unrefined go to 0
+        // claimedBEAN: mining rewards claimed — roasted and unroasted go to 0
         const unsub5 = subscribeUser('claimedBEAN', () => {
             setRewards(prev => {
                 if (!prev) return prev
@@ -249,10 +249,10 @@ export function UserDataProvider({
                     ...prev,
                     pendingBEAN: {
                         ...prev.pendingBEAN,
-                        unrefined: '0',
-                        unrefinedFormatted: '0',
-                        refined: '0',
-                        refinedFormatted: '0',
+                        unroasted: '0',
+                        unroastedFormatted: '0',
+                        roasted: '0',
+                        roastedFormatted: '0',
                         gross: '0',
                         grossFormatted: '0',
                         fee: '0',
@@ -266,11 +266,11 @@ export function UserDataProvider({
             })
         })
 
-        // claimedBNB: BNB rewards cleared
-        const unsub6 = subscribeUser('claimedBNB', () => {
+        // claimedETH: ETH rewards cleared
+        const unsub6 = subscribeUser('claimedETH', () => {
             setRewards(prev => {
                 if (!prev) return prev
-                const updated = { ...prev, pendingBNB: '0', pendingBNBFormatted: '0' }
+                const updated = { ...prev, pendingETH: '0', pendingETHFormatted: '0' }
                 if (addressRef.current) writeCache(REWARDS_KEY(addressRef.current), updated)
                 return updated
             })

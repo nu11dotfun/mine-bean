@@ -75,7 +75,7 @@ const transformStaker = (s: StakerFromAPI, i: number): LeaderboardEntry => ({
 })
 
 // SVG Icons
-const BnbIcon = () => (
+const EthIcon = () => (
     <img
         src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
         alt="ETH"
@@ -84,10 +84,10 @@ const BnbIcon = () => (
 )
 
 export default function LeaderboardTable() {
-    const [activeTab, setActiveTab] = useState<"miners" | "stakers" | "unrefined">("miners")
+    const [activeTab, setActiveTab] = useState<"miners" | "stakers" | "unroasted">("miners")
     const [miners, setMiners] = useState<LeaderboardEntry[]>([])
     const [stakers, setStakers] = useState<LeaderboardEntry[]>([])
-    const [unrefined, setUnrefined] = useState<LeaderboardEntry[]>([])
+    const [unroasted, setUnroasted] = useState<LeaderboardEntry[]>([])
     const [loading, setLoading] = useState(true)
     const [isMobile, setIsMobile] = useState(false)
     const [mounted, setMounted] = useState(false)
@@ -95,8 +95,8 @@ export default function LeaderboardTable() {
 
     // Resolve addresses to usernames via batch profile lookup
     const allAddresses = useMemo(() =>
-        [...miners, ...stakers, ...unrefined].map(e => e.rawAddress),
-        [miners, stakers, unrefined]
+        [...miners, ...stakers, ...unroasted].map(e => e.rawAddress),
+        [miners, stakers, unroasted]
     )
     const { profiles, resolve } = useProfileResolver(allAddresses)
 
@@ -124,7 +124,7 @@ export default function LeaderboardTable() {
                 ])
                 setMiners(minersRes.deployers.map(transformDeployer))
                 setStakers(stakersRes.stakers.map(transformStaker))
-                setUnrefined(earnersRes.earners.map(transformEarner))
+                setUnroasted(earnersRes.earners.map(transformEarner))
             } catch (err) {
                 console.error('Failed to fetch leaderboard:', err)
             } finally {
@@ -154,8 +154,8 @@ export default function LeaderboardTable() {
             ),
         },
         {
-            id: "unrefined",
-            label: "Unrefined",
+            id: "unroasted",
+            label: "Unroasted",
             icon: (
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-1 16H6c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1h12c.55 0 1 .45 1 1v12c0 .55-.45 1-1 1zm-4.44-6.19l-2.35 3.02-1.56-1.88c-.2-.25-.58-.24-.78.01l-1.74 2.23c-.26.33-.02.81.39.81h8.98c.41 0 .65-.47.4-.8l-2.55-3.39c-.19-.26-.59-.26-.79 0z" />
@@ -170,8 +170,8 @@ export default function LeaderboardTable() {
                 return "Top miners by total ETH deployed over their lifetime."
             case "stakers":
                 return "Top stakers by amount of BEANS staked."
-            case "unrefined":
-                return "Top miners by amount of unrefined BEANS."
+            case "unroasted":
+                return "Top miners by amount of unroasted BEANS."
         }
     }
 
@@ -181,8 +181,8 @@ export default function LeaderboardTable() {
                 return "Total Deployed"
             case "stakers":
                 return "Staked"
-            case "unrefined":
-                return "Unrefined"
+            case "unroasted":
+                return "Unroasted"
         }
     }
 
@@ -192,8 +192,8 @@ export default function LeaderboardTable() {
                 return miners
             case "stakers":
                 return stakers
-            case "unrefined":
-                return unrefined
+            case "unroasted":
+                return unroasted
         }
     }
 
@@ -203,7 +203,7 @@ export default function LeaderboardTable() {
                 return "eth"
             case "stakers":
                 return "beans"
-            case "unrefined":
+            case "unroasted":
                 return "beans"
         }
     }
@@ -286,7 +286,7 @@ export default function LeaderboardTable() {
                                     <td style={styles.tdRight}>
                                         {getValueIcon() === "eth" ? (
                                             <span style={styles.valueWithIcon}>
-                                                <BnbIcon />
+                                                <EthIcon />
                                                 {entry.value.toLocaleString(undefined, { maximumFractionDigits: 4 })}
                                             </span>
                                         ) : (

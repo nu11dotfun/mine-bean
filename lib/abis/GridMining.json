@@ -37,6 +37,11 @@
   },
   {
     "inputs": [],
+    "name": "EmergencyTooEarly",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "GameAlreadyStarted",
     "type": "error"
   },
@@ -52,6 +57,11 @@
   },
   {
     "inputs": [],
+    "name": "InvalidBeanpotAccumulation",
+    "type": "error"
+  },
+  {
+    "inputs": [],
     "name": "InvalidBlockId",
     "type": "error"
   },
@@ -63,6 +73,11 @@
   {
     "inputs": [],
     "name": "MaxSupplyReached",
+    "type": "error"
+  },
+  {
+    "inputs": [],
+    "name": "MinimumThresholdTooLow",
     "type": "error"
   },
   {
@@ -185,6 +200,25 @@
     "anonymous": false,
     "inputs": [
       {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldValue",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newValue",
+        "type": "uint256"
+      }
+    ],
+    "name": "BeanpotAccumulationUpdated",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
         "indexed": true,
         "internalType": "uint64",
         "name": "roundId",
@@ -199,7 +233,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "bnbReward",
+        "name": "ethReward",
         "type": "uint256"
       },
       {
@@ -224,7 +258,13 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "gross",
+        "name": "minedBean",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "roastedBean",
         "type": "uint256"
       },
       {
@@ -259,7 +299,7 @@
         "type": "uint256"
       }
     ],
-    "name": "ClaimedBNB",
+    "name": "ClaimedETH",
     "type": "event"
   },
   {
@@ -353,6 +393,31 @@
       }
     ],
     "name": "DeployedFor",
+    "type": "event"
+  },
+  {
+    "anonymous": false,
+    "inputs": [
+      {
+        "indexed": true,
+        "internalType": "uint64",
+        "name": "roundId",
+        "type": "uint64"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "oldRequestId",
+        "type": "uint256"
+      },
+      {
+        "indexed": false,
+        "internalType": "uint256",
+        "name": "newRequestId",
+        "type": "uint256"
+      }
+    ],
+    "name": "EmergencyVRFRequested",
     "type": "event"
   },
   {
@@ -473,7 +538,7 @@
       {
         "indexed": false,
         "internalType": "uint256",
-        "name": "motherlodeAmount",
+        "name": "beanpotAmount",
         "type": "uint256"
       },
       {
@@ -513,6 +578,19 @@
   },
   {
     "inputs": [],
+    "name": "BEANPOT_CHANCE",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "BPS_DENOMINATOR",
     "outputs": [
       {
@@ -539,7 +617,33 @@
   },
   {
     "inputs": [],
+    "name": "MAX_BEANPOT_ACCUMULATION",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "MAX_SUPPLY",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "MIN_BEANPOT_ACCUMULATION",
     "outputs": [
       {
         "internalType": "uint256",
@@ -565,32 +669,6 @@
   },
   {
     "inputs": [],
-    "name": "MOTHERLODE_ACCUMULATION",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "MOTHERLODE_CHANCE",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
     "name": "ONE_BEAN",
     "outputs": [
       {
@@ -604,7 +682,7 @@
   },
   {
     "inputs": [],
-    "name": "REFINING_FEE_BPS",
+    "name": "ROASTING_FEE_BPS",
     "outputs": [
       {
         "internalType": "uint256",
@@ -643,7 +721,7 @@
   },
   {
     "inputs": [],
-    "name": "accRefiningPerUnclaimed",
+    "name": "accRoastingPerUnclaimed",
     "outputs": [
       {
         "internalType": "uint256",
@@ -688,6 +766,32 @@
     "type": "function"
   },
   {
+    "inputs": [],
+    "name": "beanpotAccumulation",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "beanpotPool",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
     "inputs": [
       {
         "internalType": "uint64",
@@ -709,7 +813,7 @@
   },
   {
     "inputs": [],
-    "name": "claimBNB",
+    "name": "claimETH",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -756,6 +860,13 @@
     "name": "deployFor",
     "outputs": [],
     "stateMutability": "payable",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "emergencyResetVRF",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -893,7 +1004,7 @@
         "type": "address"
       }
     ],
-    "name": "getPendingBNB",
+    "name": "getPendingETH",
     "outputs": [
       {
         "internalType": "uint256",
@@ -951,7 +1062,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "motherlodeAmount",
+        "name": "beanpotAmount",
         "type": "uint256"
       },
       {
@@ -994,23 +1105,36 @@
     "outputs": [
       {
         "internalType": "uint256",
-        "name": "pendingBNB",
+        "name": "pendingETH",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "pendingUnrefinedBEAN",
+        "name": "pendingUnroastedBEAN",
         "type": "uint256"
       },
       {
         "internalType": "uint256",
-        "name": "pendingRefinedBEAN",
+        "name": "pendingRoastedBEAN",
         "type": "uint256"
       },
       {
         "internalType": "uint64",
         "name": "uncheckpointedRound",
         "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "maxMinersForSingleWinner",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1045,19 +1169,6 @@
         "internalType": "bool",
         "name": "checkpointed",
         "type": "bool"
-      }
-    ],
-    "stateMutability": "view",
-    "type": "function"
-  },
-  {
-    "inputs": [],
-    "name": "motherlodePool",
-    "outputs": [
-      {
-        "internalType": "uint256",
-        "name": "",
-        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1153,7 +1264,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "motherlodeAmount",
+        "name": "beanpotAmount",
         "type": "uint256"
       },
       {
@@ -1170,6 +1281,11 @@
         "internalType": "bool",
         "name": "settled",
         "type": "bool"
+      },
+      {
+        "internalType": "uint256",
+        "name": "minerCount",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",
@@ -1204,6 +1320,19 @@
   {
     "inputs": [
       {
+        "internalType": "uint256",
+        "name": "_accumulation",
+        "type": "uint256"
+      }
+    ],
+    "name": "setBeanpotAccumulation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
         "internalType": "address",
         "name": "_vrfCoordinator",
         "type": "address"
@@ -1223,6 +1352,19 @@
       }
     ],
     "name": "setFeeCollector",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
+        "name": "_max",
+        "type": "uint256"
+      }
+    ],
+    "name": "setMaxMinersForSingleWinner",
     "outputs": [],
     "stateMutability": "nonpayable",
     "type": "function"
@@ -1354,7 +1496,7 @@
         "type": "address"
       }
     ],
-    "name": "userRefinedBEAN",
+    "name": "userRoastedBEAN",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1373,7 +1515,7 @@
         "type": "address"
       }
     ],
-    "name": "userRefiningDebt",
+    "name": "userRoastingDebt",
     "outputs": [
       {
         "internalType": "uint256",
@@ -1411,7 +1553,7 @@
         "type": "address"
       }
     ],
-    "name": "userUnclaimedBNB",
+    "name": "userUnclaimedETH",
     "outputs": [
       {
         "internalType": "uint256",

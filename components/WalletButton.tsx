@@ -52,15 +52,15 @@ function WalletContent({
   const { rewards, stakeInfo } = useUserData()
 
   const stakedBalance = stakeInfo ? parseFloat(stakeInfo.balanceFormatted) : 0
-  const refinedBalance = rewards ? parseFloat(rewards.pendingBEAN.refinedFormatted) : 0
-  const unrefinedBalance = rewards ? parseFloat(rewards.pendingBEAN.unrefinedFormatted) : 0
+  const roastedBalance = rewards ? parseFloat(rewards.pendingBEAN.roastedFormatted) : 0
+  const unroastedBalance = rewards ? parseFloat(rewards.pendingBEAN.unroastedFormatted) : 0
 
   const portfolio = {
     wallet: beansBalance,
     staked: stakedBalance,
-    refined: refinedBalance,
-    unrefined: unrefinedBalance,
-    total: beansBalance + stakedBalance + refinedBalance + unrefinedBalance,
+    roasted: roastedBalance,
+    unroasted: unroastedBalance,
+    total: beansBalance + stakedBalance + roastedBalance + unroastedBalance,
   }
 
   if (!connected) {
@@ -169,16 +169,16 @@ function WalletContent({
             </div>
 
             <div style={styles.portfolioRow}>
-              <span style={styles.portfolioLabel}>Refined</span>
+              <span style={styles.portfolioLabel}>Roasted</span>
               <span style={styles.portfolioValue}>
-                <BeanLogo size={14} /> {portfolio.refined.toFixed(4)}
+                <BeanLogo size={14} /> {portfolio.roasted.toFixed(4)}
               </span>
             </div>
 
             <div style={styles.portfolioRow}>
-              <span style={styles.portfolioLabel}>Unrefined</span>
+              <span style={styles.portfolioLabel}>Unroasted</span>
               <span style={styles.portfolioValue}>
-                <BeanLogo size={14} /> {portfolio.unrefined.toFixed(4)}
+                <BeanLogo size={14} /> {portfolio.unroasted.toFixed(4)}
               </span>
             </div>
 

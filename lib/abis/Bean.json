@@ -606,7 +606,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "bnbAmount",
+        "name": "ethAmount",
         "type": "uint256"
       }
     ],

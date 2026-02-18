@@ -334,7 +334,7 @@ describe('Home Page', () => {
     expect(mockWriteContract).not.toHaveBeenCalled()
   })
 
-  it('calls writeContract with claimBNB when handleClaimBNB is called', async () => {
+  it('calls writeContract with claimETH when handleClaimETH is called', async () => {
     // Setup connected wallet
     mockUseAccount.mockReturnValue({
       address: '0x1234567890123456789012345678901234567890' as `0x${string}`,
@@ -355,13 +355,13 @@ describe('Home Page', () => {
       expect(screen.getByTestId('claim-rewards')).toBeInTheDocument()
     })
 
-    // Call handleClaimBNB via captured props
-    capturedClaimRewardsProps.onClaimBNB()
+    // Call handleClaimETH via captured props
+    capturedClaimRewardsProps.onClaimETH()
 
     expect(mockWriteContract).toHaveBeenCalledWith({
       address: CONTRACTS.GridMining.address,
       abi: CONTRACTS.GridMining.abi,
-      functionName: 'claimBNB',
+      functionName: 'claimETH',
       args: [],
     })
   })

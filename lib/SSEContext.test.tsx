@@ -189,12 +189,12 @@ describe('SSEContext', () => {
       })
 
       act(() => {
-        result.current.subscribeUser('claimedBNB', callback)
+        result.current.subscribeUser('claimedETH', callback)
       })
 
       const userSource = MockEventSource.instances[1]
       act(() => {
-        userSource.simulateEvent('claimedBNB', { amount: '1000' })
+        userSource.simulateEvent('claimedETH', { amount: '1000' })
       })
 
       expect(callback).toHaveBeenCalledWith({ amount: '1000' })
@@ -209,7 +209,7 @@ describe('SSEContext', () => {
 
       let unsub: () => void
       act(() => {
-        unsub = result.current.subscribeUser('claimedBNB', callback)
+        unsub = result.current.subscribeUser('claimedETH', callback)
       })
 
       act(() => {
@@ -218,7 +218,7 @@ describe('SSEContext', () => {
 
       const userSource = MockEventSource.instances[1]
       act(() => {
-        userSource.simulateEvent('claimedBNB', { amount: '2000' })
+        userSource.simulateEvent('claimedETH', { amount: '2000' })
       })
 
       expect(callback).not.toHaveBeenCalled()

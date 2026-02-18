@@ -92,8 +92,7 @@ export default function LandingPage({ onStartMining }: LandingPageProps) {
 
         <div style={styles.headerRight}>
           <div style={styles.priceTag}>
-            <BeanLogo size={18} />
-            <span style={styles.priceSymbol}>BEANS</span>
+            <span style={styles.priceSymbol}>BEAN</span>
             <span style={styles.priceValue}>${beansPrice}</span>
           </div>
 

@@ -64,12 +64,12 @@ export default function AboutPage({
             title: "Overview",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: paragraphGap }}>
-                    <p style={{ margin: 0 }}><strong>BEANS</strong> is a gamified mining protocol on Base where players compete in continuous 60-second rounds to earn ETH and BEANS tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
+                    <p style={{ margin: 0 }}><strong>BEAN</strong> is a gamified mining protocol on Base where players compete in continuous 60-second rounds to earn ETH and BEAN tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
                     <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy ETH onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is applied to the losers&apos; pool. The remaining ETH from losing blocks is redistributed to miners on the winning block — proportional to how much each player deployed.</p>
-                    <p style={{ margin: 0 }}>On top of ETH rewards, 1 BEAN is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEANS bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEANS.</p>
+                    <p style={{ margin: 0 }}>On top of ETH rewards, 1 BEAN is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEAN bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEAN.</p>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                        <strong>Why BEANS?</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEANS tokens reward patience. When you win BEANS, they start as &quot;unroasted&quot; — raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEANS. The longer you let your BEANS roast, the more roasted BEANS you accumulate from others claiming before you.</p>
+                        <strong>Why BEAN?</strong>
+                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEAN tokens reward patience. When you win BEAN, they start as &quot;unroasted&quot; — raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEAN. The longer you let your BEAN roast, the more roasted BEAN you accumulate from others claiming before you.</p>
                     </div>
                 </div>
             ),
@@ -78,7 +78,7 @@ export default function AboutPage({
             title: "Getting Started",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Getting started with BEANS takes less than a minute. All you need is a Web3 wallet with some ETH on the Base network.</p>
+                    <p style={{ margin: 0 }}>Getting started with BEAN takes less than a minute. All you need is a Web3 wallet with some ETH on the Base network.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>What You Need</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -97,13 +97,13 @@ export default function AboutPage({
                         <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
                             <li><strong>Wallet Address</strong> — Your connected address with a copy button for easy sharing.</li>
                             <li><strong>ETH Balance</strong> — Your current ETH balance on Base, used for deploying and gas fees.</li>
-                            <li><strong>Portfolio</strong> — Your BEANS token breakdown across three categories: Wallet (BEANS in your wallet), Staked (BEANS deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
+                            <li><strong>Portfolio</strong> — Your BEAN token breakdown across three categories: Wallet (BEAN in your wallet), Staked (BEAN deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
                         </ul>
                         <SectionImage alt="Account panel showing wallet and portfolio" placeholder="accountpanel.png" maxWidth="280px" />
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Live Price Feeds</h3>
-                        <p style={{ margin: 0 }}>The header displays real-time prices for both BEANS and ETH. The BEANS price is pulled from the on-chain BEAN/ETH liquidity pool on Uniswap, and the ETH price comes from the market. These update automatically so you always know the current value of your holdings.</p>
+                        <p style={{ margin: 0 }}>The header displays real-time prices for both BEAN and ETH. The BEAN price is pulled from the on-chain BEAN/ETH liquidity pool on Uniswap, and the ETH price comes from the market. These update automatically so you always know the current value of your holdings.</p>
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Quick Start</strong>
@@ -116,8 +116,8 @@ export default function AboutPage({
             title: "Mining",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEANS. Rounds run continuously — one every 60 seconds — on a 5×5 grid of 25 blocks. Each round is an independent game with its own set of deployments, a randomly selected winner, and immediate payouts.</p>
-                    <SectionImage alt="BEANS mining grid with active round" placeholder="beansmininggrid.png" maxWidth="520px" />
+                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEAN. Rounds run continuously — one every 60 seconds — on a 5×5 grid of 25 blocks. Each round is an independent game with its own set of deployments, a randomly selected winner, and immediate payouts.</p>
+                    <SectionImage alt="BEAN mining grid with active round" placeholder="beansmininggrid.png" maxWidth="520px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How a Round Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
@@ -148,11 +148,11 @@ export default function AboutPage({
             title: "The Beanpot",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing BEANS jackpot that can trigger on any round — a potentially massive bonus on top of normal rewards.</p>
+                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing BEAN jackpot that can trigger on any round — a potentially massive bonus on top of normal rewards.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li>Each round, <strong>0.2 BEANS</strong> is added to the Beanpot from the round&apos;s token emission.</li>
+                            <li>Each round, <strong>0.2 BEAN</strong> is added to the Beanpot from the round&apos;s token emission.</li>
                             <li>Every round has a <strong>1-in-625 chance</strong> (0.16%) of triggering the Beanpot.</li>
                             <li>If triggered, the entire accumulated Beanpot is distributed among the round&apos;s winners, proportional to their deployment on the winning block.</li>
                             <li>If not triggered, the pool carries over and continues growing — making the next potential payout even larger.</li>
@@ -161,14 +161,14 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Beanpot Math</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>At 0.2 BEANS per round with rounds every 60 seconds, the Beanpot grows by roughly <strong>288 BEANS per day</strong> (1,440 rounds × 0.2 BEANS). On average, it triggers once every ~625 rounds (~10.4 hours), creating an expected pool of <strong>~125 BEANS</strong> at the time of trigger.</p>
+                            <p style={{ margin: 0 }}>At 0.2 BEAN per round with rounds every 60 seconds, the Beanpot grows by roughly <strong>288 BEAN per day</strong> (1,440 rounds × 0.2 BEAN). On average, it triggers once every ~625 rounds (~10.4 hours), creating an expected pool of <strong>~125 BEAN</strong> at the time of trigger.</p>
                             <p style={{ margin: "12px 0 0 0" }}>The actual timing is random — it could trigger after just a few rounds or accumulate for thousands, creating a much larger jackpot. Consistent mining maximizes your chances of being present when it hits.</p>
                         </div>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEANS</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 ETH on the winning block, which has 0.1 ETH total. Your <strong>20% share</strong> earns you <strong>40 BEANS</strong> from the Beanpot — on top of your normal ETH rewards and BEAN reward for the round.</p>
+                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEAN</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 ETH on the winning block, which has 0.1 ETH total. Your <strong>20% share</strong> earns you <strong>40 BEAN</strong> from the Beanpot — on top of your normal ETH rewards and BEAN reward for the round.</p>
                         </div>
                     </div>
                 </div>
@@ -178,7 +178,7 @@ export default function AboutPage({
             title: "BEAN Rewards",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Every round, <strong>1 BEAN</strong> is minted and awarded to miners on the winning block. This is the primary way new BEANS enter circulation — there is no pre-mine or team allocation. Every BEANS in existence was earned through mining.</p>
+                    <p style={{ margin: 0 }}>Every round, <strong>1 BEAN</strong> is minted and awarded to miners on the winning block. This is the primary way new BEAN enter circulation — there is no pre-mine or team allocation. Every BEAN in existence was earned through mining.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How the Winner is Chosen</h3>
                         <p style={{ margin: 0 }}>Each round, it&apos;s a 50/50 chance whether the 1 BEAN goes to a single miner or is split among all miners on the winning block. If a single winner is chosen, the selection is weighted — miners who deployed more ETH to the winning block have a proportionally higher chance. All outcomes are determined on-chain using a verifiable random seed, ensuring fair and tamper-proof results.</p>
@@ -201,27 +201,27 @@ export default function AboutPage({
             title: "Roasting",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}><strong>Roasting</strong> is the mechanism that rewards patient miners. When you win BEANS from mining, they accumulate as &quot;unroasted&quot; tokens in the smart contract until you choose to claim them. The longer you wait, the more you earn from other miners claiming before you.</p>
+                    <p style={{ margin: 0 }}><strong>Roasting</strong> is the mechanism that rewards patient miners. When you win BEAN from mining, they accumulate as &quot;unroasted&quot; tokens in the smart contract until you choose to claim them. The longer you wait, the more you earn from other miners claiming before you.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Win BEANS</strong> — Your mining rewards accumulate as unroasted BEANS in the contract. You can see your unroasted balance in the Rewards panel.</li>
-                            <li><strong>Others claim</strong> — When another miner claims their BEANS, a 10% roasting fee is deducted from their unroasted balance. This fee is redistributed proportionally to all miners still holding unclaimed BEANS — including you.</li>
-                            <li><strong>Your roasted balance grows</strong> — Every time someone else claims, you receive a share of their roasting fee based on the size of your unclaimed balance relative to the total unclaimed pool. Your roasted BEANS are shown separately in the Rewards panel.</li>
-                            <li><strong>Claim when ready</strong> — When you claim, the 10% roasting fee is only applied to your unroasted BEANS — not to any roasted BEANS you&apos;ve accumulated from other miners&apos; fees. You receive your unroasted BEANS (minus 10%) plus all your roasted BEANS in full. The fee from your claim then flows to the remaining holders.</li>
+                            <li><strong>Win BEAN</strong> — Your mining rewards accumulate as unroasted BEAN in the contract. You can see your unroasted balance in the Rewards panel.</li>
+                            <li><strong>Others claim</strong> — When another miner claims their BEAN, a 10% roasting fee is deducted from their unroasted balance. This fee is redistributed proportionally to all miners still holding unclaimed BEAN — including you.</li>
+                            <li><strong>Your roasted balance grows</strong> — Every time someone else claims, you receive a share of their roasting fee based on the size of your unclaimed balance relative to the total unclaimed pool. Your roasted BEAN are shown separately in the Rewards panel.</li>
+                            <li><strong>Claim when ready</strong> — When you claim, the 10% roasting fee is only applied to your unroasted BEAN — not to any roasted BEAN you&apos;ve accumulated from other miners&apos; fees. You receive your unroasted BEAN (minus 10%) plus all your roasted BEAN in full. The fee from your claim then flows to the remaining holders.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>You have <strong>10 unroasted BEANS</strong> sitting unclaimed. The total unclaimed pool across all miners is <strong>1,000 BEANS</strong> — so you hold 1% of the pool.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>Another miner claims 100 BEANS and pays <strong>10 BEANS</strong> as the roasting fee. That 10 BEANS is redistributed to everyone holding unclaimed BEANS. Your 1% share earns you <strong>0.1 roasted BEANS</strong> — added to your balance automatically without you doing anything.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>Over time, as more miners claim, your roasted balance grows. If you hold for weeks while actively mining, the accumulated roasted BEANS can become a significant bonus on top of your mining rewards.</p>
+                            <p style={{ margin: 0 }}>You have <strong>10 unroasted BEAN</strong> sitting unclaimed. The total unclaimed pool across all miners is <strong>1,000 BEAN</strong> — so you hold 1% of the pool.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>Another miner claims 100 BEAN and pays <strong>10 BEAN</strong> as the roasting fee. That 10 BEAN is redistributed to everyone holding unclaimed BEAN. Your 1% share earns you <strong>0.1 roasted BEAN</strong> — added to your balance automatically without you doing anything.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>Over time, as more miners claim, your roasted balance grows. If you hold for weeks while actively mining, the accumulated roasted BEAN can become a significant bonus on top of your mining rewards.</p>
                         </div>
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>The Patience Game</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Roasting creates a strategic tension: claim early and pay the 10% fee, or hold longer and benefit from others claiming before you. There&apos;s no lock-up — you can claim anytime — but the incentive structure rewards patience. Some miners delay claiming for weeks or months to maximize their roasted balance. The tradeoff is that your BEANS sit in the contract rather than your wallet until you decide to claim.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Roasting creates a strategic tension: claim early and pay the 10% fee, or hold longer and benefit from others claiming before you. There&apos;s no lock-up — you can claim anytime — but the incentive structure rewards patience. Some miners delay claiming for weeks or months to maximize their roasted balance. The tradeoff is that your BEAN sit in the contract rather than your wallet until you decide to claim.</p>
                     </div>
                 </div>
             ),
@@ -265,7 +265,7 @@ export default function AboutPage({
             title: "Strategy",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>There&apos;s no single &quot;correct&quot; strategy in BEANS — it depends on your risk tolerance, bankroll, and goals. Here are the main approaches and how to think about them.</p>
+                    <p style={{ margin: 0 }}>There&apos;s no single &quot;correct&quot; strategy in BEAN — it depends on your risk tolerance, bankroll, and goals. Here are the main approaches and how to think about them.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Block Selection</h3>
                         <ul style={{ ...styles.list, gap: listGap }}>
@@ -278,14 +278,14 @@ export default function AboutPage({
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Maximizing Returns</h3>
                         <ul style={{ ...styles.list, gap: listGap }}>
                             <li><strong>Mine consistently</strong> — Sporadic mining means you&apos;ll miss Beanpot triggers and roasting fee accumulation. Mining 100 consecutive rounds is far more valuable than 100 rounds spread across weeks. Use AutoMiner to stay in every round.</li>
-                            <li><strong>Delay claiming BEANS</strong> — Your unclaimed balance earns roasting fees from every other miner who claims before you. The longer you hold, the more your roasted balance grows. Some miners hold for weeks or months.</li>
-                            <li><strong>Stake your claimed BEANS</strong> — Once you do claim, stake your BEANS to earn yield from protocol buybacks. This creates a full cycle: mine → hold (roast) → claim → stake → earn yield.</li>
+                            <li><strong>Delay claiming BEAN</strong> — Your unclaimed balance earns roasting fees from every other miner who claims before you. The longer you hold, the more your roasted balance grows. Some miners hold for weeks or months.</li>
+                            <li><strong>Stake your claimed BEAN</strong> — Once you do claim, stake your BEAN to earn yield from protocol buybacks. This creates a full cycle: mine → hold (roast) → claim → stake → earn yield.</li>
                             <li><strong>Watch the Beanpot</strong> — When the Beanpot is high, it&apos;s an especially good time to be mining. Every round it doesn&apos;t trigger makes the next potential payout larger.</li>
                         </ul>
                     </div>
                     <div style={{ ...styles.warningBox, ...(isMobile ? { padding: "14px", fontSize: "13px" } : {}) }}>
                         <strong>⚠️ Risk Disclaimer</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>BEANS mining involves financial risk. Only one block wins each round — the other 24 blocks lose their deployed ETH. If your selected blocks don&apos;t include the winner, your ETH for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>BEAN mining involves financial risk. Only one block wins each round — the other 24 blocks lose their deployed ETH. If your selected blocks don&apos;t include the winner, your ETH for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
                         <p style={{ margin: "12px 0 0 0" }}>Even covering all 25 blocks guarantees being on the winning block but still incurs admin fees each round. There are no guaranteed ways to profit. Never deploy more than you can afford to lose.</p>
                     </div>
                 </div>
@@ -295,14 +295,14 @@ export default function AboutPage({
             title: "Supply",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEANS has a fixed maximum supply with zero initial allocation. Every token in circulation was minted through mining — there is no pre-mine, team allocation, or investor distribution. This is a <strong>fair launch</strong> in the truest sense.</p>
+                    <p style={{ margin: 0 }}>BEAN has a fixed maximum supply with zero initial allocation. Every token in circulation was minted through mining — there is no pre-mine, team allocation, or investor distribution. This is a <strong>fair launch</strong> in the truest sense.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Token Details</h3>
                         <table style={styles.table}>
                             <tbody>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Token Name</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BEANS</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Token Name</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>BEAN</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Network</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>Base</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Max Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>3,000,000 BEANS</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Max Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>3,000,000 BEAN</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Initial Supply</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0 (fair launch)</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Emission</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>1 BEAN per round</td></tr>
                                 <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Round Duration</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>60 seconds</td></tr>
@@ -314,15 +314,15 @@ export default function AboutPage({
                         <p style={{ margin: 0 }}>Each round mints 1 BEAN, distributed as follows:</p>
                         <table style={styles.table}>
                             <tbody>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>BEAN Reward (winner)</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>~0.8 BEANS</td></tr>
-                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Beanpot contribution</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0.2 BEANS</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>BEAN Reward (winner)</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>~0.8 BEAN</td></tr>
+                                <tr><td style={isMobile ? styles.tableLabelMobile : styles.tableLabel}>Beanpot contribution</td><td style={isMobile ? styles.tableValueMobile : styles.tableValue}>0.2 BEAN</td></tr>
                             </tbody>
                         </table>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Supply Timeline</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>At 1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,440 BEANS per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more ETH is deployed, the burn rate scales up — creating the potential for net deflation where more BEANS are burned than minted.</p>
+                            <p style={{ margin: 0 }}>At 1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,440 BEAN per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more ETH is deployed, the burn rate scales up — creating the potential for net deflation where more BEAN are burned than minted.</p>
                         </div>
                     </div>
                 </div>
@@ -332,15 +332,15 @@ export default function AboutPage({
             title: "Protocol Revenue",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The protocol generates revenue through two fees: a <strong>1% admin fee</strong> on all deployed ETH.and a <strong>10% vault fee</strong> on the losers&apos; pool. This revenue actively supports the BEANS token through automated buybacks and burns.</p>
+                    <p style={{ margin: 0 }}>The protocol generates revenue through two fees: a <strong>1% admin fee</strong> on all deployed ETH.and a <strong>10% vault fee</strong> on the losers&apos; pool. This revenue actively supports the BEAN token through automated buybacks and burns.</p>
                     <SectionImage alt="Global page showing protocol revenue stats" placeholder="protocolrev.png" maxWidth="680px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Flow</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li><strong>Collection</strong> — A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is taken from the losers&apos; pool. This revenue is sent to the Treasury contract automatically each round.</li>
-                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated ETH to buy BEANS from the BEAN/ETH liquidity pool on Uniswap.</li>
-                            <li><strong>Burn</strong> — 90% of purchased BEANS are permanently burned — removed from circulation forever.</li>
-                            <li><strong>Staker Rewards</strong> — The remaining 10% of purchased BEANS are distributed to BEANS stakers as yield.</li>
+                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated ETH to buy BEAN from the BEAN/ETH liquidity pool on Uniswap.</li>
+                            <li><strong>Burn</strong> — 90% of purchased BEAN are permanently burned — removed from circulation forever.</li>
+                            <li><strong>Staker Rewards</strong> — The remaining 10% of purchased BEAN are distributed to BEAN stakers as yield.</li>
                         </ol>
                     </div>
                     <div>
@@ -355,7 +355,7 @@ export default function AboutPage({
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Transparency</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much ETH was spent, how much BEANS was burned, and how much yield was generated for stakers — all verifiable on BaseScan.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much ETH was spent, how much BEAN was burned, and how much yield was generated for stakers — all verifiable on BaseScan.</p>
                     </div>
                 </div>
             ),
@@ -364,21 +364,21 @@ export default function AboutPage({
             title: "Burn Mechanism",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEANS is designed to be <strong>deflationary</strong>. While new tokens are minted through mining (~1 per round), the burn mechanism works to offset and eventually exceed emission — creating an increasingly scarce token over time.</p>
+                    <p style={{ margin: 0 }}>BEAN is designed to be <strong>deflationary</strong>. While new tokens are minted through mining (~1 per round), the burn mechanism works to offset and eventually exceed emission — creating an increasingly scarce token over time.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Burns Work</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li>The Treasury collects protocol revenue from admin fees and vault fees each round.</li>
-                            <li>This ETH is used to buy BEANS from the on-chain BEAN/ETH liquidity pool.</li>
-                            <li>90% of purchased BEANS are sent to the burn address — permanently removed from circulation.</li>
+                            <li>This ETH is used to buy BEAN from the on-chain BEAN/ETH liquidity pool.</li>
+                            <li>90% of purchased BEAN are sent to the burn address — permanently removed from circulation.</li>
                             <li>The remaining 10% is distributed to stakers.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Deflationary Dynamics</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>The more ETH deployed across rounds, the more revenue the protocol generates, and the more BEANS are burned. This creates a positive feedback loop: increased mining activity → more vault fees collected → more buybacks → more tokens burned → increased scarcity.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>At high enough mining volumes, the burn rate can exceed the emission rate of 1,440 BEANS per day — making the circulating supply actively shrink. Current burn totals and buyback history are visible on the Global stats page.</p>
+                            <p style={{ margin: 0 }}>The more ETH deployed across rounds, the more revenue the protocol generates, and the more BEAN are burned. This creates a positive feedback loop: increased mining activity → more vault fees collected → more buybacks → more tokens burned → increased scarcity.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>At high enough mining volumes, the burn rate can exceed the emission rate of 1,440 BEAN per day — making the circulating supply actively shrink. Current burn totals and buyback history are visible on the Global stats page.</p>
                         </div>
                     </div>
                 </div>
@@ -388,37 +388,37 @@ export default function AboutPage({
             title: "Staking",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Stake your BEANS tokens to earn a share of protocol revenue. Stakers receive 10% of all BEANS purchased through Treasury buybacks as yield, distributed proportionally based on stake size.</p>
+                    <p style={{ margin: 0 }}>Stake your BEAN tokens to earn a share of protocol revenue. Stakers receive 10% of all BEAN purchased through Treasury buybacks as yield, distributed proportionally based on stake size.</p>
                     <SectionImage alt="Staking page interface" placeholder="stake.png" maxWidth="440px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Staking Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Deposit BEANS</strong> — Stake your BEANS tokens into the staking contract. Your staked balance earns yield immediately.</li>
-                            <li><strong>Earn yield</strong> — Each time the Treasury executes a buyback, 10% of the purchased BEANS is distributed to stakers proportional to their stake. If you hold 5% of all staked BEANS, you receive 5% of the yield.</li>
+                            <li><strong>Deposit BEAN</strong> — Stake your BEAN tokens into the staking contract. Your staked balance earns yield immediately.</li>
+                            <li><strong>Earn yield</strong> — Each time the Treasury executes a buyback, 10% of the purchased BEAN is distributed to stakers proportional to their stake. If you hold 5% of all staked BEAN, you receive 5% of the yield.</li>
                             <li><strong>Claim rewards</strong> — Accumulated staking rewards can be claimed at any time. They don&apos;t compound automatically — claimed rewards go to your wallet.</li>
-                            <li><strong>Withdraw</strong> — Unstake your BEANS whenever you want. There is no lock-up period, no cooldown, no penalty.</li>
+                            <li><strong>Withdraw</strong> — Unstake your BEAN whenever you want. There is no lock-up period, no cooldown, no penalty.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Staking Summary</h3>
                         <p style={{ margin: 0 }}>The Stake page displays key metrics so you can evaluate staking at a glance:</p>
                         <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
-                            <li><strong>Total Deposits</strong> — The total amount of BEANS staked across all stakers.</li>
+                            <li><strong>Total Deposits</strong> — The total amount of BEAN staked across all stakers.</li>
                             <li><strong>APR</strong> — The current annualized percentage return based on recent buyback activity and total staked amount.</li>
-                            <li><strong>TVL</strong> — Total Value Locked, showing the dollar value of all staked BEANS.</li>
+                            <li><strong>TVL</strong> — Total Value Locked, showing the dollar value of all staked BEAN.</li>
                         </ul>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>APR Calculator</h3>
-                        <p style={{ margin: 0 }}>The APR Calculator lets you estimate your potential staking returns before committing. Enter the amount of BEANS you plan to stake and it calculates your projected daily, weekly, monthly, and yearly yield based on the current APR and protocol activity. This helps you decide how much to stake and set realistic expectations for your earnings.</p>
+                        <p style={{ margin: 0 }}>The APR Calculator lets you estimate your potential staking returns before committing. Enter the amount of BEAN you plan to stake and it calculates your projected daily, weekly, monthly, and yearly yield based on the current APR and protocol activity. This helps you decide how much to stake and set realistic expectations for your earnings.</p>
                         <SectionImage alt="APR Calculator" placeholder="apr.png" maxWidth="440px" />
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Staking vs Roasting</strong>
                         <p style={{ margin: "12px 0 0 0" }}>These are two separate reward streams that work together:</p>
-                        <p style={{ margin: "8px 0 0 0" }}><strong>Roasting</strong> — Passive rewards from holding unclaimed BEANS. Funded by the 10% roasting fee when other miners claim. Benefits miners who delay claiming.</p>
-                        <p style={{ margin: "8px 0 0 0" }}><strong>Staking</strong> — Active yield from depositing claimed BEANS into the staking contract. Funded by the Treasury buyback cycle (10% of vault fees → buyback → 10% to stakers).</p>
-                        <p style={{ margin: "8px 0 0 0" }}>The optimal flow: mine → hold unclaimed BEANS to accumulate roasting rewards → claim when ready → stake claimed BEANS → earn staking yield. Both streams reward long-term participation.</p>
+                        <p style={{ margin: "8px 0 0 0" }}><strong>Roasting</strong> — Passive rewards from holding unclaimed BEAN. Funded by the 10% roasting fee when other miners claim. Benefits miners who delay claiming.</p>
+                        <p style={{ margin: "8px 0 0 0" }}><strong>Staking</strong> — Active yield from depositing claimed BEAN into the staking contract. Funded by the Treasury buyback cycle (10% of vault fees → buyback → 10% to stakers).</p>
+                        <p style={{ margin: "8px 0 0 0" }}>The optimal flow: mine → hold unclaimed BEAN to accumulate roasting rewards → claim when ready → stake claimed BEAN → earn staking yield. Both streams reward long-term participation.</p>
                     </div>
                 </div>
             ),
@@ -428,8 +428,8 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <div style={styles.faqItem}>
-                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is BEANS?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>BEANS is a gamified mining protocol on Base. Players deploy ETH on a 5×5 grid in 60-second rounds, competing to land on the randomly selected winning block and earn ETH rewards plus BEANS tokens. It&apos;s a fair-launch protocol with zero pre-mine or team allocation.</p>
+                        <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is BEAN?</h4>
+                        <p style={{ margin: "12px 0 0 0" }}>BEAN is a gamified mining protocol on Base. Players deploy ETH on a 5×5 grid in 60-second rounds, competing to land on the randomly selected winning block and earn ETH rewards plus BEAN tokens. It&apos;s a fair-launch protocol with zero pre-mine or team allocation.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Can I lose my ETH?</h4>
@@ -445,11 +445,11 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the Beanpot?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A growing BEANS jackpot funded by 0.2 BEANS per round. Each round has a 1-in-625 chance of triggering it. On average it triggers roughly every 10 hours, but the timing is random — it could trigger much sooner or accumulate much larger.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A growing BEAN jackpot funded by 0.2 BEAN per round. Each round has a 1-in-625 chance of triggering it. On average it triggers roughly every 10 hours, but the timing is random — it could trigger much sooner or accumulate much larger.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is roasting?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>When you claim earned BEANS, a 10% roasting fee is deducted and redistributed to other miners still holding unclaimed BEANS. By delaying your claim, you accumulate &quot;roasted&quot; BEANS from other players&apos; fees. It&apos;s a patience mechanic — the longer you hold, the more you earn.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>When you claim earned BEAN, a 10% roasting fee is deducted and redistributed to other miners still holding unclaimed BEAN. By delaying your claim, you accumulate &quot;roasted&quot; BEAN from other players&apos; fees. It&apos;s a patience mechanic — the longer you hold, the more you earn.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What does the AutoMiner do?</h4>
@@ -457,11 +457,11 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Where does protocol revenue come from?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed ETH.each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEANS from the liquidity pool — 90% is burned permanently and 10% goes to stakers as yield.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed ETH.each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEAN from the liquidity pool — 90% is burned permanently and 10% goes to stakers as yield.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Is there a token pre-mine or team allocation?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>No. BEANS launched with zero initial supply. Every token in circulation was minted through mining rounds. The max supply is capped at 3,000,000 BEANS in the smart contract.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>No. BEAN launched with zero initial supply. Every token in circulation was minted through mining rounds. The max supply is capped at 3,000,000 BEAN in the smart contract.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How is the winning block selected?</h4>
@@ -525,7 +525,7 @@ export default function AboutPage({
         <div style={styles.container}>
             <aside style={styles.sidebar}>
                 <div style={styles.sidebarHeader}>
-                    <span style={styles.sidebarTitle}>BEANS Docs</span>
+                    <span style={styles.sidebarTitle}>BEAN Docs</span>
                 </div>
                 <nav style={styles.sidebarNav}>
                     {navigation.map((item) => (

@@ -494,7 +494,7 @@ export default function StakePage({
                         </div>
 
                         <div style={styles.calcInputRow}>
-                            <span style={styles.calcLabel}>BEAN to stake</span>
+                            <span style={styles.calcLabel}>Stake Amount</span>
                             <div style={styles.calcInputWrapper}>
                                 <BeanLogo size={18} />
                                 <input
@@ -502,7 +502,7 @@ export default function StakePage({
                                     style={styles.calcInput}
                                     value={calcAmount}
                                     onChange={(e) => setCalcAmount(e.target.value)}
-                                    placeholder="1000"
+                                    placeholder="0"
                                 />
                             </div>
                         </div>
@@ -1098,7 +1098,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        background: "#141420",
+        background: "rgba(15, 15, 30, 0.85)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
         border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "16px",
         padding: "24px",
@@ -1111,7 +1111,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        background: "#141420",
+        background: "rgba(15, 15, 30, 0.85)", backdropFilter: "blur(40px)", WebkitBackdropFilter: "blur(40px)",
         border: "1px solid rgba(255, 255, 255, 0.08)",
         borderRadius: "14px",
         padding: "20px",

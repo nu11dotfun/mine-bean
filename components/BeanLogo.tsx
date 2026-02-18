@@ -20,7 +20,7 @@ export function BeansTextLogo({ height = 24 }: { height?: number }) {
   return (
     <span style={{ display: 'flex', alignItems: 'center', fontWeight: 800, fontSize: height, letterSpacing: '-0.02em', fontFamily: "'Inter', -apple-system, sans-serif" }}>
       <span style={{ color: '#fff' }}>BE</span>
-      <span style={{ color: '#0052FF' }}>ANS</span>
+      <span style={{ color: '#0052FF' }}>AN</span>
       <span style={{ color: '#fff', marginLeft: '2px' }}>.</span>
     </span>
   )

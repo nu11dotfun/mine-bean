@@ -229,6 +229,12 @@ export default function SidebarControls({
             apiFetch<{ prices: { bean: { usd: string }, bnb: { usd: string } } }>('/api/stats')
                 .then((data) => {
                     setEthPrice(parseFloat(data.prices.bnb.usd) || 0)
+                    if (!data.prices.bnb.usd || parseFloat(data.prices.bnb.usd) === 0) {
+                        fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT")
+                            .then(r => r.json())
+                            .then(d => { if (d.price) setEthPrice(parseFloat(d.price)) })
+                            .catch(() => {})
+                    }
                     setBeansPrice(parseFloat(data.prices.bean.usd) || 0)
                 })
                 .catch((err) => console.error('Failed to fetch prices:', err))
@@ -491,7 +497,7 @@ export default function SidebarControls({
                                     All
                                 </button>
                                 <span style={styles.blockCount}>
-                                    {selectedBlockCount === 25 ? "x25" : "Random"}
+                                    {selectedBlockCount === 25 ? "x25" : "Select"}
                                 </span>
                             </div>
                         </div>
@@ -563,7 +569,7 @@ export default function SidebarControls({
                                     All
                                 </button>
                                 <span style={{ ...styles.blockCount, minWidth: "55px", textAlign: "right" }}>
-                                    {blockSelection === "all" ? "x25" : "Random"}
+                                    {blockSelection === "all" ? "x25" : "Select"}
                                 </span>
                             </div>
                         </div>
@@ -651,7 +657,7 @@ export default function SidebarControls({
                         <div style={styles.activeRow}>
                             <span style={styles.rowLabel}>Strategy</span>
                             <span style={styles.totalValue}>
-                                {autoMinerState.strategyId === 1 ? "All" : "Random"} x{autoMinerState.numBlocks}
+                                {autoMinerState.strategyId === 1 ? "All" : "Select"} x{autoMinerState.numBlocks}
                             </span>
                         </div>
 

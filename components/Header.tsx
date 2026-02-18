@@ -58,10 +58,7 @@ export default function Header({
     return () => clearInterval(interval)
   }, [])
 
-  const tabs = [
-    { id: 'about', label: 'About', href: '/about' },
-    { id: 'global', label: 'Global', href: '/global' },
-    { id: 'stake', label: 'Stake', href: '/stake' },
+  const tabs = [    { id: 'mine', label: 'Mine', href: '/' },    { id: 'stake', label: 'Stake', href: '/stake' },    { id: 'global', label: 'Global', href: '/global' },    { id: 'about', label: 'About', href: '/about' },
   ]
 
   if (isMobile) {
@@ -233,9 +230,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: "rgba(255, 255, 255, 0.04)",
     border: "1px solid rgba(255, 255, 255, 0.06)",
     borderRadius: "50px",
-    
-    
-    
   },
   pillLink: {
     padding: "8px 20px",

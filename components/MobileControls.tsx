@@ -334,7 +334,7 @@ export default function MobileControls({
                                     All
                                 </button>
                                 <span style={styles.blockCount}>
-                                    {selectedBlockCount === 25 ? "x25" : "Random"}
+                                    {selectedBlockCount === 25 ? "x25" : "Select"}
                                 </span>
                             </div>
                         </div>
@@ -402,7 +402,7 @@ export default function MobileControls({
                                     All
                                 </button>
                                 <span style={{ ...styles.blockCount, minWidth: "55px", textAlign: "right" }}>
-                                    {blockSelection === "all" ? "x25" : "Random"}
+                                    {blockSelection === "all" ? "x25" : "Select"}
                                 </span>
                             </div>
                         </div>
@@ -496,7 +496,7 @@ export default function MobileControls({
                         <div style={styles.activeRow}>
                             <span style={styles.rowLabel}>Strategy</span>
                             <span style={styles.totalValue}>
-                                {autoMinerState.strategyId === 1 ? "All" : "Random"} x{autoMinerState.numBlocks}
+                                {autoMinerState.strategyId === 1 ? "All" : "Select"} x{autoMinerState.numBlocks}
                             </span>
                         </div>
 

@@ -441,7 +441,7 @@ export default function MiningGrid({
                                 <>
                                     <div className="cell-header" style={styles.cellHeader}>
                                         <span className="cell-id" style={styles.cellId}>#{index + 1}</span>
-                                        {isDeployed ? (
+                                        {false && isDeployed ? (
                                             <span style={styles.deployedCheck}>✓</span>
                                         ) : cell.minerCount > 0 ? (
                                             <span style={styles.minerCount}>{cell.minerCount}</span>
@@ -527,9 +527,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "2px solid rgba(0, 82, 255, 0.7)", background: "rgba(0, 82, 255, 0.12)", boxShadow: "0 0 24px rgba(0, 82, 255, 0.25), inset 0 0 24px rgba(0, 82, 255, 0.08)",
     },
     cellDeployed: {
-        border: "2px solid #2d5a2d",
+        background: "rgba(34, 197, 94, 0.10)",
+        boxShadow: "0 0 24px rgba(34, 197, 94, 0.2), inset 0 0 24px rgba(34, 197, 94, 0.06)",
+        border: "2px solid rgba(34, 197, 94, 0.6)",
         cursor: "default",
-        opacity: 0.7,
+        transition: "all 0.3s ease",
+        
     },
     deployedCheck: {
         fontSize: "12px",

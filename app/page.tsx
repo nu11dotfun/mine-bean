@@ -96,14 +96,14 @@ export default function Home() {
     })
   }, [isConnected, writeContract])
 
-  if (!showMining) {
+  if (false) {
     return <LandingPage onStartMining={() => setShowMining(true)} />
   }
 
   if (isMobile) {
     return (
       <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: '80px' }}>
-        <Header currentPage="home" isMobile={true} />
+        <Header currentPage="mine" isMobile={true} />
         <div style={styles.mobileContainer}>
           <MobileStatsBar userAddress={address} />
           <MiningGrid userAddress={address} />
@@ -117,7 +117,7 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
-      <Header currentPage="home" />
+      <Header currentPage="mine" />
       <div style={styles.container}>
         <MinersPanel />
         <div style={styles.gridSection}>

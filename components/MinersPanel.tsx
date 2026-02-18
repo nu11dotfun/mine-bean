@@ -183,14 +183,14 @@ const styles: { [key: string]: React.CSSProperties } = {
         borderLeft: "none",
     },
 
-    // Expanded Panel
+    // Expanded Panel (solid bg)
     panel: {
         position: "fixed",
         left: 0,
         top: 0,
         bottom: 0,
         width: "360px",
-        background: "rgba(255, 255, 255, 0.02)",
+        background: "#0a0a0f",
         borderRight: "1px solid #222",
         display: "flex",
         flexDirection: "column",
@@ -298,7 +298,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         left: 0,
         right: 0,
         bottom: 0,
-        background: "rgba(0,0,0,0.5)",
+        background: "rgba(0,0,0,0.8)",
         zIndex: 100,
     },
 }

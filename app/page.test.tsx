@@ -1,5 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, @typescript-eslint/no-require-imports */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
+import React from 'react'
 import Home from './page'
 import { createMockSSE } from '@/test/mocks/sse'
 import { CONTRACTS } from '@/lib/contracts'
@@ -42,7 +44,6 @@ vi.mock('@rainbow-me/rainbowkit', () => ({
 // Mock Next.js
 vi.mock('next/link', () => ({
   default: ({ children, href, ...props }: any) => {
-    const React = require('react')
     return React.createElement('a', { href, ...props }, children)
   },
 }))
@@ -67,12 +68,12 @@ vi.mock('@/lib/UserDataContext', () => ({
 let capturedLandingPageProps: any = null
 let capturedMiningGridProps: any = null
 let capturedSidebarControlsProps: any = null
-let capturedMobileControlsProps: any = null
+let _capturedMobileControlsProps: any = null
 let capturedClaimRewardsProps: any = null
-let capturedHeaderProps: any = null
-let capturedMobileStatsBarProps: any = null
-let capturedBottomNavProps: any = null
-let capturedMinersPanelProps: any = null
+let _capturedHeaderProps: any = null
+let _capturedMobileStatsBarProps: any = null
+let _capturedBottomNavProps: any = null
+let _capturedMinersPanelProps: any = null
 
 vi.mock('@/components/LandingPage', () => ({
   default: (props: any) => {
@@ -97,7 +98,7 @@ vi.mock('@/components/SidebarControls', () => ({
 
 vi.mock('@/components/MobileControls', () => ({
   default: (props: any) => {
-    capturedMobileControlsProps = props
+    _capturedMobileControlsProps = props
     return <div data-testid="mobile-controls">Mobile Controls</div>
   },
 }))
@@ -111,28 +112,28 @@ vi.mock('@/components/ClaimRewards', () => ({
 
 vi.mock('@/components/Header', () => ({
   default: (props: any) => {
-    capturedHeaderProps = props
+    _capturedHeaderProps = props
     return <div data-testid="header">Header</div>
   },
 }))
 
 vi.mock('@/components/MobileStatsBar', () => ({
   default: (props: any) => {
-    capturedMobileStatsBarProps = props
+    _capturedMobileStatsBarProps = props
     return <div data-testid="mobile-stats-bar">Mobile Stats Bar</div>
   },
 }))
 
 vi.mock('@/components/BottomNav', () => ({
   default: (props: any) => {
-    capturedBottomNavProps = props
+    _capturedBottomNavProps = props
     return <div data-testid="bottom-nav">Bottom Nav</div>
   },
 }))
 
 vi.mock('@/components/MinersPanel', () => ({
   default: (props: any) => {
-    capturedMinersPanelProps = props
+    _capturedMinersPanelProps = props
     return <div data-testid="miners-panel">Miners Panel</div>
   },
 }))
@@ -144,12 +145,12 @@ describe('Home Page', () => {
     capturedLandingPageProps = null
     capturedMiningGridProps = null
     capturedSidebarControlsProps = null
-    capturedMobileControlsProps = null
+    _capturedMobileControlsProps = null
     capturedClaimRewardsProps = null
-    capturedHeaderProps = null
-    capturedMobileStatsBarProps = null
-    capturedBottomNavProps = null
-    capturedMinersPanelProps = null
+    _capturedHeaderProps = null
+    _capturedMobileStatsBarProps = null
+    _capturedBottomNavProps = null
+    _capturedMinersPanelProps = null
 
     // Default mock values
     mockUseAccount.mockReturnValue({

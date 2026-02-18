@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { describe, it, expect } from 'vitest'
 import { CONTRACTS, MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from './contracts'
 

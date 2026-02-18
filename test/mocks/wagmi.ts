@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { vi } from 'vitest'
 
 export const mockUseAccount = vi.fn(() => ({
@@ -50,13 +51,13 @@ export const mockUseSignMessage = vi.fn(() => ({
 
 export function setupWagmiMock() {
   vi.mock('wagmi', () => ({
-    useAccount: (...args: any[]) => mockUseAccount(...args),
-    useBalance: (...args: any[]) => mockUseBalance(...args),
-    useWriteContract: (...args: any[]) => mockUseWriteContract(...args),
-    useWaitForTransactionReceipt: (...args: any[]) => mockUseWaitForTransactionReceipt(...args),
-    useReadContract: (...args: any[]) => mockUseReadContract(...args),
-    useDisconnect: (...args: any[]) => mockUseDisconnect(...args),
-    useSignMessage: (...args: any[]) => mockUseSignMessage(...args),
+    useAccount: () => mockUseAccount(),
+    useBalance: () => mockUseBalance(),
+    useWriteContract: () => mockUseWriteContract(),
+    useWaitForTransactionReceipt: () => mockUseWaitForTransactionReceipt(),
+    useReadContract: () => mockUseReadContract(),
+    useDisconnect: () => mockUseDisconnect(),
+    useSignMessage: () => mockUseSignMessage(),
     WagmiProvider: ({ children }: any) => children,
   }))
 }

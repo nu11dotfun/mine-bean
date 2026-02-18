@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars */
 import { describe, it, expect, vi } from 'vitest'
 import { render, act } from '@testing-library/react'
 import { renderHook } from '@testing-library/react'

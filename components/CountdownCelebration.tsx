@@ -51,47 +51,23 @@ function playTick(num: number) {
 export default function CountdownCelebration() {
   const [count, setCount] = useState<number | null>(null)
   const endTimeRef = useRef(0)
-  const countdownActiveRef = useRef(false)
-  const tickIntervalRef = useRef<NodeJS.Timeout | null>(null)
-
-  const startCountdown = useCallback(() => {
-    if (countdownActiveRef.current) return
-    countdownActiveRef.current = true
-    setCount(5)
-    playTick(5)
-
-    let current = 5
-    tickIntervalRef.current = setInterval(() => {
-      current--
-      if (current > 0) {
-        setCount(current)
-        playTick(current)
-      } else {
-        if (tickIntervalRef.current) clearInterval(tickIntervalRef.current)
-        tickIntervalRef.current = null
-        setCount(null)
-        countdownActiveRef.current = false
-      }
-    }, 1000)
-  }, [])
+  const lastShownRef = useRef(0)
+  const tickTimersRef = useRef<NodeJS.Timeout[]>([])
 
   // Listen to roundData events to track endTime
   useEffect(() => {
     const handleRoundData = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (detail?.endTime) {
-        const newEndTime = typeof detail.endTime === 'number' ? detail.endTime : 0
-        endTimeRef.current = newEndTime
+        endTimeRef.current = typeof detail.endTime === 'number' ? detail.endTime : 0
       }
     }
 
-    // Reset on new round
     const handleRoundSettled = () => {
-      countdownActiveRef.current = false
-      if (tickIntervalRef.current) {
-        clearInterval(tickIntervalRef.current)
-        tickIntervalRef.current = null
-      }
+      // Clear everything on settlement
+      tickTimersRef.current.forEach(t => clearTimeout(t))
+      tickTimersRef.current = []
+      lastShownRef.current = 0
       setCount(null)
     }
 
@@ -103,23 +79,53 @@ export default function CountdownCelebration() {
     }
   }, [])
 
-  // Check every second if we're at 5 seconds remaining
+  // Schedule countdown ticks based on endTime
   useEffect(() => {
-    const checkTimer = setInterval(() => {
-      if (endTimeRef.current <= 0 || countdownActiveRef.current) return
-      const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
-      if (remaining === 5) {
-        startCountdown()
-      }
-    }, 200)
+    const scheduleCountdown = () => {
+      if (endTimeRef.current <= 0) return
 
-    return () => clearInterval(checkTimer)
-  }, [startCountdown])
+      const now = Date.now() / 1000
+      const remaining = endTimeRef.current - now
+
+      // Only schedule if we have 6+ seconds left (so we can schedule the "5" tick)
+      if (remaining <= 1 || remaining > 60) return
+
+      // Clear any existing scheduled ticks
+      tickTimersRef.current.forEach(t => clearTimeout(t))
+      tickTimersRef.current = []
+
+      // Schedule each tick at the exact moment when remaining = 5, 4, 3, 2, 1
+      for (let n = 5; n >= 1; n--) {
+        const delay = (remaining - n) * 1000
+        if (delay >= 0 && delay < 60000) {
+          const timer = setTimeout(() => {
+            if (lastShownRef.current !== n) {
+              lastShownRef.current = n
+              setCount(n)
+              playTick(n)
+              // Hide after 800ms
+              setTimeout(() => {
+                setCount(prev => prev === n ? null : prev)
+              }, 800)
+            }
+          }, delay)
+          tickTimersRef.current.push(timer)
+        }
+      }
+    }
+
+    // Check frequently for new endTime and schedule
+    const interval = setInterval(scheduleCountdown, 500)
+    return () => {
+      clearInterval(interval)
+      tickTimersRef.current.forEach(t => clearTimeout(t))
+    }
+  }, [])
 
   // Cleanup
   useEffect(() => {
     return () => {
-      if (tickIntervalRef.current) clearInterval(tickIntervalRef.current)
+      tickTimersRef.current.forEach(t => clearTimeout(t))
     }
   }, [])
 

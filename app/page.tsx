@@ -120,6 +120,8 @@ export default function Home() {
   return (
     <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <Header currentPage="mine" />
+      <BeanpotCelebration />
+      <CountdownCelebration />
       <div style={styles.container}>
         <MinersPanel />
         <div style={styles.gridSection}>

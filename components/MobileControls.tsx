@@ -393,11 +393,8 @@ export default function MobileControls({
                             </div>
                         </div>
 
-                        <div style={{
-                            ...styles.autoRow,
-                            visibility: blockSelection === "random" ? "visible" : "hidden",
-                            pointerEvents: blockSelection === "random" ? "auto" : "none",
-                        }}>
+                        {blockSelection === "random" && (
+                        <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
                                 <svg width="18" height="18" viewBox="0 0 24 24" fill="#bbb">
                                     <circle cx="7" cy="7" r="2.5" />
@@ -418,6 +415,7 @@ export default function MobileControls({
                                 onBlur={() => { if (autoBlocks === 0) setAutoBlocks(1) }}
                             />
                         </div>
+                        )}
 
                         <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
@@ -431,10 +429,10 @@ export default function MobileControls({
                             <input
                                 type="number"
                                 min="1"
-                                max="100"
+                                max="100000"
                                 style={styles.autoInput}
                                 value={autoRounds === 0 ? "" : autoRounds}
-                                onChange={(e) => setAutoRounds(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                                onChange={(e) => setAutoRounds(Math.max(0, Math.min(100000, parseInt(e.target.value) || 0)))}
                                 onFocus={() => setAutoRounds(0)}
                                 onBlur={() => { if (autoRounds === 0) setAutoRounds(1) }}
                             />
@@ -682,7 +680,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 700,
         color: "#999",
         textAlign: "right" as const,
-        width: "50px",
+        width: "90px",
         fontFamily: "inherit",
         outline: "none",
     },

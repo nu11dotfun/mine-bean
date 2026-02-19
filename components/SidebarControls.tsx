@@ -574,11 +574,8 @@ export default function SidebarControls({
                             </div>
                         </div>
 
-                        <div style={{
-                            ...styles.autoRow,
-                            visibility: blockSelection === "random" ? "visible" : "hidden",
-                            pointerEvents: blockSelection === "random" ? "auto" : "none",
-                        }}>
+                        {blockSelection === "random" && (
+                        <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
                                 <BlocksIcon />
                                 <span style={styles.autoRowLabel}>Blocks</span>
@@ -594,6 +591,7 @@ export default function SidebarControls({
                                 onBlur={() => { if (autoBlocks === 0) setAutoBlocks(1) }}
                             />
                         </div>
+                        )}
 
                         <div style={styles.autoRow}>
                             <div style={styles.autoRowLeft}>
@@ -603,10 +601,10 @@ export default function SidebarControls({
                             <input
                                 type="number"
                                 min="1"
-                                max="100"
+                                max="100000"
                                 style={styles.autoInput}
                                 value={autoRounds === 0 ? "" : autoRounds}
-                                onChange={(e) => setAutoRounds(Math.max(0, Math.min(100, parseInt(e.target.value) || 0)))}
+                                onChange={(e) => setAutoRounds(Math.max(0, Math.min(100000, parseInt(e.target.value) || 0)))}
                                 onFocus={() => setAutoRounds(0)}
                                 onBlur={() => { if (autoRounds === 0) setAutoRounds(1) }}
                             />
@@ -864,7 +862,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontWeight: 700,
         color: "#999",
         textAlign: "right" as const,
-        width: "60px",
+        width: "100px",
         fontFamily: "inherit",
         outline: "none",
     },

@@ -1,8 +1,6 @@
 import type { Metadata } from 'next'
 import { Web3Provider } from '@/lib/providers'
 import HelpButton from '@/components/HelpButton'
-import BeanpotCelebration from '@/components/BeanpotCelebration'
-import CountdownCelebration from '@/components/CountdownCelebration'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,8 +28,6 @@ export default function RootLayout({
         <Web3Provider>
           {children}
           <HelpButton />
-          <BeanpotCelebration />
-          <CountdownCelebration />
         </Web3Provider>
       </body>
     </html>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback, useRef, useEffect } from 'react'
+import { BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
 
 function playTick(num: number) {
   try {
@@ -85,7 +86,7 @@ export default function CountdownCelebration() {
       if (endTimeRef.current <= 0) return
 
       const now = Date.now() / 1000
-      const remaining = endTimeRef.current - now
+      const remaining = endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - now
 
       // Only schedule if we have 6+ seconds left (so we can schedule the "5" tick)
       if (remaining <= 1 || remaining > 60) return

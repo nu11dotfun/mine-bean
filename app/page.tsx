@@ -13,6 +13,8 @@ import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { parseEther } from 'viem'
 import { useState, useEffect, useCallback } from 'react'
 import { CONTRACTS } from '@/lib/contracts'
+import BeanpotCelebration from '@/components/BeanpotCelebration'
+import CountdownCelebration from '@/components/CountdownCelebration'
 
 export default function Home() {
   const { address, isConnected } = useAccount()

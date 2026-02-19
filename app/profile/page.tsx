@@ -16,7 +16,7 @@ export default function Profile() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: isMobile ? '80px' : '0' }}>
+    <div style={{ minHeight: '100vh', paddingBottom: isMobile ? '80px' : '0' }}>
       <Header currentPage="profile" isMobile={isMobile} />
       <ProfilePage />
       {isMobile && <BottomNav currentPage="profile" />}

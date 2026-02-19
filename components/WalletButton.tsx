@@ -293,8 +293,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: '14px',
   },
   accountButton: {
-    background: '#1a1a1a',
-    border: '1px solid #444',
+    background: 'rgba(255,255,255,0.06)',
+    border: '1px solid rgba(255,255,255,0.1)',
+    backdropFilter: 'blur(20px)',
     color: '#fff',
     fontWeight: 500,
     padding: '6px 14px 6px 8px',

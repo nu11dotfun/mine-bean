@@ -183,7 +183,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    padding: '16px 40px',
+    padding: '22px 40px',
     borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
     background: 'rgba(255, 255, 255, 0.03)',
     position: 'relative' as const,    fontFamily: "'Inter', -apple-system, sans-serif",

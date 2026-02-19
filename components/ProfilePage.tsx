@@ -434,7 +434,7 @@ export default function ProfilePage() {
 const styles: { [key: string]: React.CSSProperties } = {
   container: {
     minHeight: '100vh',
-    background: '#0a0a0a',
+    background: 'transparent',
     padding: '40px 20px 80px',
     fontFamily: "'Inter', -apple-system, sans-serif",
   },
@@ -487,9 +487,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: '0 4px',
   },
   card: {
-    background: '#111',
-    border: '1px solid #1a1a1a',
+    background: 'rgba(255,255,255,0.03)',
+    border: '1px solid rgba(255,255,255,0.06)',
     borderRadius: '16px',
+    backdropFilter: 'blur(20px)',
     padding: '24px',
   },
   cardTitle: {
@@ -520,8 +521,8 @@ const styles: { [key: string]: React.CSSProperties } = {
   pfpPlaceholder: {
     width: '100%',
     height: '100%',
-    background: '#1a1a1a',
-    border: '2px solid #222',
+    background: 'rgba(255,255,255,0.04)',
+    border: '2px solid rgba(255,255,255,0.08)',
     borderRadius: '50%',
     display: 'flex',
     alignItems: 'center',
@@ -583,7 +584,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   textInput: {
     flex: 1,
-    background: '#0a0a0a',
+    background: 'transparent',
     border: '1px solid #444',
     borderRadius: '8px',
     padding: '10px 12px',
@@ -646,7 +647,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   divider: {
     height: '1px',
-    background: '#1a1a1a',
+    background: 'rgba(255,255,255,0.04)',
     margin: '4px 0',
   },
   portfolioGrid: {

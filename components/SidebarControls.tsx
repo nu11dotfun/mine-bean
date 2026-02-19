@@ -456,11 +456,19 @@ export default function SidebarControls({
                                 type="text"
                                 style={{ ...styles.amountInput, color: "#fff" }}
                                 value={perBlock}
-                                onChange={(e) => setPerBlock(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value
+                                    if (val === "" || /^\d{0,2}\.?\d{0,7}$/.test(val)) setPerBlock(val)
+                                }}
                                 onFocus={() => { if (perBlock === "0") setPerBlock("") }}
                                 onBlur={() => { if (perBlock === "") setPerBlock("0") }}
                             />
                         </div>
+                        {ethPrice > 0 && parseFloat(perBlock) > 0 && (
+                            <div style={{ textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: -8, paddingRight: 4 }}>
+                                ≈ ${(parseFloat(perBlock) * ethPrice).toFixed(2)} USD
+                            </div>
+                        )}
 
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Blocks</span>
@@ -534,11 +542,19 @@ export default function SidebarControls({
                                 type="text"
                                 style={{ ...styles.amountInput, color: "#fff" }}
                                 value={perBlock}
-                                onChange={(e) => setPerBlock(e.target.value)}
+                                onChange={(e) => {
+                                    const val = e.target.value
+                                    if (val === "" || /^\d{0,2}\.?\d{0,7}$/.test(val)) setPerBlock(val)
+                                }}
                                 onFocus={() => { if (perBlock === "0") setPerBlock("") }}
                                 onBlur={() => { if (perBlock === "") setPerBlock("0") }}
                             />
                         </div>
+                        {ethPrice > 0 && parseFloat(perBlock) > 0 && (
+                            <div style={{ textAlign: "right", fontSize: 11, color: "rgba(255,255,255,0.25)", marginTop: -8, paddingRight: 4 }}>
+                                ≈ ${(parseFloat(perBlock) * ethPrice).toFixed(2)} USD
+                            </div>
+                        )}
 
                         <div style={styles.row}>
                             <span style={styles.rowLabel}>Strategy</span>
@@ -821,7 +837,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: "24px",
         fontWeight: 700,
         textAlign: "right" as const,
-        width: "100px",
+        width: "140px",
         fontFamily: "inherit",
         outline: "none",
     },

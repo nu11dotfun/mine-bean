@@ -7,6 +7,7 @@ import { config } from '@/lib/wagmi'
 import { useState } from 'react'
 import { SSEProvider } from './SSEContext'
 import { UserDataProvider } from './UserDataContext'
+import { RoundTimerProvider } from './RoundTimerContext'
 
 import '@rainbow-me/rainbowkit/styles.css'
 
@@ -15,7 +16,9 @@ function SSEWrapper({ children }: { children: React.ReactNode }) {
   return (
     <SSEProvider userAddress={address}>
       <UserDataProvider userAddress={address}>
-        {children}
+        <RoundTimerProvider>
+          {children}
+        </RoundTimerProvider>
       </UserDataProvider>
     </SSEProvider>
   )

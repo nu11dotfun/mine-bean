@@ -33,6 +33,18 @@ vi.mock('@rainbow-me/rainbowkit', () => ({
   useConnectModal: () => ({ openConnectModal: mockOpenConnectModal }),
 }))
 
+const mockTimerValue = { timeRemaining: 45, endTime: Math.floor(Date.now() / 1000) + 45, roundId: '100' }
+
+vi.mock('@/lib/RoundTimerContext', () => ({
+  useRoundTimer: () => mockTimerValue,
+  RoundTimerProvider: ({ children }: any) => children,
+}))
+
+vi.mock('../lib/RoundTimerContext', () => ({
+  useRoundTimer: () => mockTimerValue,
+  RoundTimerProvider: ({ children }: any) => children,
+}))
+
 vi.mock('@/lib/UserDataContext', () => ({
   useUserData: () => ({
     rewards: null,
@@ -65,6 +77,11 @@ describe('SidebarControls', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockApiFetch.mockReset()
+
+    // Reset timer mock
+    mockTimerValue.timeRemaining = 45
+    mockTimerValue.endTime = Math.floor(Date.now() / 1000) + 45
+    mockTimerValue.roundId = '100'
 
     // Default mock for price fetch
     mockApiFetch.mockResolvedValue({
@@ -177,6 +194,8 @@ describe('SidebarControls', () => {
   })
 
   it('deploy button is disabled when timer is 0', () => {
+    mockTimerValue.timeRemaining = 0
+
     render(
       <SidebarControls
         isConnected={true}
@@ -184,19 +203,6 @@ describe('SidebarControls', () => {
         userBalance={1.0}
         onDeploy={mockOnDeploy}
       />
-    )
-
-    // Simulate round data with expired timer
-    fireEvent(
-      window,
-      new CustomEvent('roundData', {
-        detail: {
-          roundId: '1',
-          endTime: Date.now() / 1000 - 10, // Past time
-          totalDeployedFormatted: '0',
-          userDeployedFormatted: '0',
-        },
-      })
     )
 
     // Simulate block selection

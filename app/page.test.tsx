@@ -54,6 +54,16 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }))
 
+// Mock RoundTimerContext
+vi.mock('@/lib/RoundTimerContext', () => ({
+  useRoundTimer: () => ({
+    timeRemaining: 45,
+    endTime: Math.floor(Date.now() / 1000) + 45,
+    roundId: '100',
+  }),
+  RoundTimerProvider: ({ children }: any) => children,
+}))
+
 // Mock UserDataContext
 vi.mock('@/lib/UserDataContext', () => ({
   useUserData: () => ({

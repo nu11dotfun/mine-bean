@@ -1,11 +1,12 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import BeanLogo from './BeanLogo'
 import { apiFetch } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
-import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS, BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
+import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
+import { useRoundTimer } from '@/lib/RoundTimerContext'
 import { parseEther } from 'viem'
 
 const EthLogo = ({ size = 18 }: { size?: number }) => (
@@ -86,10 +87,9 @@ export default function SidebarControls({
     const autoMinerActive = autoMinerState?.active === true
 
     // Round data driven by MiningGrid events
-    const [timer, setTimer] = useState(0)
+    const { timeRemaining: timer } = useRoundTimer()
     const [currentRound, setCurrentRound] = useState("")
     const [phase, setPhase] = useState<"counting" | "eliminating" | "winner">("counting")
-    const endTimeRef = useRef(0)
 
     // Stats
     const [beanpotPool, setBeanpotPool] = useState(0)
@@ -250,7 +250,6 @@ export default function SidebarControls({
         const handleRoundData = (event: CustomEvent) => {
             const d = event.detail
             if (d.roundId) setCurrentRound(d.roundId)
-            if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
             if (d.beanpotPoolFormatted) setBeanpotPool(parseFloat(d.beanpotPoolFormatted) || 0)
             if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
             if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
@@ -281,19 +280,6 @@ export default function SidebarControls({
             window.removeEventListener("roundSettled" as any, handleRoundSettled)
         }
     }, [userAddress])
-
-    // Countdown timer from real endTime
-    useEffect(() => {
-        const tick = () => {
-            if (endTimeRef.current > 0) {
-                const remaining = Math.max(0, Math.ceil(endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - Date.now() / 1000))
-                setTimer(remaining)
-            }
-        }
-        tick()
-        const interval = setInterval(tick, 1000)
-        return () => clearInterval(interval)
-    }, [])
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)

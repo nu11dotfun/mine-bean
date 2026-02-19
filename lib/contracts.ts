@@ -34,4 +34,3 @@ export const CONTRACTS = {
 // Make sure they reflect the true contract values.
 export const MIN_DEPLOY_PER_BLOCK = 0.0000025 // ETH
 export const EXECUTOR_FEE_BPS = 100 // 1% AutoMiner executor fee
-export const BLOCK_TIME_DRIFT_SECONDS = 1 // Base chain block.timestamp lags ~2s behind wall clock

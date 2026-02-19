@@ -1,10 +1,11 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS } from '@/lib/contracts'
 import { apiFetch } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
+import { useRoundTimer } from '@/lib/RoundTimerContext'
 import { parseEther } from 'viem'
 
 interface AutoMinerState {
@@ -55,11 +56,10 @@ export default function MobileControls({
     const autoMinerActive = autoMinerState?.active === true
 
     // Round data driven by MiningGrid events
-    const [timer, setTimer] = useState(0)
+    const { timeRemaining: timer } = useRoundTimer()
     const [_currentRound, setCurrentRound] = useState("")
     const [phase, setPhase] = useState<"counting" | "eliminating" | "winner">("counting")
     const [userDeployed, setUserDeployed] = useState(0)
-    const endTimeRef = useRef(0)
 
     // Fetch AutoMiner state from backend
     useEffect(() => {
@@ -181,7 +181,6 @@ export default function MobileControls({
         const handleRoundData = (event: CustomEvent) => {
             const d = event.detail
             if (d.roundId) setCurrentRound(d.roundId)
-            if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
             if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
             setPhase("counting")
         }
@@ -207,19 +206,6 @@ export default function MobileControls({
             window.removeEventListener("roundSettled" as any, handleRoundSettled)
         }
     }, [userAddress])
-
-    // Countdown timer from real endTime
-    useEffect(() => {
-        const tick = () => {
-            if (endTimeRef.current > 0) {
-                const remaining = Math.max(0, Math.floor(endTimeRef.current - Date.now() / 1000))
-                setTimer(remaining)
-            }
-        }
-        tick()
-        const interval = setInterval(tick, 1000)
-        return () => clearInterval(interval)
-    }, [])
 
     const handleQuickAmount = (value: number) => {
         const current = parseFloat(perBlock) || 0

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
+import { useRoundTimer } from '@/lib/RoundTimerContext'
 
 function playTick(num: number) {
   try {
@@ -50,52 +50,33 @@ function playTick(num: number) {
 
 export default function CountdownCelebration() {
   const [count, setCount] = useState<number | null>(null)
-  const endTimeRef = useRef(0)
+  const { timeRemaining } = useRoundTimer()
   const lastShownRef = useRef(0)
 
   useEffect(() => {
-    const handleRoundData = (event: Event) => {
-      const detail = (event as CustomEvent).detail
-      if (detail?.endTime) {
-        endTimeRef.current = typeof detail.endTime === 'number' ? detail.endTime : 0
-      }
-    }
     const handleRoundSettled = () => {
-      endTimeRef.current = 0
       lastShownRef.current = 0
       setCount(null)
     }
-    window.addEventListener('roundData', handleRoundData)
     window.addEventListener('roundSettled', handleRoundSettled)
-    return () => {
-      window.removeEventListener('roundData', handleRoundData)
-      window.removeEventListener('roundSettled', handleRoundSettled)
-    }
+    return () => window.removeEventListener('roundSettled', handleRoundSettled)
   }, [])
 
-  // Poll using the EXACT same formula as SidebarControls timer
   useEffect(() => {
-    const interval = setInterval(() => {
-      if (endTimeRef.current <= 0) return
-      const remaining = Math.max(0, Math.ceil(endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - Date.now() / 1000))
+    if (timeRemaining >= 1 && timeRemaining <= 5 && lastShownRef.current !== timeRemaining) {
+      lastShownRef.current = timeRemaining
+      setCount(timeRemaining)
+      playTick(timeRemaining)
+      setTimeout(() => {
+        setCount(prev => prev === timeRemaining ? null : prev)
+      }, 800)
+    }
 
-      if (remaining >= 1 && remaining <= 5 && lastShownRef.current !== remaining) {
-        lastShownRef.current = remaining
-        setCount(remaining)
-        playTick(remaining)
-        setTimeout(() => {
-          setCount(prev => prev === remaining ? null : prev)
-        }, 800)
-      }
-
-      // Reset tracker when timer goes above 5 (new round)
-      if (remaining > 5) {
-        lastShownRef.current = 0
-      }
-    }, 200)
-
-    return () => clearInterval(interval)
-  }, [])
+    // Reset tracker when timer goes above 5 (new round)
+    if (timeRemaining > 5) {
+      lastShownRef.current = 0
+    }
+  }, [timeRemaining])
 
   const getColor = (n: number) => {
     if (n >= 4) return 'rgba(255,255,255,0.5)'

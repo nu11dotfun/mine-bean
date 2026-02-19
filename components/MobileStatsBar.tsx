@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState, useEffect, useRef } from "react"
-import { BLOCK_TIME_DRIFT_SECONDS } from '@/lib/contracts'
+import React, { useState, useEffect } from "react"
+import { useRoundTimer } from '@/lib/RoundTimerContext'
 
 // Move icons OUTSIDE component to prevent re-creation on each render
 const BeanIcon = () => (
@@ -18,17 +18,15 @@ interface MobileStatsBarProps {
 }
 
 export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
-    const [timer, setTimer] = useState(0)
+    const { timeRemaining: timer } = useRoundTimer()
     const [beanpotPool, setBeanpotPool] = useState(0)
     const [totalDeployed, setTotalDeployed] = useState(0)
     const [userDeployed, setUserDeployed] = useState(0)
-    const endTimeRef = useRef(0)
 
     // Listen for round data from MiningGrid
     useEffect(() => {
         const handleRoundData = (event: CustomEvent) => {
             const d = event.detail
-            if (d.endTime) endTimeRef.current = typeof d.endTime === 'number' ? d.endTime : 0
             if (d.beanpotPoolFormatted) setBeanpotPool(parseFloat(d.beanpotPoolFormatted) || 0)
             if (d.totalDeployedFormatted !== undefined) setTotalDeployed(parseFloat(d.totalDeployedFormatted) || 0)
             if (d.userDeployedFormatted !== undefined) setUserDeployed(parseFloat(d.userDeployedFormatted) || 0)
@@ -50,19 +48,6 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
             window.removeEventListener("roundDeployed" as any, handleRoundDeployed)
         }
     }, [userAddress])
-
-    // Countdown timer from real endTime
-    useEffect(() => {
-        const tick = () => {
-            if (endTimeRef.current > 0) {
-                const remaining = Math.max(0, Math.ceil(endTimeRef.current + BLOCK_TIME_DRIFT_SECONDS - Date.now() / 1000))
-                setTimer(remaining)
-            }
-        }
-        tick()
-        const interval = setInterval(tick, 1000)
-        return () => clearInterval(interval)
-    }, [])
 
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)

@@ -252,26 +252,36 @@ export default function ProfilePage() {
           <div style={styles.fieldGroup}>
             <label style={styles.fieldLabel}>Username</label>
             {isEditingUsername ? (
-              <div style={styles.editRow}>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  maxLength={20}
-                  style={styles.textInput}
-                  autoFocus
-                />
-                <button
-                  onClick={handleSaveUsername}
-                  style={{
-                    ...styles.saveButton,
-                    ...(saving ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
-                  }}
-                  disabled={saving}
-                >
-                  {saving ? '...' : 'Save'}
-                </button>
+              <div>
+                <div style={styles.editRow}>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Enter username"
+                    maxLength={20}
+                    style={{
+                      ...styles.textInput,
+                      ...(username && !/^[a-zA-Z0-9_]{1,20}$/.test(username) ? { borderColor: '#ff6b6b' } : {}),
+                    }}
+                    autoFocus
+                  />
+                  <button
+                    onClick={handleSaveUsername}
+                    style={{
+                      ...styles.saveButton,
+                      ...((saving || (username && !/^[a-zA-Z0-9_]{1,20}$/.test(username))) ? { opacity: 0.6, cursor: 'not-allowed' } : {}),
+                    }}
+                    disabled={saving || !!(username && !/^[a-zA-Z0-9_]{1,20}$/.test(username))}
+                  >
+                    {saving ? '...' : 'Save'}
+                  </button>
+                </div>
+                {username && !/^[a-zA-Z0-9_]{1,20}$/.test(username) && (
+                  <div style={{ fontSize: '12px', color: '#ff6b6b', marginTop: '6px' }}>
+                    Letters, numbers, and underscores only
+                  </div>
+                )}
               </div>
             ) : (
               <div style={styles.displayRow}>

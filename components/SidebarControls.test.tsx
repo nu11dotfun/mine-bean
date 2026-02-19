@@ -87,7 +87,6 @@ describe('SidebarControls', () => {
     mockApiFetch.mockResolvedValue({
       prices: {
         bean: { usd: '0.5' },
-        bnb: { usd: '600' },
       },
     })
   })
@@ -794,7 +793,7 @@ describe('SidebarControls', () => {
     let autoMineCalls = 0
     mockApiFetch.mockImplementation((url: string) => {
       if (url.includes('/api/stats')) {
-        return Promise.resolve({ prices: { bean: { usd: '0.5' }, bnb: { usd: '600' } } })
+        return Promise.resolve({ prices: { bean: { usd: '0.5' } } })
       }
       if (url.includes('/api/automine/')) {
         autoMineCalls++

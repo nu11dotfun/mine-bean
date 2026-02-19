@@ -225,18 +225,16 @@ export default function SidebarControls({
     // Fetch prices from backend
     useEffect(() => {
         const fetchPrices = () => {
-            apiFetch<{ prices: { bean: { usd: string }, bnb: { usd: string } } }>('/api/stats')
+            apiFetch<{ prices: { bean: { usd: string } } }>('/api/stats')
                 .then((data) => {
-                    setEthPrice(parseFloat(data.prices.bnb.usd) || 0)
-                    if (!data.prices.bnb.usd || parseFloat(data.prices.bnb.usd) === 0) {
-                        fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT")
-                            .then(r => r.json())
-                            .then(d => { if (d.price) setEthPrice(parseFloat(d.price)) })
-                            .catch(() => {})
-                    }
                     setBeansPrice(parseFloat(data.prices.bean.usd) || 0)
                 })
                 .catch((err) => console.error('Failed to fetch prices:', err))
+
+            fetch("https://api.binance.com/api/v3/ticker/price?symbol=ETHUSDT")
+                .then(r => r.json())
+                .then(d => { if (d.price) setEthPrice(parseFloat(d.price)) })
+                .catch(() => {})
         }
 
         fetchPrices()

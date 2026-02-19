@@ -137,7 +137,7 @@ export default function MinersPanel() {
                                     {resolve(miner.address)}
                                 </span>
                                 <div style={styles.minerAmounts}>
-                                    <span style={styles.bnbAmount}>
+                                    <span style={styles.ethAmount}>
                                         <img src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public" alt="ETH" style={{width: 14, height: 14, marginRight: 4}} />
                                         {parseFloat(miner.ethRewardFormatted).toFixed(6)}
                                     </span>
@@ -278,7 +278,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         fontSize: "11px",
         color: "#666",
     },
-    bnbAmount: {
+    ethAmount: {
         fontSize: "13px",
         color: "#bbb",
         display: "flex",

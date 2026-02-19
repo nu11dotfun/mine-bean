@@ -633,10 +633,10 @@ describe('Home Page', () => {
 
     mockUseBalance.mockReturnValue({
       data: {
-        value: BigInt('2500000000000000000'), // 2.5 BNB
+        value: BigInt('2500000000000000000'), // 2.5 ETH
         formatted: '2.5',
         decimals: 18,
-        symbol: 'BNB',
+        symbol: 'ETH',
       },
       isLoading: false,
       refetch: vi.fn(),

@@ -1,12 +1,20 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function HelpButton() {
   const [open, setOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener("resize", check)
+    return () => window.removeEventListener("resize", check)
+  }, [])
 
   return (
-    <div style={{ position: 'fixed', bottom: 20, left: 20, zIndex: 1000 }}>
+    <div style={{ position: 'fixed', bottom: isMobile ? 75 : 20, left: isMobile ? 12 : 20, zIndex: 1000 }}>
       {open && (
         <div style={{
           position: 'absolute', bottom: 52, left: 0,
@@ -42,7 +50,7 @@ export default function HelpButton() {
         </div>
       )}
       <button onClick={() => setOpen(!open)} style={{
-        width: 36, height: 36, borderRadius: '50%',
+        width: isMobile ? 28 : 36, height: isMobile ? 28 : 36, borderRadius: '50%',
         background: open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)',
         border: '1px solid rgba(255,255,255,0.1)',
         color: 'rgba(255,255,255,0.5)', cursor: 'pointer',
@@ -52,7 +60,7 @@ export default function HelpButton() {
       }}
         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(255,255,255,0.1)'; e.currentTarget.style.color = 'rgba(255,255,255,0.8)' }}
         onMouseLeave={e => { e.currentTarget.style.background = open ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.06)'; e.currentTarget.style.color = 'rgba(255,255,255,0.5)' }}>
-        <span style={{ fontSize: 16, fontWeight: 700 }}>?</span>
+        <span style={{ fontSize: isMobile ? 13 : 16, fontWeight: 700 }}>?</span>
       </button>
     </div>
   )

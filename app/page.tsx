@@ -102,7 +102,7 @@ export default function Home() {
 
   if (isMobile) {
     return (
-      <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: '80px' }}>
+      <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: '80px' }}>
         <Header currentPage="mine" isMobile={true} />
         <div style={styles.mobileContainer}>
           <MobileStatsBar userAddress={address} />
@@ -116,7 +116,7 @@ export default function Home() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent' }}>
       <Header currentPage="mine" />
       <div style={styles.container}>
         <MinersPanel />

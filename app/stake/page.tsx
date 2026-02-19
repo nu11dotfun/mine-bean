@@ -111,7 +111,7 @@ export default function Stake() {
   }, [isConnected, writeContract2])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: isMobile ? '80px' : '0' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: isMobile ? '80px' : '0' }}>
       <Header currentPage="stake" isMobile={isMobile} />
       <StakePage
         isConnected={isConnected}

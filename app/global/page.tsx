@@ -19,7 +19,7 @@ export default function Global() {
   }, [])
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0a0a0a', paddingBottom: isMobile ? '80px' : '0' }}>
+    <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: isMobile ? '80px' : '0' }}>
       <Header currentPage="global" isMobile={isMobile} />
       
       <div style={isMobile ? styles.mobileContainer : styles.container}>

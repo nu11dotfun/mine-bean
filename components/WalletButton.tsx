@@ -272,7 +272,7 @@ export default function WalletButton() {
 
 const styles: { [key: string]: React.CSSProperties } = {
   connectButton: {
-    background: 'transparent',
+    background: '#0052FF',
     border: '1px solid #444',
     color: '#fff',
     fontWeight: 500,
@@ -447,9 +447,9 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   viewProfileButton: {
     width: '100%',
-    background: 'transparent',
+    background: '#0052FF',
     border: '1px solid #0052FF',
-    color: '#0052FF',
+    color: '#fff',
     fontWeight: 500,
     padding: '10px',
     borderRadius: '10px',

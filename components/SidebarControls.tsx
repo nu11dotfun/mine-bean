@@ -90,7 +90,6 @@ export default function SidebarControls({
     const { timeRemaining: timer } = useRoundTimer()
     const [currentRound, setCurrentRound] = useState("")
     const [phase, setPhase] = useState<"counting" | "eliminating" | "winner">("counting")
-
     // Stats
     const [beanpotPool, setBeanpotPool] = useState(0)
     const [totalDeployed, setTotalDeployed] = useState(0)
@@ -281,6 +280,7 @@ export default function SidebarControls({
         }
     }, [userAddress])
 
+
     const formatTime = (seconds: number) => {
         const mins = Math.floor(seconds / 60)
         const secs = seconds % 60
@@ -355,7 +355,7 @@ export default function SidebarControls({
                     onMouseLeave={() => setIsHoveringTimer(false)}
                 >
                     <div style={styles.statValue}>
-                        <span style={styles.timerValue}>{formatTime(timer)}</span>
+                        <span style={{...styles.timerValue, color: timer <= 5 ? "#FF4444" : "#fff"}}>{formatTime(timer)}</span>
                     </div>
                     <div style={styles.statLabel}>
                         {isHoveringTimer && currentRound ? `Round #${currentRound}` : "Time remaining"}

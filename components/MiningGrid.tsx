@@ -545,8 +545,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "1px solid rgba(255, 255, 255, 0.04)",
     },
     cellWinner: {
-        border: "1.5px solid rgba(0, 82, 255, 0.7)", background: "rgba(0, 82, 255, 0.12)",
-        boxShadow: "0 0 30px rgba(0, 82, 255, 0.2), inset 0 0 30px rgba(0, 82, 255, 0.08)",
+        border: "1.5px solid rgba(255, 215, 0, 0.7)", background: "rgba(255, 215, 0, 0.08)",
+        boxShadow: "0 0 30px rgba(255, 215, 0, 0.25), inset 0 0 30px rgba(255, 215, 0, 0.08)",
     },
     cellDisabled: {
         opacity: 0.5,

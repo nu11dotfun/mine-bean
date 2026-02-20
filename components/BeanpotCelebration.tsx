@@ -4,6 +4,7 @@ import { useState, useCallback, useRef, useEffect } from 'react'
 import confetti from 'canvas-confetti'
 
 function playCelebrationSound() {
+  if (localStorage.getItem('bean_muted') === 'true') return
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     const t = ctx.currentTime

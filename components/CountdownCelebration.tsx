@@ -6,6 +6,7 @@ import { useRoundTimer } from '@/lib/RoundTimerContext'
 let audioCtx: AudioContext | null = null
 
 function playTick(num: number) {
+  if (localStorage.getItem('bean_muted') === 'true') return
   try {
     if (!audioCtx) audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
     if (audioCtx.state === 'suspended') audioCtx.resume()

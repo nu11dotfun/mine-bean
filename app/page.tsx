@@ -20,7 +20,7 @@ export default function Home() {
   const { address, isConnected } = useAccount()
   const { data: balance } = useBalance({ address })
   const [isMobile, setIsMobile] = useState(false)
-  const [showMining, setShowMining] = useState(false)
+  const [showMining, setShowMining] = useState(() => { if (typeof window !== 'undefined') return sessionStorage.getItem('bean_visited') === 'true'; return false; })
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -98,8 +98,8 @@ export default function Home() {
     })
   }, [isConnected, writeContract])
 
-  if (false) {
-    return <LandingPage onStartMining={() => setShowMining(true)} />
+  if (!showMining) {
+    return <LandingPage onStartMining={() => { sessionStorage.setItem('bean_visited', 'true'); setShowMining(true) }} />
   }
 
   if (isMobile) {

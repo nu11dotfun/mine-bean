@@ -5,6 +5,20 @@ import { useState, useEffect } from 'react'
 export default function HelpButton() {
   const [open, setOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
+  const [muted, setMuted] = useState(false)
+  const [showHowTo, setShowHowTo] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('bean_muted')
+    if (stored === 'true') setMuted(true)
+  }, [])
+
+  const toggleMute = () => {
+    const next = !muted
+    setMuted(next)
+    localStorage.setItem('bean_muted', String(next))
+    window.dispatchEvent(new CustomEvent('beanMuteChanged', { detail: { muted: next } }))
+  }
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768)
@@ -35,6 +49,12 @@ export default function HelpButton() {
             Get Help
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginLeft: 'auto', opacity: 0.4 }}><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
           </a>
+          <div onClick={() => { setShowHowTo(true); setOpen(false) }} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+            How to Play
+          </div>
           <a href="/terms" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 16px', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500, textDecoration: 'none', transition: 'background 0.15s' }}
             onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
             onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -47,6 +67,50 @@ export default function HelpButton() {
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
             Privacy Policy
           </a>
+          <div style={{ height: '1px', background: 'rgba(255,255,255,0.06)', margin: '4px 0' }} />
+          <div onClick={toggleMute} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 16px', color: 'rgba(255,255,255,0.7)', fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'background 0.15s' }}
+            onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+            onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              {muted
+                ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+                : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+              }
+              {muted ? 'Unmute Sounds' : 'Mute Sounds'}
+            </div>
+            <div style={{ width: 32, height: 18, borderRadius: 9, background: muted ? 'rgba(255,255,255,0.1)' : 'rgba(0,82,255,0.6)', border: '1px solid rgba(255,255,255,0.1)', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
+              <div style={{ position: 'absolute', top: 2, left: muted ? 2 : 14, width: 12, height: 12, borderRadius: '50%', background: '#fff', transition: 'left 0.2s' }} />
+            </div>
+          </div>
+        </div>
+      )}
+      {showHowTo && (
+        <div onClick={() => setShowHowTo(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(12px)', zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'rgba(18,22,35,0.98)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, padding: '32px', width: '100%', maxWidth: 480, boxShadow: '0 24px 64px rgba(0,0,0,0.5)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+              <span style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>How to Play</span>
+              <button onClick={() => setShowHowTo(false)} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex' }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+              </button>
+            </div>
+            {[
+              { num: '01', title: 'Pick Your Blocks', desc: 'Each round, select one or more blocks on the 5×5 grid. You can only deploy once per round so choose carefully.' },
+              { num: '02', title: 'Deploy ETH', desc: 'Set your ETH amount per block and hit Deploy. The more ETH you deploy to a block, the larger your share of winnings if it wins.' },
+              { num: '03', title: 'Wait for the Winner', desc: 'Every 60 seconds, one block is randomly selected as the winner. All ETH deployed to that block splits the round pot proportionally.' },
+              { num: '04', title: 'Earn BEAN', desc: 'The top miner on the winning block earns BEAN tokens each round. Stake BEAN to earn a share of protocol revenue.' },
+              { num: '05', title: 'Hit the Beanpot', desc: 'A portion of every round feeds the Beanpot jackpot. Win it and earn a share of the accumulated jackpot on top of your normal winnings.' },
+              { num: '06', title: 'Auto Mine', desc: 'Enable Auto mode to set a strategy and deposit ETH. The protocol deploys automatically every round on your behalf.' },
+            ].map(({ num, title, desc }) => (
+              <div key={num} style={{ display: 'flex', gap: 16, marginBottom: 20 }}>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.6)', fontFamily: 'monospace', minWidth: 24, marginTop: 2 }}>{num}</span>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 4 }}>{title}</div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', lineHeight: 1.6 }}>{desc}</div>
+                </div>
+              </div>
+            ))}
+            <button onClick={() => setShowHowTo(false)} style={{ width: '100%', marginTop: 8, padding: '12px', background: 'rgba(0,82,255,0.15)', border: '1px solid rgba(0,82,255,0.3)', borderRadius: 10, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Got it</button>
+          </div>
         </div>
       )}
       <button onClick={() => setOpen(!open)} style={{

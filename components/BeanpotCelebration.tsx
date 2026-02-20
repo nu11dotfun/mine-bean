@@ -209,9 +209,10 @@ export default function BeanpotCelebration() {
     const handleRoundSettled = (event: Event) => {
       const detail = (event as CustomEvent).detail
       if (!detail) return
-      // motherlodeAmount is a string in wei — non-zero means beanpot was hit
+      // Only trigger when beanpot is actually won (paid out), not just accumulated
       const amount = detail.motherlodeAmount || detail.beanpotAmount || '0'
-      if (amount !== '0' && amount !== '') {
+      const amountNum = parseFloat(amount)
+      if (amountNum > 1e15) {
         triggerCelebration()
       }
     }

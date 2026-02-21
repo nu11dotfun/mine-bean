@@ -153,7 +153,7 @@ export default function AboutPage({
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li>Each round, <strong>0.2 BEAN</strong> is added to the Beanpot from the round&apos;s token emission.</li>
-                            <li>Every round has a <strong>1-in-625 chance</strong> (0.16%) of triggering the Beanpot.</li>
+                            <li>Every round has a <strong>1-in-777 chance</strong> (0.13%) of triggering the Beanpot.</li>
                             <li>If triggered, the entire accumulated Beanpot is distributed among the round&apos;s winners, proportional to their deployment on the winning block.</li>
                             <li>If not triggered, the pool carries over and continues growing — making the next potential payout even larger.</li>
                         </ol>
@@ -161,7 +161,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Beanpot Math</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>At 0.2 BEAN per round with rounds every 60 seconds, the Beanpot grows by roughly <strong>288 BEAN per day</strong> (1,440 rounds × 0.2 BEAN). On average, it triggers once every ~625 rounds (~10.4 hours), creating an expected pool of <strong>~125 BEAN</strong> at the time of trigger.</p>
+                            <p style={{ margin: 0 }}>At 0.2 BEAN per round with rounds every 60 seconds, the Beanpot grows by roughly <strong>288 BEAN per day</strong> (1,440 rounds × 0.2 BEAN). On average, it triggers once every ~777 rounds (~13 hours), creating an expected pool of <strong>~156 BEAN</strong> at the time of trigger.</p>
                             <p style={{ margin: "12px 0 0 0" }}>The actual timing is random — it could trigger after just a few rounds or accumulate for thousands, creating a much larger jackpot. Consistent mining maximizes your chances of being present when it hits.</p>
                         </div>
                     </div>
@@ -445,7 +445,7 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the Beanpot?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A growing BEAN jackpot funded by 0.2 BEAN per round. Each round has a 1-in-625 chance of triggering it. On average it triggers roughly every 10 hours, but the timing is random — it could trigger much sooner or accumulate much larger.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A growing BEAN jackpot funded by 0.2 BEAN per round. Each round has a 1-in-777 chance of triggering it. On average it triggers roughly every 13 hours, but the timing is random — it could trigger much sooner or accumulate much larger.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is roasting?</h4>

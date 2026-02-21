@@ -508,7 +508,7 @@ export default function SidebarControls({
                                 onClick={() => onDeploy?.(manualTotal, selectedBlockIds)}
                                 disabled={!canDeploy}
                             >
-                                {hasDeployed ? "✓ Deployed" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
+                                {hasDeployed ? "✓ Deployed" : exceedsBalance ? "Insufficient Funds" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
                             </button>
                         ) : (
                             <button style={styles.connectBtn} onClick={openConnectModal}>

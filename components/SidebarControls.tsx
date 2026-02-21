@@ -353,7 +353,7 @@ export default function SidebarControls({
                     onMouseLeave={() => setIsHoveringTimer(false)}
                 >
                     <div style={styles.statValue}>
-                        <span style={{...styles.timerValue, color: timer <= 5 && timer > 0 ? "#FF4444" : "#fff"}}>{timer === 0 ? "Waiting..." : formatTime(timer)}</span>
+                        <span style={{...styles.timerValue, color: timer <= 5 && timer > 0 ? "#FF4444" : "#fff"}}>{timer === 0 ? <span style={{fontSize: "50%", opacity: 0.5}}>Waiting...</span> : formatTime(timer)}</span>
                     </div>
                     <div style={styles.statLabel}>
                         {isHoveringTimer && currentRound ? `Round #${currentRound}` : "Time remaining"}

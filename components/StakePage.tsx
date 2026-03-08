@@ -302,6 +302,7 @@ export default function StakePage({
                             placeholder="0.0"
                         />
                     </div>
+                    {activeTab === "deposit" && <p style={{ fontSize: "11px", color: "#666", marginTop: "8px", marginBottom: "8px" }}>Minimum stake: 0.1 BEAN</p>}
 
                     {/* Auto-compound section (deposit tab only, shown when amount > 0) */}
                     {activeTab === "deposit" && parsedAmount > 0 && (
@@ -1045,7 +1046,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         bottom: "calc(100% + 8px)",
         left: "50%",
         transform: "translateX(-50%)",
-        background: "rgba(255, 255, 255, 0.04)",
+        background: "#0d1117",
         border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
@@ -1054,6 +1055,8 @@ const styles: { [key: string]: React.CSSProperties } = {
         lineHeight: 1.5,
         width: "280px",
         zIndex: 1000,
+        backdropFilter: "blur(10px)",
+        pointerEvents: "none" as const,
     },
     // Calculator
     calculatorBtn: {

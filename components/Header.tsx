@@ -65,6 +65,7 @@ export default function Header({
     { id: 'mine', label: 'Mine', href: '/' },
     { id: 'stake', label: 'Stake', href: '/stake' },
     { id: 'global', label: 'Global', href: '/global' },
+    { id: 'agents', label: 'Agents', href: '/agents' },
     { id: 'about', label: 'About', href: '/about' },
     { id: 'profile', label: 'Profile', href: '/profile' },
   ]

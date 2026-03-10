@@ -17,6 +17,7 @@ const manifest = {
     description: "Gamified mining protocol on Base. Compete in 60-second rounds, deploy ETH to a 5x5 grid, and earn BEAN tokens and ETH rewards.",
     primaryCategory: "games",
     tags: ["defi", "mining", "base", "gaming"],
+    screenshotUrls: ["https://www.minebean.com/miniapp.png"],
     heroImageUrl: "https://www.minebean.com/miniapp.png",
     tagline: "Mine BEAN on Base",
     ogTitle: "MineBean",

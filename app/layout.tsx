@@ -9,6 +9,23 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.png',
   },
+  other: {
+    'base:app_id': '69a86e353dc3043730868cd5',
+    'fc:miniapp': JSON.stringify({
+      version: 'next',
+      imageUrl: 'https://www.minebean.com/miniapp.png',
+      button: {
+        title: 'Start Mining',
+        action: {
+          type: 'launch_miniapp',
+          name: 'MineBean',
+          url: 'https://www.minebean.com',
+          splashImageUrl: 'https://www.minebean.com/favicon.png',
+          splashBackgroundColor: '#0a0a0a',
+        },
+      },
+    }),
+  },
 }
 
 export default function RootLayout({
@@ -19,7 +36,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <meta name="base:app_id" content="69a86e353dc3043730868cd5" />
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"

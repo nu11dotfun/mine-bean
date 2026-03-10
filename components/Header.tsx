@@ -97,11 +97,52 @@ export default function Header({
             </a>
           </div>
 
-          <ConnectButton
-            chainStatus="none"
-            showBalance={false}
-            accountStatus="avatar"
-          />
+          <ConnectButton.Custom>
+            {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
+              const connected = mounted && account && chain
+              return (
+                <button
+                  onClick={connected ? openAccountModal : openConnectModal}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    padding: 0,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                >
+                  {connected ? (
+                    <div style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #0052FF, #3380FF)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                        <circle cx="12" cy="7" r="4" />
+                      </svg>
+                    </div>
+                  ) : (
+                    <div style={{
+                      fontSize: 12,
+                      fontWeight: 600,
+                      color: '#fff',
+                      background: '#0052FF',
+                      padding: '6px 12px',
+                      borderRadius: 20,
+                    }}>
+                      Connect
+                    </div>
+                  )}
+                </button>
+              )
+            }}
+          </ConnectButton.Custom>
         </div>
       </header>
     )

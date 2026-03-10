@@ -1,7 +1,6 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
 import WalletButton from './WalletButton'
 import BeanLogo, { BeansTextLogo } from './BeanLogo'
 import Link from 'next/link'
@@ -97,11 +96,7 @@ export default function Header({
             </a>
           </div>
 
-          <ConnectButton 
-            chainStatus="none"
-            showBalance={false}
-            accountStatus="avatar"
-          />
+          <WalletButton />
         </div>
       </header>
     )

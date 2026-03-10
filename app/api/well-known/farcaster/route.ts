@@ -1,9 +1,31 @@
 import { NextResponse } from 'next/server'
-import { readFileSync } from 'fs'
-import { join } from 'path'
+
+const manifest = {
+  accountAssociation: {
+    header: "eyJmaWQiOjI4Njk5NzIsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHg2NWMxNThkNjk2N0EyMjk2MkUzOUE4RkIwZjkyMmZjY0I4MzNjMjYzIn0",
+    payload: "eyJkb21haW4iOiJ3d3cubWluZWJlYW4uY29tIn0",
+    signature: "WgOopCAlOs1IRxWRXwarmyFM3G5PaF8evJiskkhDbMEQyVXNhfM0xOPQHj+CRiDXpSMQhhN+INcKUBhr2nLG4hs="
+  },
+  frame: {
+    version: "1",
+    name: "MineBean",
+    iconUrl: "https://www.minebean.com/favicon.png",
+    homeUrl: "https://www.minebean.com",
+    splashImageUrl: "https://www.minebean.com/favicon.png",
+    splashBackgroundColor: "#0a0a0a",
+    subtitle: "Mine BEAN on Base",
+    description: "Gamified mining protocol on Base. Compete in 60-second rounds, deploy ETH to a 5x5 grid, and earn BEAN tokens and ETH rewards.",
+    primaryCategory: "games",
+    tags: ["defi", "mining", "base", "gaming"],
+    heroImageUrl: "https://www.minebean.com/miniapp.png",
+    tagline: "Mine BEAN on Base",
+    ogTitle: "MineBean",
+    ogDescription: "Gamified mining protocol on Base. Deploy ETH, earn BEAN.",
+    ogImageUrl: "https://www.minebean.com/miniapp.png",
+    noindex: false
+  }
+}
 
 export async function GET() {
-  const filePath = join(process.cwd(), 'public', '.well-known', 'farcaster.json')
-  const data = JSON.parse(readFileSync(filePath, 'utf-8'))
-  return NextResponse.json(data)
+  return NextResponse.json(manifest)
 }

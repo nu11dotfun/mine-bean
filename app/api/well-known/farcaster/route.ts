@@ -6,7 +6,7 @@ const manifest = {
     payload: "eyJkb21haW4iOiJ3d3cubWluZWJlYW4uY29tIn0",
     signature: "WgOopCAlOs1IRxWRXwarmyFM3G5PaF8evJiskkhDbMEQyVXNhfM0xOPQHj+CRiDXpSMQhhN+INcKUBhr2nLG4hs="
   },
-  frame: {
+  miniapp: {
     version: "1",
     name: "MineBean",
     iconUrl: "https://www.minebean.com/favicon.png",

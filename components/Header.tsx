@@ -97,40 +97,11 @@ export default function Header({
             </a>
           </div>
 
-          <ConnectButton.Custom>
-            {({ account, chain, openAccountModal, openConnectModal, mounted }) => {
-              const connected = mounted && account && chain
-              return (
-                <button
-                  onClick={connected ? openAccountModal : openConnectModal}
-                  style={{
-                    background: connected ? 'rgba(255,255,255,0.06)' : '#0052FF',
-                    border: connected ? '1px solid rgba(255,255,255,0.1)' : '1px solid #0052FF',
-                    color: '#fff',
-                    fontWeight: 500,
-                    padding: '6px 14px',
-                    borderRadius: '50px',
-                    cursor: 'pointer',
-                    fontSize: '13px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  {connected ? (
-                    <>
-                      <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#222', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="#999" stroke="none">
-                          <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z" />
-                        </svg>
-                      </div>
-                      {account.displayName}
-                    </>
-                  ) : 'Connect'}
-                </button>
-              )
-            }}
-          </ConnectButton.Custom>
+          <ConnectButton
+            chainStatus="none"
+            showBalance={false}
+            accountStatus="avatar"
+          />
         </div>
       </header>
     )

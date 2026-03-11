@@ -46,9 +46,9 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient())
 
   useEffect(() => {
-    sdk.actions.ready({ disableNativeGestures: true }).catch(() => {})
+    sdk.actions.ready().catch(() => {})
     const timeout = setTimeout(() => {
-      sdk.actions.ready({ disableNativeGestures: true }).catch(() => {})
+      sdk.actions.ready().catch(() => {})
     }, 3000)
     return () => clearTimeout(timeout)
   }, [])

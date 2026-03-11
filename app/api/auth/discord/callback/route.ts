@@ -50,19 +50,39 @@ export async function GET(request: Request) {
     })
     const discordUser = await userRes.json()
 
-    // Check BEAN balance on-chain
-    const balance = await publicClient.readContract({
-      address: CONTRACTS.Bean.address,
-      abi: CONTRACTS.Bean.abi,
-      functionName: 'balanceOf',
-      args: [wallet as `0x${string}`],
-    })
-    const beanBalance = Number(balance) / 1e18
-    console.log(`[Discord] wallet=${wallet} discordUser=${discordUser.username} beanBalance=${beanBalance}`)
+    // Check total BEAN exposure on-chain (liquid + staked + unclaimed)
+    const walletAddr = wallet as `0x${string}`
+    const [liquidBalance, stakeInfo, pendingRewards] = await Promise.all([
+      publicClient.readContract({
+        address: CONTRACTS.Bean.address,
+        abi: CONTRACTS.Bean.abi,
+        functionName: 'balanceOf',
+        args: [walletAddr],
+      }),
+      publicClient.readContract({
+        address: CONTRACTS.Staking.address,
+        abi: CONTRACTS.Staking.abi,
+        functionName: 'getStakeInfo',
+        args: [walletAddr],
+      }),
+      publicClient.readContract({
+        address: CONTRACTS.GridMining.address,
+        abi: CONTRACTS.GridMining.abi,
+        functionName: 'getTotalPendingRewards',
+        args: [walletAddr],
+      }),
+    ])
 
-    // Assign Holder role if balance >= 1 BEAN
-    if (beanBalance >= 1) {
-      console.log(`[Discord] assigning role — guildId=${process.env.DISCORD_GUILD_ID} userId=${discordUser.id} roleId=${process.env.DISCORD_HOLDER_ROLE_ID}`)
+    const liquid = Number(liquidBalance) / 1e18
+    const staked = Number((stakeInfo as bigint[])[0]) / 1e18
+    const unroasted = Number((pendingRewards as bigint[])[1]) / 1e18
+    const roasted = Number((pendingRewards as bigint[])[2]) / 1e18
+    const totalBean = liquid + staked + unroasted + roasted
+    console.log(`[Discord] wallet=${wallet} discordUser=${discordUser.username} liquid=${liquid} staked=${staked} unroasted=${unroasted} roasted=${roasted} total=${totalBean}`)
+
+    // Assign Holder role if total >= 1 BEAN
+    if (totalBean >= 1) {
+      console.log(`[Discord] assigning Holder role — guildId=${process.env.DISCORD_GUILD_ID} userId=${discordUser.id} roleId=${process.env.DISCORD_HOLDER_ROLE_ID}`)
       const roleRes = await fetch(
         `https://discord.com/api/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUser.id}/roles/${process.env.DISCORD_HOLDER_ROLE_ID}`,
         {
@@ -74,9 +94,26 @@ export async function GET(request: Request) {
           },
         }
       )
-      console.log(`[Discord] role assign status=${roleRes.status}`, await roleRes.text())
+      console.log(`[Discord] Holder role assign status=${roleRes.status}`, await roleRes.text())
     } else {
-      console.log(`[Discord] skipping role — balance below threshold`)
+      console.log(`[Discord] skipping Holder role — total ${totalBean} below threshold`)
+    }
+
+    // Assign Whale role if total >= 100 BEAN
+    if (totalBean >= 100) {
+      console.log(`[Discord] assigning Whale role — userId=${discordUser.id} roleId=${process.env.DISCORD_WHALE_ROLE_ID}`)
+      const whaleRes = await fetch(
+        `https://discord.com/api/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUser.id}/roles/${process.env.DISCORD_WHALE_ROLE_ID}`,
+        {
+          method: 'PUT',
+          headers: {
+            Authorization: `Bot ${process.env.DISCORD_BOT_TOKEN}`,
+            'Content-Type': 'application/json',
+            'X-Audit-Log-Reason': 'BEAN whale verification (100+ BEAN)',
+          },
+        }
+      )
+      console.log(`[Discord] Whale role assign status=${whaleRes.status}`, await whaleRes.text())
     }
 
     // Save to Supabase

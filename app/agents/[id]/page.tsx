@@ -104,7 +104,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   // Derived stats from rounds
   const settledRounds = stats.rounds.filter(r => r.settled)
-  const avgPosition = stats.roundsPlayed > 0 ? stats.totalDeployed / settledRounds.length : 0
+  const avgPosition = stats.roundsPlayed > 0 ? stats.totalDeployed / stats.roundsPlayed : 0
   const bestRound = settledRounds.length > 0 ? Math.max(...settledRounds.map(r => r.truePnl)) : 0
   const worstRound = settledRounds.length > 0 ? Math.min(...settledRounds.map(r => r.truePnl)) : 0
   const wins = stats.roundsPlayed > 0 ? Math.round(stats.winRate * stats.roundsPlayed / 100) : 0

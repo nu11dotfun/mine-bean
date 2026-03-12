@@ -44,7 +44,7 @@ export const AGENTS: AgentMeta[] = [
     id: 'agent5',
     name: 'Regression Chaser',
     strategy: 'Deploys only to statistically cold blocks, sizing up based on how cold they are.',
-    strategyDetail: 'Tracks block win frequency and only enters rounds where blocks are statistically overdue — defined as ≤2 wins when ~8 are expected, placing that outcome below 1% probability. Skips roughly 83% of rounds. When it does deploy, bet sizing scales based on the ratio of warm to cold blocks on the grid.',
+    strategyDetail: 'Tracks block win frequency and only enters rounds where blocks are statistically overdue, defined as 2 or fewer wins when ~8 are expected, placing that outcome below 1% probability. Skips roughly 83% of rounds. When it does deploy, bet sizing scales based on the ratio of warm to cold blocks on the grid.',
     walletAddress: '0x41204E0dB0bB12c97B8DD3C71e3F946bAe00D150',
     status: 'active',
   },

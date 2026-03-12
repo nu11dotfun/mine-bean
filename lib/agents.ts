@@ -32,4 +32,20 @@ export const AGENTS: AgentMeta[] = [
     walletAddress: '0x0d2bD39Dc8C3E8F6b2Bcf141D2a08F05C377bdBf',
     status: 'active',
   },
+  {
+    id: 'agent4',
+    name: 'Sniper',
+    strategy: 'Deploys to all 25 blocks as late as possible, only if EV is positive.',
+    strategyDetail: 'Waits until seconds before round end to see the final grid state, then uses an emission-only EV formula (B=1.0, K=9.5238) to decide whether to deploy or skip entirely. An adaptive timing engine targets the latest safe offset (default 5s before end, down to 2s), adjusting based on timing success and revert rates. Skips any round where the grid is too full for positive EV. The edge: seeing the final grid state before committing, while others deploy blind mid-round.',
+    walletAddress: '0x573714A0a2F530a8b850E5308AF3151C3CCEa160',
+    status: 'active',
+  },
+  {
+    id: 'agent5',
+    name: 'Regression Chaser',
+    strategy: 'Deploys only to statistically cold blocks, sizing up based on how cold they are.',
+    strategyDetail: 'Tracks block win frequency and only enters rounds where blocks are statistically overdue — defined as ≤2 wins when ~8 are expected, placing that outcome below 1% probability. Skips roughly 83% of rounds. When it does deploy, bet sizing scales based on the ratio of warm to cold blocks on the grid.',
+    walletAddress: '0x41204E0dB0bB12c97B8DD3C71e3F946bAe00D150',
+    status: 'active',
+  },
 ]

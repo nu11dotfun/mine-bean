@@ -106,8 +106,8 @@ export async function GET(request: Request) {
           setRole(discord_id, WHALE_ROLE_ID, isWhale),
         ])
 
-        if (holderStatus === 204) isHolder ? results.holder_granted++ : results.holder_revoked++
-        if (whaleStatus === 204) isWhale ? results.whale_granted++ : results.whale_revoked++
+        if (holderStatus === 204) { if (isHolder) results.holder_granted++; else results.holder_revoked++ }
+        if (whaleStatus === 204) { if (isWhale) results.whale_granted++; else results.whale_revoked++ }
 
         console.log(`[role-sync] ${wallet_address} total=${total.toFixed(2)} holder=${isHolder} whale=${isWhale} holderStatus=${holderStatus} whaleStatus=${whaleStatus}`)
       } catch (err) {

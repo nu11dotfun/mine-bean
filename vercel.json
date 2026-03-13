@@ -4,5 +4,15 @@
       "source": "/.well-known/farcaster.json",
       "destination": "/api/well-known/farcaster"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/beanpot",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/discord-roles",
+      "schedule": "0 * * * *"
+    }
   ]
 }

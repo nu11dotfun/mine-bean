@@ -43,10 +43,19 @@ function farcasterConnector() {
       return (await sdk.wallet.getEthereumProvider()) ?? undefined
     },
     async isAuthorized() {
-      const provider = await sdk.wallet.getEthereumProvider()
-      if (!provider) return false
-      const accounts = (await provider.request({ method: 'eth_accounts' })) as string[]
-      return accounts.length > 0
+      try {
+        const inMiniApp = await Promise.race([
+          sdk.isInMiniApp(),
+          new Promise<boolean>((resolve) => setTimeout(() => resolve(false), 500)),
+        ])
+        if (!inMiniApp) return false
+        const provider = await sdk.wallet.getEthereumProvider()
+        if (!provider) return false
+        const accounts = (await provider.request({ method: 'eth_accounts' })) as string[]
+        return accounts.length > 0
+      } catch {
+        return false
+      }
     },
     onAccountsChanged(accounts: string[]) {
       config.emitter.emit('change', { accounts: accounts as `0x${string}`[] })
@@ -90,4 +99,5 @@ export const config = createConfig({
     [base.id]: http(),
     [baseSepolia.id]: http(),
   },
+  ssr: true,
 })

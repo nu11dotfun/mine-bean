@@ -1,6 +1,32 @@
 import { apiFetch } from './api'
+import { createPublicClient, http, formatEther, parseAbi } from 'viem'
+import { base } from 'viem/chains'
+
+const BEAN_TOKEN = '0x5c72992b83E74c4D5200A8E8920fB946214a5A5D' as const
+
+const publicClient = createPublicClient({
+  chain: base,
+  transport: http(),
+})
 
 // ── API response types ──
+
+interface RewardsResponse {
+  pendingETH: string
+  pendingETHFormatted: string
+  pendingBEAN: {
+    unroasted: string
+    unroastedFormatted: string
+    roasted: string
+    roastedFormatted: string
+    gross: string
+    grossFormatted: string
+    fee: string
+    feeFormatted: string
+    net: string
+    netFormatted: string
+  }
+}
 
 interface HistoryResponse {
   history: HistoryEntry[]
@@ -99,10 +125,26 @@ export function relativeTime(iso: string): string {
 // Uses `totals` for all-time stats (single API call).
 // Pass historyPages > 1 to fetch deeper history for sparkline/best-worst/round table.
 
-export async function fetchAgentStats(walletAddress: string, historyPages = 1): Promise<AgentStats> {
-  const data = await apiFetch<HistoryResponse>(
-    `/api/user/${walletAddress}/history?type=deploy&limit=50`
-  )
+export async function fetchAgentStats(walletAddress: string, historyPages = 1, initialFunding = 1.0): Promise<AgentStats> {
+  // Fetch API history + rewards + on-chain balances in parallel
+  const [data, rewards, ethBalanceWei, walletBeanRaw] = await Promise.all([
+    apiFetch<HistoryResponse>(
+      `/api/user/${walletAddress}/history?type=deploy&limit=50`
+    ),
+    apiFetch<RewardsResponse>(
+      `/api/user/${walletAddress}/rewards`
+    ),
+    publicClient.getBalance({ address: walletAddress as `0x${string}` }),
+    publicClient.readContract({
+      address: BEAN_TOKEN,
+      abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+      functionName: 'balanceOf',
+      args: [walletAddress as `0x${string}`],
+    }),
+  ])
+
+  const ethBalance = parseFloat(formatEther(ethBalanceWei))
+  const walletBean = parseFloat(formatEther(walletBeanRaw))
 
   // Fetch additional history pages in parallel if requested
   const allHistory = [...data.history]
@@ -125,18 +167,20 @@ export async function fetchAgentStats(walletAddress: string, historyPages = 1): 
     }
   }
 
-  // ── All-time stats from totals ──
+  // ── All-time stats from totals + on-chain balances ──
   const totals = data.totals
   const beanPriceEth = parseFloat(totals.beanPriceEth) || 0
   const totalDeployed = parseFloat(totals.totalETHDeployedFormatted) || 0
   const totalWon = parseFloat(totals.totalETHWonFormatted) || 0
-  const beansEarned = parseFloat(totals.totalBEANWonFormatted) || 0
-  const netPnl = parseFloat(totals.totalPNL) || 0
-  const ethPnl = totalWon - totalDeployed
+  const pendingBean = parseFloat(rewards.pendingBEAN.grossFormatted) || 0
+  const beansEarned = walletBean + pendingBean // wallet BEAN + unclaimed BEAN
   const beanValueEth = beansEarned * beanPriceEth
+  const totalValue = ethBalance + beanValueEth
+  const netPnl = totalValue - initialFunding
+  const ethPnl = ethBalance - initialFunding // ETH-only P&L (before BEAN value)
   const roundsPlayed = totals.roundsPlayed
   const winRate = roundsPlayed > 0 ? Math.round((totals.roundsWon / roundsPlayed) * 100) : 0
-  const roi = totalDeployed > 0 ? Math.round((netPnl / totalDeployed) * 100) : 0
+  const roi = initialFunding > 0 ? Math.round((netPnl / initialFunding) * 100) : 0
 
   // ── Per-round data from history entries (round table + sparkline) ──
   const roundMap = new Map<number, {

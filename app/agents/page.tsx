@@ -63,7 +63,7 @@ export default function AgentsPage() {
   useEffect(() => {
     function fetchAll() {
       AGENTS.forEach(a => {
-        fetchAgentStats(a.walletAddress, 1)
+        fetchAgentStats(a.walletAddress, 1, a.initialFunding)
           .then(stats => {
             setStatsMap(prev => ({ ...prev, [a.id]: stats }))
           })

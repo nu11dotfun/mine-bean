@@ -59,7 +59,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   useEffect(() => {
     if (!agent) return
     function fetchData() {
-      fetchAgentStats(agent!.walletAddress, historyPages)
+      fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding)
         .then(setStats)
         .catch(console.error)
         .finally(() => setLoading(false))

@@ -368,14 +368,15 @@ export default function AgentsPage() {
 
         {/* Total PnL summary across all agents */}
         {(() => {
-          const loadedCount = AGENTS.filter(a => statsMap[a.id]).length
-          if (loadedCount === 0) return null
-          // Only include profitable agents in holder incentive totals
-          const eligibleAgents = AGENTS.filter(a => statsMap[a.id] && (statsMap[a.id]?.netPnl ?? 0) > 0)
+          const loadedAgents = AGENTS.filter(a => statsMap[a.id])
+          if (loadedAgents.length === 0) return null
+          // PnL only counts profitable agents (holder incentive)
+          const eligibleAgents = loadedAgents.filter(a => (statsMap[a.id]?.netPnl ?? 0) > 0)
           const totalPnl = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.netPnl ?? 0), 0)
-          const totalBeanPaidOut = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
-          const totalBeanEarned = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.beansEarned ?? 0) + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
-          const totalRounds = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.roundsPlayed ?? 0), 0)
+          // BEAN paid out = straight from payout contract, all agents
+          const totalBeanPaidOut = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
+          const totalBeanEarned = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.beansEarned ?? 0) + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
+          const totalRounds = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.roundsPlayed ?? 0), 0)
           const eligibleCount = eligibleAgents.length
           const pnlPositive = totalPnl >= 0
           return (

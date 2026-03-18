@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { AGENTS } from '@/lib/agents'
-import { AgentStats, fetchAgentStats } from '@/lib/agentData'
+import { AgentStats, fetchAgentStats, fetchPayoutSummary } from '@/lib/agentData'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -59,19 +59,32 @@ export default function AgentsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Fetch all agent stats + auto-refresh every 60s
+  // Fetch all agent stats + auto-refresh every 120s
   useEffect(() => {
     function fetchAll() {
-      AGENTS.forEach(a => {
-        fetchAgentStats(a.walletAddress, 1, a.initialFunding)
-          .then(stats => {
-            setStatsMap(prev => ({ ...prev, [a.id]: stats }))
-          })
-          .catch(console.error)
+      // Fetch payout summary in parallel — never blocks agent stats
+      fetchPayoutSummary().then(payouts => {
+        AGENTS.forEach(a => {
+          const paidOut = payouts[a.apiAgentId] ?? 0
+          fetchAgentStats(a.walletAddress, 1, a.initialFunding, paidOut)
+            .then(stats => {
+              setStatsMap(prev => ({ ...prev, [a.id]: stats }))
+            })
+            .catch(console.error)
+        })
+      }).catch(() => {
+        // Fallback: load stats without payout data
+        AGENTS.forEach(a => {
+          fetchAgentStats(a.walletAddress, 1, a.initialFunding, 0)
+            .then(stats => {
+              setStatsMap(prev => ({ ...prev, [a.id]: stats }))
+            })
+            .catch(console.error)
+        })
       })
     }
     fetchAll()
-    const interval = setInterval(fetchAll, 60_000)
+    const interval = setInterval(fetchAll, 120_000)
     return () => clearInterval(interval)
   }, [])
 
@@ -358,6 +371,85 @@ export default function AgentsPage() {
             </button>
           )}
         </div>
+
+        {/* Total PnL summary across all agents */}
+        {(() => {
+          const allLoaded = AGENTS.every(a => statsMap[a.id])
+          if (!allLoaded) return null
+          // Only include profitable agents in holder incentive totals
+          const eligibleAgents = AGENTS.filter(a => (statsMap[a.id]?.netPnl ?? 0) > 0)
+          const totalPnl = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.netPnl ?? 0), 0)
+          const totalBeanPaidOut = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
+          const totalBeanEarned = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.beansEarned ?? 0) + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
+          const totalRounds = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.roundsPlayed ?? 0), 0)
+          const eligibleCount = eligibleAgents.length
+          const pnlPositive = totalPnl >= 0
+          return (
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: isMobile ? 16 : 32,
+              padding: isMobile ? '12px 0' : '14px 0',
+              flexShrink: 0,
+              flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span style={{
+                  fontSize: isMobile ? 16 : 18, fontWeight: 700,
+                  fontFamily: "'Space Mono', monospace",
+                  color: pnlPositive ? '#00C853' : '#FF4444',
+                }}>
+                  {pnlPositive ? '+' : ''}{totalPnl.toFixed(4)} ETH
+                </span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  HOLDER INCENTIVE TOTAL P&L
+                </span>
+              </div>
+              <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span style={{
+                  fontSize: isMobile ? 16 : 18, fontWeight: 700,
+                  fontFamily: "'Space Mono', monospace",
+                  color: '#fff',
+                }}>
+                  {totalBeanEarned > 1000 ? `${(totalBeanEarned / 1000).toFixed(1)}k` : totalBeanEarned.toFixed(1)}
+                </span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  BEAN EARNED
+                </span>
+              </div>
+              <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span style={{
+                  fontSize: isMobile ? 16 : 18, fontWeight: 700,
+                  fontFamily: "'Space Mono', monospace",
+                  color: '#fff',
+                }}>
+                  {eligibleCount} / {AGENTS.length}
+                </span>
+                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                  ELIGIBLE AGENTS
+                </span>
+              </div>
+              {totalBeanPaidOut > 0 && (<>
+                <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <span style={{
+                    fontSize: isMobile ? 16 : 18, fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace",
+                    color: '#00C853',
+                  }}>
+                    {totalBeanPaidOut > 1000 ? `${(totalBeanPaidOut / 1000).toFixed(1)}k` : totalBeanPaidOut.toFixed(1)} BEAN
+                  </span>
+                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                    PAID TO HOLDERS
+                  </span>
+                </div>
+              </>)}
+            </div>
+          )
+        })()}
 
         {/* Agent selector */}
         <div style={s.selectorWrap}>

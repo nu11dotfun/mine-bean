@@ -6,8 +6,23 @@ const BEAN_TOKEN = '0x5c72992b83E74c4D5200A8E8920fB946214a5A5D' as const
 
 const publicClient = createPublicClient({
   chain: base,
-  transport: http(),
+  transport: http(undefined, {
+    batch: true,
+    retryCount: 2,
+    retryDelay: 500,
+  }),
 })
+
+// ── In-memory stats cache ──
+// Prevents redundant API/RPC calls when navigating between agent pages
+
+interface CachedStats {
+  stats: AgentStats
+  timestamp: number
+}
+
+const statsCache = new Map<string, CachedStats>()
+const CACHE_TTL = 60_000 // serve cached data for 60s
 
 // ── API response types ──
 
@@ -91,8 +106,10 @@ export interface AgentStats {
   ethPnl: number
   beansEarned: number
   beanValueEth: number
-  netPnl: number           // true PnL: ethPnl + beanValueEth
+  netPnl: number           // true PnL: ethPnl + beanValueEth (includes paid out BEAN)
   beanPriceEth: number
+  totalBeanPaidOut: number  // cumulative BEAN paid to holders
+  paidOutValueEth: number   // totalBeanPaidOut * beanPriceEth
   lastActive: string
   sparkline: number[]
   rounds: RoundData[]
@@ -121,11 +138,56 @@ export function relativeTime(iso: string): string {
   return `${Math.floor(hrs / 24)}d ago`
 }
 
+// ── Payout summary fetch ──
+// Fetches cumulative BEAN paid out per agent from backend
+
+interface PayoutAgentSummary {
+  totalPayouts: number
+  totalAmount: string
+  totalAmountFormatted: string
+  lastPayoutAt: string
+}
+
+interface PayoutSummaryResponse {
+  agents: Record<string, PayoutAgentSummary>
+}
+
+let payoutCache: { data: Record<string, number>; timestamp: number } | null = null
+const PAYOUT_CACHE_TTL = 120_000 // 2 min cache
+
+export async function fetchPayoutSummary(): Promise<Record<string, number>> {
+  if (payoutCache && Date.now() - payoutCache.timestamp < PAYOUT_CACHE_TTL) {
+    return payoutCache.data
+  }
+
+  try {
+    const res = await apiFetch<PayoutSummaryResponse>('/api/payouts/agent/summary')
+    const map: Record<string, number> = {}
+    for (const [agentId, info] of Object.entries(res.agents)) {
+      map[agentId] = parseFloat(info.totalAmountFormatted) || 0
+    }
+    payoutCache = { data: map, timestamp: Date.now() }
+    return map
+  } catch (e) {
+    console.error('Failed to fetch payout summary:', e)
+    return payoutCache?.data ?? {}
+  }
+}
+
 // ── Main fetch ──
 // Uses `totals` for all-time stats (single API call).
 // Pass historyPages > 1 to fetch deeper history for sparkline/best-worst/round table.
 
-export async function fetchAgentStats(walletAddress: string, historyPages = 1, initialFunding = 1.0): Promise<AgentStats> {
+export async function fetchAgentStats(walletAddress: string, historyPages = 1, initialFunding = 1.0, totalBeanPaidOut = 0, skipCache = false): Promise<AgentStats> {
+  // Return cached stats if fresh enough
+  const cacheKey = `${walletAddress}-${historyPages}`
+  if (!skipCache) {
+    const cached = statsCache.get(cacheKey)
+    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+      return cached.stats
+    }
+  }
+
   // Fetch API history + rewards + on-chain balances in parallel
   const [data, rewards, ethBalanceWei, walletBeanRaw] = await Promise.all([
     apiFetch<HistoryResponse>(
@@ -175,7 +237,8 @@ export async function fetchAgentStats(walletAddress: string, historyPages = 1, i
   const pendingBean = parseFloat(rewards.pendingBEAN.grossFormatted) || 0
   const beansEarned = walletBean + pendingBean // wallet BEAN + unclaimed BEAN
   const beanValueEth = beansEarned * beanPriceEth
-  const totalValue = ethBalance + beanValueEth
+  const paidOutValueEth = totalBeanPaidOut * beanPriceEth
+  const totalValue = ethBalance + beanValueEth + paidOutValueEth
   const netPnl = totalValue - initialFunding
   const ethPnl = ethBalance - initialFunding // ETH-only P&L (before BEAN value)
   const roundsPlayed = totals.roundsPlayed
@@ -277,7 +340,7 @@ export async function fetchAgentStats(walletAddress: string, historyPages = 1, i
     }
   }
 
-  return {
+  const result: AgentStats = {
     roundsPlayed,
     winRate,
     roi,
@@ -288,8 +351,15 @@ export async function fetchAgentStats(walletAddress: string, historyPages = 1, i
     beanValueEth,
     netPnl,
     beanPriceEth,
+    totalBeanPaidOut,
+    paidOutValueEth,
     lastActive: allHistory.length > 0 ? relativeTime(allHistory[0].timestamp) : 'unknown',
     sparkline,
     rounds,
   }
+
+  // Cache the result
+  statsCache.set(cacheKey, { stats: result, timestamp: Date.now() })
+
+  return result
 }

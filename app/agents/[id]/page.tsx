@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { AGENTS } from '@/lib/agents'
-import { AgentStats, fetchAgentStats, relativeTime } from '@/lib/agentData'
+import { AgentStats, fetchAgentStats, fetchPayoutSummary, relativeTime } from '@/lib/agentData'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -55,17 +55,25 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Fetch + auto-refresh every 60s
+  // Fetch + auto-refresh every 120s
   useEffect(() => {
     if (!agent) return
     function fetchData() {
-      fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding)
-        .then(setStats)
-        .catch(console.error)
-        .finally(() => setLoading(false))
+      fetchPayoutSummary().then(payouts => {
+        const paidOut = payouts[agent!.apiAgentId] ?? 0
+        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, paidOut)
+          .then(setStats)
+          .catch(console.error)
+          .finally(() => setLoading(false))
+      }).catch(() => {
+        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, 0)
+          .then(setStats)
+          .catch(console.error)
+          .finally(() => setLoading(false))
+      })
     }
     fetchData()
-    const interval = setInterval(fetchData, 60_000)
+    const interval = setInterval(fetchData, 120_000)
     return () => clearInterval(interval)
   }, [agent?.walletAddress, historyPages])
 
@@ -229,6 +237,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                     </div>
                   ))}
                 </div>
+
                 {/* Invest button */}
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                 <button
@@ -247,6 +256,37 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                 >
                   INVEST — COMING SOON
                 </button>
+              </div>
+            </NeonCard>
+
+            {/* Holder Payouts card */}
+            <NeonCard style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
+                    {'// HOLDER PAYOUTS'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.totalBeanPaidOut > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {stats.totalBeanPaidOut > 1000 ? `${(stats.totalBeanPaidOut / 1000).toFixed(1)}k` : stats.totalBeanPaidOut > 0 ? stats.totalBeanPaidOut.toFixed(1) : '0'}
+                    </span>
+                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
+                      BEAN PAID
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.paidOutValueEth > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {stats.paidOutValueEth > 0 ? `+${stats.paidOutValueEth.toFixed(4)}` : '0'}
+                    </span>
+                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
+                      ETH VALUE
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </NeonCard>
           </div>

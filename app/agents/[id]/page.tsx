@@ -6,7 +6,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { AGENTS } from '@/lib/agents'
-import { AgentStats, fetchAgentStats, fetchPayoutSummary, relativeTime } from '@/lib/agentData'
+import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -56,17 +56,17 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   }, [])
 
   // Fetch + auto-refresh every 120s
+  // Payout + on-chain balances fetched in parallel, then API-only stats
   useEffect(() => {
     if (!agent) return
     function fetchData() {
-      fetchPayoutSummary().then(payouts => {
-        const paidOut = payouts[agent!.apiAgentId] ?? 0
-        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, paidOut)
-          .then(setStats)
-          .catch(console.error)
-          .finally(() => setLoading(false))
-      }).catch(() => {
-        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, 0)
+      Promise.all([
+        fetchPayoutSummary().catch(() => ({} as Record<string, number>)),
+        fetchAllOnChainBalances([agent!.walletAddress]).catch(() => new Map()),
+      ]).then(([payouts, balances]) => {
+        const paidOut = (payouts as Record<string, number>)[agent!.apiAgentId] ?? 0
+        const bal = balances.get(agent!.walletAddress)
+        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, paidOut, false, bal || undefined)
           .then(setStats)
           .catch(console.error)
           .finally(() => setLoading(false))

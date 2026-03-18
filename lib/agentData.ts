@@ -22,7 +22,7 @@ interface CachedStats {
 }
 
 const statsCache = new Map<string, CachedStats>()
-const CACHE_TTL = 60_000 // serve cached data for 60s
+const CACHE_TTL = 120_000 // serve cached data for 120s (matches refresh interval)
 
 // ── API response types ──
 
@@ -174,11 +174,53 @@ export async function fetchPayoutSummary(): Promise<Record<string, number>> {
   }
 }
 
+// ── Batch on-chain balance fetch ──
+// Fetches ETH + BEAN balance for multiple wallets in a single burst.
+// With viem batch transport, all calls are sent as one HTTP request.
+
+export interface OnChainBalances {
+  ethBalance: number
+  walletBean: number
+}
+
+export async function fetchAllOnChainBalances(
+  addresses: string[]
+): Promise<Map<string, OnChainBalances>> {
+  const calls: Promise<bigint>[] = []
+  for (const addr of addresses) {
+    calls.push(publicClient.getBalance({ address: addr as `0x${string}` }))
+    calls.push(
+      publicClient.readContract({
+        address: BEAN_TOKEN,
+        abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+        functionName: 'balanceOf',
+        args: [addr as `0x${string}`],
+      }) as Promise<bigint>
+    )
+  }
+
+  // Race against a 8s timeout — public RPC can hang
+  const timeout = new Promise<never>((_, reject) =>
+    setTimeout(() => reject(new Error('RPC timeout')), 8_000)
+  )
+  const results = await Promise.race([Promise.all(calls), timeout])
+
+  const map = new Map<string, OnChainBalances>()
+  for (let i = 0; i < addresses.length; i++) {
+    map.set(addresses[i], {
+      ethBalance: parseFloat(formatEther(results[i * 2])),
+      walletBean: parseFloat(formatEther(results[i * 2 + 1])),
+    })
+  }
+  return map
+}
+
 // ── Main fetch ──
 // Uses `totals` for all-time stats (single API call).
 // Pass historyPages > 1 to fetch deeper history for sparkline/best-worst/round table.
+// Pass preBalances to skip on-chain reads (already fetched via fetchAllOnChainBalances).
 
-export async function fetchAgentStats(walletAddress: string, historyPages = 1, initialFunding = 1.0, totalBeanPaidOut = 0, skipCache = false): Promise<AgentStats> {
+export async function fetchAgentStats(walletAddress: string, historyPages = 1, initialFunding = 1.0, totalBeanPaidOut = 0, skipCache = false, preBalances?: OnChainBalances): Promise<AgentStats> {
   // Return cached stats if fresh enough
   const cacheKey = `${walletAddress}-${historyPages}`
   if (!skipCache) {
@@ -188,25 +230,45 @@ export async function fetchAgentStats(walletAddress: string, historyPages = 1, i
     }
   }
 
-  // Fetch API history + rewards + on-chain balances in parallel
-  const [data, rewards, ethBalanceWei, walletBeanRaw] = await Promise.all([
-    apiFetch<HistoryResponse>(
-      `/api/user/${walletAddress}/history?type=deploy&limit=50`
-    ),
-    apiFetch<RewardsResponse>(
-      `/api/user/${walletAddress}/rewards`
-    ),
-    publicClient.getBalance({ address: walletAddress as `0x${string}` }),
-    publicClient.readContract({
-      address: BEAN_TOKEN,
-      abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
-      functionName: 'balanceOf',
-      args: [walletAddress as `0x${string}`],
-    }),
-  ])
+  let ethBalance: number
+  let walletBean: number
+  let data: HistoryResponse
+  let rewards: RewardsResponse
 
-  const ethBalance = parseFloat(formatEther(ethBalanceWei))
-  const walletBean = parseFloat(formatEther(walletBeanRaw))
+  if (preBalances) {
+    // On-chain balances already fetched — only need API calls
+    ethBalance = preBalances.ethBalance
+    walletBean = preBalances.walletBean
+    ;[data, rewards] = await Promise.all([
+      apiFetch<HistoryResponse>(
+        `/api/user/${walletAddress}/history?type=deploy&limit=50`
+      ),
+      apiFetch<RewardsResponse>(
+        `/api/user/${walletAddress}/rewards`
+      ),
+    ])
+  } else {
+    // Fetch API history + rewards + on-chain balances in parallel
+    const [d, r, ethBalanceWei, walletBeanRaw] = await Promise.all([
+      apiFetch<HistoryResponse>(
+        `/api/user/${walletAddress}/history?type=deploy&limit=50`
+      ),
+      apiFetch<RewardsResponse>(
+        `/api/user/${walletAddress}/rewards`
+      ),
+      publicClient.getBalance({ address: walletAddress as `0x${string}` }),
+      publicClient.readContract({
+        address: BEAN_TOKEN,
+        abi: parseAbi(['function balanceOf(address) view returns (uint256)']),
+        functionName: 'balanceOf',
+        args: [walletAddress as `0x${string}`],
+      }),
+    ])
+    data = d
+    rewards = r
+    ethBalance = parseFloat(formatEther(ethBalanceWei))
+    walletBean = parseFloat(formatEther(walletBeanRaw))
+  }
 
   // Fetch additional history pages in parallel if requested
   const allHistory = [...data.history]

@@ -5,7 +5,7 @@ import Link from 'next/link'
 import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { AGENTS } from '@/lib/agents'
-import { AgentStats, fetchAgentStats, fetchPayoutSummary } from '@/lib/agentData'
+import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances } from '@/lib/agentData'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -60,25 +60,19 @@ export default function AgentsPage() {
   }, [])
 
   // Fetch all agent stats + auto-refresh every 120s
+  // Payout summary + all on-chain balances fetched in parallel first,
+  // then API-only stats calls fire without waiting for RPC.
   useEffect(() => {
     function fetchAll() {
-      // Fetch payout summary in parallel — never blocks agent stats
-      fetchPayoutSummary().then(payouts => {
+      Promise.all([
+        fetchPayoutSummary().catch(() => ({} as Record<string, number>)),
+        fetchAllOnChainBalances(AGENTS.map(a => a.walletAddress)).catch(() => new Map()),
+      ]).then(([payouts, balances]) => {
         AGENTS.forEach(a => {
-          const paidOut = payouts[a.apiAgentId] ?? 0
-          fetchAgentStats(a.walletAddress, 1, a.initialFunding, paidOut)
-            .then(stats => {
-              setStatsMap(prev => ({ ...prev, [a.id]: stats }))
-            })
-            .catch(console.error)
-        })
-      }).catch(() => {
-        // Fallback: load stats without payout data
-        AGENTS.forEach(a => {
-          fetchAgentStats(a.walletAddress, 1, a.initialFunding, 0)
-            .then(stats => {
-              setStatsMap(prev => ({ ...prev, [a.id]: stats }))
-            })
+          const paidOut = (payouts as Record<string, number>)[a.apiAgentId] ?? 0
+          const bal = balances.get(a.walletAddress)
+          fetchAgentStats(a.walletAddress, 1, a.initialFunding, paidOut, false, bal || undefined)
+            .then(stats => setStatsMap(prev => ({ ...prev, [a.id]: stats })))
             .catch(console.error)
         })
       })
@@ -374,10 +368,10 @@ export default function AgentsPage() {
 
         {/* Total PnL summary across all agents */}
         {(() => {
-          const allLoaded = AGENTS.every(a => statsMap[a.id])
-          if (!allLoaded) return null
+          const loadedCount = AGENTS.filter(a => statsMap[a.id]).length
+          if (loadedCount === 0) return null
           // Only include profitable agents in holder incentive totals
-          const eligibleAgents = AGENTS.filter(a => (statsMap[a.id]?.netPnl ?? 0) > 0)
+          const eligibleAgents = AGENTS.filter(a => statsMap[a.id] && (statsMap[a.id]?.netPnl ?? 0) > 0)
           const totalPnl = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.netPnl ?? 0), 0)
           const totalBeanPaidOut = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
           const totalBeanEarned = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.beansEarned ?? 0) + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)

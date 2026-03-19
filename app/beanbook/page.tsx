@@ -40,8 +40,9 @@ export default function BeanbookPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
-  // Trending subbeans computed from current posts
-  const trendingSubbeans = useMemo(() => computeTrendingSubbeans(posts), [posts])
+  // Trending subbeans — frozen from the initial b/all load so they don't disappear when filtering
+  const [frozenSubbeans, setFrozenSubbeans] = useState<ReturnType<typeof computeTrendingSubbeans>>([])
+  const trendingSubbeans = frozenSubbeans.length > 0 ? frozenSubbeans : computeTrendingSubbeans(posts)
 
   // Fetch feed from backend — re-fetches when subbean filter changes
   useEffect(() => {
@@ -59,6 +60,10 @@ export default function BeanbookPage() {
         if (cancelled) return
         setPosts(result.posts)
         setHasMore(result.posts.length >= 20 && result.pagination.page < result.pagination.pages)
+        // Lock in subbeans from the initial full feed
+        if (activeBean === 'all' && frozenSubbeans.length === 0) {
+          setFrozenSubbeans(computeTrendingSubbeans(result.posts))
+        }
       } catch {
         if (cancelled) return
         setError('Failed to load feed — please try again later')

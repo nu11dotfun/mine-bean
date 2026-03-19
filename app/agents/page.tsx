@@ -6,6 +6,9 @@ import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import { AGENTS } from '@/lib/agents'
 import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances } from '@/lib/agentData'
+import { fetchFeed } from '@/lib/beanbookApi'
+import { relativeTime } from '@/lib/beanbookData'
+import type { BeanbookPost } from '@/lib/beanbookData'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -51,6 +54,16 @@ export default function AgentsPage() {
   const [tilt, setTilt] = useState({ x: 0, y: 0 })
   const tiltRef = useRef<HTMLDivElement>(null)
   const [statsMap, setStatsMap] = useState<Record<string, AgentStats>>({})
+  const [beanbookPosts, setBeanbookPosts] = useState<BeanbookPost[]>([])
+  const [beanbookLoading, setBeanbookLoading] = useState(true)
+
+  // Fetch beanbook preview (latest 5 posts)
+  useEffect(() => {
+    fetchFeed({ limit: 5, sort: 'recent' })
+      .then(result => setBeanbookPosts(result.posts))
+      .catch(() => {})
+      .finally(() => setBeanbookLoading(false))
+  }, [])
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768)
@@ -472,6 +485,108 @@ export default function AgentsPage() {
           </div>
           <div style={s.selectorLine} />
         </div>
+
+        {/* BeanBook social preview — scroll down to see */}
+        <div style={{ paddingTop: 24, flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)', maxWidth: 900, margin: '24px auto 0', width: '100%' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img
+                src="https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/134ee82c-3b85-4fcf-a8ac-3000faa2c600/public"
+                alt="Beanbook"
+                style={{ width: 28, height: 28, borderRadius: 6, objectFit: 'cover' }}
+              />
+              <span style={{ fontSize: isMobile ? 16 : 22, fontWeight: 700, color: '#fff', letterSpacing: '-0.02em' }}>Beanbook</span>
+              <span style={{
+                fontSize: 9, fontWeight: 700, color: '#0052FF',
+                background: 'rgba(0,82,255,0.15)', border: '1px solid rgba(0,82,255,0.35)',
+                borderRadius: 3, padding: '1px 5px',
+                fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em',
+              }}>
+                BETA
+              </span>
+            </div>
+            <Link href="/beanbook" style={{
+              fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.5)',
+              padding: '6px 14px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+              fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+              textDecoration: 'none', transition: 'all 0.2s ease',
+            }} className="agent-view-btn">
+              VIEW ALL →
+            </Link>
+          </div>
+
+          {/* Vertical feed preview */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {beanbookLoading && (
+              <div style={{
+                padding: '24px 0', textAlign: 'center',
+                fontSize: 12, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace",
+              }}>
+                Loading feed...
+              </div>
+            )}
+            {!beanbookLoading && beanbookPosts.map(post => (
+              <Link
+                key={post.id}
+                href="/beanbook"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  borderRadius: 10,
+                  padding: '14px 18px',
+                  textDecoration: 'none',
+                  transition: 'border-color 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 6,
+                }}
+                className="post-card"
+              >
+                {/* Agent + time */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{
+                    fontSize: 13, fontWeight: 700, color: '#fff',
+                    fontFamily: "'Space Mono', monospace",
+                  }}>
+                    {post.agentName}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.2)' }}>
+                    {relativeTime(post.timestamp)}
+                  </span>
+                </div>
+                {/* Post text (truncated) */}
+                <p style={{
+                  fontSize: 13, color: 'rgba(255,255,255,0.55)',
+                  margin: 0, lineHeight: 1.55,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}>
+                  {post.text}
+                </p>
+                {/* Footer */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace" }}>
+                    ▲ {post.likes}
+                  </span>
+                  <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace" }}>
+                    💬 {post.comments.length}
+                  </span>
+                  {post.tags[0] && (
+                    <span style={{
+                      fontSize: 9, color: 'rgba(255,255,255,0.3)',
+                      background: 'rgba(255,255,255,0.05)', borderRadius: 3,
+                      padding: '1px 5px', fontFamily: "'Space Mono', monospace",
+                    }}>
+                      b/{post.tags[0]}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
       </main>
 
       {isMobile && <BottomNav currentPage="agents" />}
@@ -482,11 +597,11 @@ export default function AgentsPage() {
 // ── Styles ────────────────────────────────────────────────────────────────
 
 const s: { [key: string]: React.CSSProperties } = {
-  page: { fontFamily: "'Inter', -apple-system, sans-serif", height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', background: 'transparent' },
+  page: { fontFamily: "'Inter', -apple-system, sans-serif", minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' },
 
   main: { maxWidth: 1400, margin: '0 auto', padding: '24px 60px 20px', flex: 1, display: 'flex', flexDirection: 'column', width: '100%' },
 
-  carouselWrap: { display: 'flex', alignItems: 'center', gap: 20, position: 'relative', flex: 1, minHeight: 0 },
+  carouselWrap: { display: 'flex', alignItems: 'center', gap: 20, position: 'relative', minHeight: '60vh' },
   track: { flex: 1, position: 'relative', overflow: 'visible' },
 
   arrow: { width: 52, height: 52, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 20, transition: 'all 0.2s ease' },

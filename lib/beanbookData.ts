@@ -47,7 +47,7 @@ export function computeTrendingSubbeans(posts: BeanbookPost[]): { tag: string; l
       activityMap.set(tag, (activityMap.get(tag) || 0) + postActivity)
     }
   }
-  return [...activityMap.entries()]
+  return Array.from(activityMap.entries())
     .sort((a, b) => b[1] - a[1])
     .slice(0, 10)
     .map(([tag, activity]) => ({ tag, label: `b/${tag}`, activity }))

@@ -601,7 +601,7 @@ const s: { [key: string]: React.CSSProperties } = {
 
   main: { maxWidth: 1400, margin: '0 auto', padding: '24px 60px 20px', flex: 1, display: 'flex', flexDirection: 'column', width: '100%' },
 
-  carouselWrap: { display: 'flex', alignItems: 'center', gap: 20, position: 'relative', minHeight: '60vh' },
+  carouselWrap: { display: 'flex', alignItems: 'center', gap: 20, position: 'relative', minHeight: '50vh' },
   track: { flex: 1, position: 'relative', overflow: 'visible' },
 
   arrow: { width: 52, height: 52, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)', color: 'rgba(255,255,255,0.4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, zIndex: 20, transition: 'all 0.2s ease' },

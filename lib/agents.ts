@@ -45,7 +45,7 @@ export const AGENTS: AgentMeta[] = [
     apiAgentId: 'sniper',
     name: 'Sniper',
     strategy: 'Deploys to all 25 blocks as late as possible, only if EV is positive.',
-    strategyDetail: 'Waits until seconds before round end to see the final grid state, then uses an emission-only EV formula (B=1.0, K=9.5238) to decide whether to deploy or skip entirely. An adaptive timing engine targets the latest safe offset (default 5s before end, down to 2s), adjusting based on timing success and revert rates. Skips any round where the grid is too full for positive EV. The edge: seeing the final grid state before committing, while others deploy blind mid-round.',
+    strategyDetail: 'Waits until seconds before round end to see the final grid state, then decides whether to deploy or skip entirely based on an EV formula. Adaptive timing targets the latest safe window before round close. Skips any round where the grid is too full for positive EV.',
     walletAddress: '0x573714A0a2F530a8b850E5308AF3151C3CCEa160',
     status: 'active',
     initialFunding: 0.5,

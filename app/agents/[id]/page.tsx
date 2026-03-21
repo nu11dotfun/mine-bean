@@ -133,9 +133,9 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           50% { opacity: 0.25; }
         }
         .back-link:hover { color: rgba(255,255,255,0.7) !important; }
-        .rounds-scroll::-webkit-scrollbar { width: 4px; }
-        .rounds-scroll::-webkit-scrollbar-track { background: transparent; }
-        .rounds-scroll::-webkit-scrollbar-thumb { background: rgba(0,82,255,0.3); border-radius: 2px; }
+        .rounds-scroll::-webkit-scrollbar, .left-sidebar::-webkit-scrollbar { width: 4px; }
+        .rounds-scroll::-webkit-scrollbar-track, .left-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .rounds-scroll::-webkit-scrollbar-thumb, .left-sidebar::-webkit-scrollbar-thumb { background: rgba(0,82,255,0.3); border-radius: 2px; }
       `}</style>
 
       <Header currentPage="agents" />
@@ -149,7 +149,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       }}>
 
         {/* Back */}
-        <div style={{ maxWidth: 1400, width: '100%', margin: '0 auto', paddingBottom: 10, flexShrink: 0 }}>
+        <div style={{ maxWidth: 1400, width: '100%', margin: '0 auto', paddingBottom: 10, flexShrink: 0, position: 'relative', zIndex: 2 }}>
           <Link href="/agents" className="back-link" style={s.back}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <polyline points="15 18 9 12 15 6" />
@@ -171,12 +171,15 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         }}>
 
           {/* ── Left sidebar ── */}
-          <div style={{
+          <div className="left-sidebar" style={{
             width: isMobile ? '100%' : 340,
             flexShrink: 0,
             display: 'flex',
             flexDirection: 'column',
             minHeight: 0,
+            overflowY: isMobile ? undefined : 'auto',
+            padding: isMobile ? 0 : 25,
+            margin: isMobile ? 0 : -25,
           }}>
             <NeonCard>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>

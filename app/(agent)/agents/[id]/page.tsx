@@ -1,0 +1,580 @@
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import AgentHeader from '@/components/AgentHeader'
+import AgentBottomNav from '@/components/AgentBottomNav'
+import { AGENTS } from '@/lib/agents'
+import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
+
+function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
+  const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
+  const label = status === 'active' ? 'ONLINE' : status === 'new' ? 'DEPLOYING' : 'STANDBY'
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color, fontWeight: 700, fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0, ...(status !== 'paused' ? { animation: 'pulse-glow 2s ease-in-out infinite' } : {}) }} />
+      {label}
+    </span>
+  )
+}
+
+function NeonCard({ children, style, fillHeight }: { children: React.ReactNode; style?: React.CSSProperties; fillHeight?: boolean }) {
+  return (
+    <div style={{
+      position: 'relative',
+      background: 'linear-gradient(180deg, rgba(0,40,120,0.12) 0%, rgba(0,15,50,0.06) 100%)',
+      border: '1px solid rgba(0,120,255,0.7)',
+      borderRadius: 16, padding: 14,
+      boxShadow: '0 0 8px rgba(0,120,255,0.7), 0 0 20px rgba(0,100,255,0.4), 0 0 45px rgba(0,80,255,0.2), 0 0 80px rgba(0,60,255,0.08), inset 0 0 20px rgba(0,100,255,0.08), inset 0 1px 0 rgba(150,200,255,0.12)',
+      ...(fillHeight ? { flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' as const } : {}),
+      ...style,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+const ROWS_PER_PAGE = 12
+
+export default function AgentProfilePage({ params }: { params: { id: string } }) {
+  const { id } = params
+  const agent = AGENTS.find(a => a.id === id)
+
+  const [isMobile, setIsMobile] = useState(false)
+  const [page, setPage] = useState(0)
+  const [stats, setStats] = useState<AgentStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [historyPages] = useState(4)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
+
+  // Fetch + auto-refresh every 120s
+  // Payout + on-chain balances fetched in parallel, then API-only stats
+  useEffect(() => {
+    if (!agent) return
+    function fetchData() {
+      Promise.all([
+        fetchPayoutSummary().catch(() => ({} as Record<string, number>)),
+        fetchAllOnChainBalances([agent!.walletAddress]).catch(() => new Map()),
+      ]).then(([payouts, balances]) => {
+        const paidOut = (payouts as Record<string, number>)[agent!.apiAgentId] ?? 0
+        const bal = balances.get(agent!.walletAddress)
+        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, paidOut, false, bal || undefined)
+          .then(setStats)
+          .catch(console.error)
+          .finally(() => setLoading(false))
+      })
+    }
+    fetchData()
+    const interval = setInterval(fetchData, 120_000)
+    return () => clearInterval(interval)
+  }, [agent?.walletAddress, historyPages])
+
+
+
+  if (!agent) notFound()
+
+  // Loading state
+  if (loading || !stats) {
+    return (
+      <div style={s.page}>
+        <AgentHeader currentPage="agents" />
+        <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <span style={{ color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono', monospace", fontSize: 13 }}>
+            Loading agent data...
+          </span>
+        </main>
+      </div>
+    )
+  }
+
+  const isPositive = stats.netPnl >= 0
+  const agentNum = String(parseInt(agent.id.replace('agent', ''))).padStart(3, '0')
+
+  // Sparkline chart
+  const sparkData = stats.sparkline
+  const sparkMin = Math.min(...sparkData)
+  const sparkMax = Math.max(...sparkData)
+  const sparkRange = sparkMax - sparkMin || 1
+  const chartW = 400, chartH = 80
+  const sparkPoints = sparkData.map((v, i) => {
+    const x = (i / (sparkData.length - 1)) * chartW
+    const y = chartH - ((v - sparkMin) / sparkRange) * (chartH - 4) - 2
+    return `${x},${y}`
+  }).join(' ')
+
+  // Derived stats from rounds
+  const settledRounds = stats.rounds.filter(r => r.settled)
+  const avgPosition = stats.roundsPlayed > 0 ? stats.totalDeployed / stats.roundsPlayed : 0
+  const bestRound = settledRounds.length > 0 ? Math.max(...settledRounds.map(r => r.truePnl)) : 0
+  const worstRound = settledRounds.length > 0 ? Math.min(...settledRounds.map(r => r.truePnl)) : 0
+  const wins = stats.roundsPlayed > 0 ? Math.round(stats.winRate * stats.roundsPlayed / 100) : 0
+  const losses = stats.roundsPlayed - wins
+
+  // Pagination
+  const totalPages = Math.ceil(stats.rounds.length / ROWS_PER_PAGE)
+  const pagedRounds = stats.rounds.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
+
+  return (
+    <div className="agent-page" style={s.page}>
+      <style>{`
+        @media (max-width: 768px) {
+          .agent-page { height: auto !important; min-height: 100vh !important; overflow: auto !important; }
+        }
+        @keyframes pulse-glow {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.25; }
+        }
+        .back-link:hover { color: rgba(255,255,255,0.7) !important; }
+        .rounds-scroll::-webkit-scrollbar, .left-sidebar::-webkit-scrollbar { width: 4px; }
+        .rounds-scroll::-webkit-scrollbar-track, .left-sidebar::-webkit-scrollbar-track { background: transparent; }
+        .rounds-scroll::-webkit-scrollbar-thumb, .left-sidebar::-webkit-scrollbar-thumb { background: rgba(0,82,255,0.3); border-radius: 2px; }
+      `}</style>
+
+      <AgentHeader currentPage="agents" />
+
+      <main style={{
+        flex: isMobile ? undefined : 1,
+        minHeight: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        padding: isMobile ? '12px 16px 100px' : '10px 40px 10px',
+      }}>
+
+        {/* Back */}
+        <div style={{ maxWidth: 1400, width: '100%', margin: '0 auto', paddingBottom: 10, flexShrink: 0, position: 'relative', zIndex: 2 }}>
+          <Link href="/agents" className="back-link" style={s.back}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+            ALL AGENTS
+          </Link>
+        </div>
+
+        {/* Two-column layout */}
+        <div style={{
+          display: 'flex',
+          gap: 28,
+          flexDirection: isMobile ? 'column' : 'row',
+          flex: 1,
+          minHeight: 0,
+          maxWidth: 1400,
+          width: '100%',
+          margin: '0 auto',
+        }}>
+
+          {/* ── Left sidebar ── */}
+          <div className="left-sidebar" style={{
+            width: isMobile ? '100%' : 340,
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            minHeight: 0,
+            overflowY: isMobile ? undefined : 'auto',
+            padding: isMobile ? 0 : 25,
+            margin: isMobile ? 0 : -25,
+          }}>
+            <NeonCard>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {/* Top */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={s.agentId}>AGENT_{agentNum}</span>
+                  <StatusDot status={agent.status} />
+                </div>
+
+                {/* Name */}
+                <h1 style={s.title}>{agent.name}</h1>
+
+                {/* Strategy detail */}
+                <p style={s.strategyDetail}>{agent.strategyDetail}</p>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                {/* Stats grid */}
+                <div style={s.statsGrid}>
+                  <div style={s.gridStat}>
+                    <span style={s.gridStatVal}>{stats.winRate}%</span>
+                    <span style={s.gridStatLabel}>WIN RATE</span>
+                  </div>
+                  <div style={s.gridStat}>
+                    <span style={s.gridStatVal}>
+                      {isPositive ? '+' : ''}{stats.roi}%
+                    </span>
+                    <span style={s.gridStatLabel}>NET ROI</span>
+                  </div>
+                  <div style={s.gridStat}>
+                    <span style={s.gridStatVal}>{stats.roundsPlayed}</span>
+                    <span style={s.gridStatLabel}>ROUNDS</span>
+                  </div>
+                  <div style={s.gridStat}>
+                    <span style={s.gridStatVal}>{stats.totalDeployed.toFixed(2)}</span>
+                    <span style={s.gridStatLabel}>DEPLOYED</span>
+                  </div>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+
+                {/* Detail rows */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {[
+                    ['TOTAL DEPLOYED', `${stats.totalDeployed.toFixed(4)} ETH`],
+                    ['ETH WON', `${stats.totalWon.toFixed(4)} ETH`],
+                    ['ETH P&L', `${stats.ethPnl >= 0 ? '+' : ''}${stats.ethPnl.toFixed(4)} ETH`],
+                    ['BEAN EARNED', `${stats.beansEarned > 1000 ? `${(stats.beansEarned / 1000).toFixed(1)}k` : stats.beansEarned < 1 ? stats.beansEarned.toFixed(4) : stats.beansEarned.toFixed(1)}`],
+                    ['BEAN VALUE', `+${stats.beanValueEth.toFixed(4)} ETH`],
+                    ['TRUE P&L', `${isPositive ? '+' : ''}${stats.netPnl.toFixed(4)} ETH`],
+                    ['LAST ACTIVE', stats.lastActive],
+                  ].map(([label, val], i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={s.detailLabel}>{label}</span>
+                      <span style={s.detailVal}>{val}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Invest button */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                <button
+                  disabled
+                  style={{
+                    width: '100%', padding: '14px 0',
+                    border: '1px solid rgba(0,82,255,0.4)',
+                    borderRadius: 10,
+                    background: 'rgba(0,82,255,0.12)',
+                    color: 'rgba(0,82,255,0.6)',
+                    fontSize: 14, fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                    cursor: 'not-allowed',
+                    boxShadow: '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)',
+                  }}
+                >
+                  INVEST — COMING SOON
+                </button>
+              </div>
+            </NeonCard>
+
+            {/* Holder Payouts card */}
+            <NeonCard style={{ marginTop: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
+                    {'// HOLDER PAYOUTS'}
+                  </span>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.totalBeanPaidOut > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {stats.totalBeanPaidOut > 1000 ? `${(stats.totalBeanPaidOut / 1000).toFixed(1)}k` : stats.totalBeanPaidOut > 0 ? stats.totalBeanPaidOut.toFixed(1) : '0'}
+                    </span>
+                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
+                      BEAN PAID
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
+                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.paidOutValueEth > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {stats.paidOutValueEth > 0 ? `+${stats.paidOutValueEth.toFixed(4)}` : '0'}
+                    </span>
+                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
+                      ETH VALUE
+                    </span>
+                  </div>
+                </div>
+
+              </div>
+            </NeonCard>
+          </div>
+
+          {/* ── Right content ── */}
+          <div style={{
+            flex: 1,
+            minWidth: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 16,
+            minHeight: 0,
+          }}>
+
+            {/* Analytics row */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: 12, flexShrink: 0 }}>
+              {[
+                { label: 'AVG POSITION', val: `${avgPosition.toFixed(4)}`, sub: 'ETH / round' },
+                { label: 'BEST ROUND', val: `+${bestRound.toFixed(4)}`, sub: 'ETH' },
+                { label: 'WORST ROUND', val: `${worstRound.toFixed(4)}`, sub: 'ETH' },
+                { label: 'W / L', val: `${wins} / ${losses}`, sub: `${stats.winRate}% win rate` },
+              ].map((item, i) => (
+                <div key={i} style={s.analyticCard}>
+                  <span style={s.analyticLabel}>{item.label}</span>
+                  <span style={s.analyticVal}>{item.val}</span>
+                  <span style={s.analyticSub}>{item.sub}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Performance chart */}
+            <NeonCard style={{ flexShrink: 0 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <span style={s.sectionLabel}>{'// PERFORMANCE — 7D'}</span>
+                <span style={{
+                  fontSize: 16, fontWeight: 700,
+                  color: '#fff',
+                  fontFamily: "'Space Mono', monospace",
+                }}>
+                  {isPositive ? '+' : ''}{stats.netPnl.toFixed(4)} ETH
+                </span>
+              </div>
+
+              <svg width="100%" height={chartH} viewBox={`0 0 ${chartW} ${chartH}`} preserveAspectRatio="none" style={{ display: 'block' }}>
+                <defs>
+                  <linearGradient id="chart-fill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#0052FF" stopOpacity="0.2" />
+                    <stop offset="100%" stopColor="#0052FF" stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                {sparkMin < 0 && (
+                  <line
+                    x1="0" y1={chartH - ((-sparkMin) / sparkRange) * (chartH - 4) - 2}
+                    x2={chartW} y2={chartH - ((-sparkMin) / sparkRange) * (chartH - 4) - 2}
+                    stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="4,4"
+                  />
+                )}
+                <polygon points={`0,${chartH} ${sparkPoints} ${chartW},${chartH}`} fill="url(#chart-fill)" />
+                <polyline points={sparkPoints} fill="none" stroke="#0052FF" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
+              </svg>
+
+            </NeonCard>
+
+            {/* Round history */}
+            <NeonCard fillHeight>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexShrink: 0 }}>
+                <span style={s.sectionLabel}>{'// ROUND HISTORY — 7D'}</span>
+                <div style={{ display: 'flex', gap: 10, fontSize: 13, fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>{wins}W</span>
+                  <span style={{ color: 'rgba(255,255,255,0.12)' }}>/</span>
+                  <span style={{ color: 'rgba(255,255,255,0.5)' }}>{losses}L</span>
+                </div>
+              </div>
+
+              {/* Table header */}
+              <div style={{ ...s.tableRow, gridTemplateColumns: isMobile ? '70px 35px 1fr 1fr' : '80px 45px 1fr 1fr 1fr 1fr', borderBottom: '1px solid rgba(255,255,255,0.06)', paddingBottom: 8, marginBottom: 4, flexShrink: 0 }}>
+                <span style={s.tableHeader}>ROUND</span>
+                <span style={{ ...s.tableHeader, textAlign: 'center' }}>BLOCKS</span>
+                <span style={{ ...s.tableHeader, textAlign: 'right' }}>DEPLOYED</span>
+                {!isMobile && <span style={{ ...s.tableHeader, textAlign: 'right' }}>WON</span>}
+                {!isMobile && <span style={{ ...s.tableHeader, textAlign: 'right' }}>BEAN</span>}
+                <span style={{ ...s.tableHeader, textAlign: 'right' }}>P&L</span>
+              </div>
+
+              {/* Scrollable rows */}
+              <div className="rounds-scroll" style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+                {pagedRounds.map(r => (
+                  <div key={r.id} style={{
+                    ...s.tableRow,
+                    gridTemplateColumns: isMobile ? '70px 35px 1fr 1fr' : '80px 45px 1fr 1fr 1fr 1fr',
+                    padding: '10px 0',
+                    borderBottom: '1px solid rgba(255,255,255,0.03)',
+                  }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#fff', fontFamily: "'Space Mono', monospace" }}>#{r.id}</span>
+                      <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)' }}>{relativeTime(r.timestamp)}</span>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <span style={s.blockBadge}>{r.blocksCount}</span>
+                    </div>
+                    <span style={{ ...s.numCell, textAlign: 'right' }}>{r.deployed.toFixed(4)}</span>
+                    {!isMobile && (
+                      <span style={{ ...s.numCell, textAlign: 'right' }}>
+                        {!r.settled ? '—' : r.won.toFixed(4)}
+                      </span>
+                    )}
+                    {!isMobile && (
+                      <span style={{ ...s.numCell, textAlign: 'right', color: r.beansEarned > 0 ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
+                        {!r.settled ? '—' : r.beansEarned > 0 ? r.beansEarned.toFixed(4) : '0'}
+                      </span>
+                    )}
+                    <div style={{ textAlign: 'right' }}>
+                      {r.settled ? (
+                        <>
+                          <div style={{
+                            fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                            color: '#fff',
+                          }}>
+                            {r.truePnl >= 0 ? '+' : ''}{r.truePnl.toFixed(4)}
+                          </div>
+                          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.5)', fontFamily: "'Space Mono', monospace" }}>
+                            {r.pctChange >= 0 ? '+' : ''}{r.pctChange}%
+                          </div>
+                        </>
+                      ) : (
+                        <span style={{ fontSize: 10, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>PENDING</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pagination controls — always visible */}
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 10, flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  style={{
+                    ...s.pageBtn,
+                    opacity: page === 0 ? 0.2 : 1,
+                    cursor: page === 0 ? 'default' : 'pointer',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
+                </button>
+                <span style={{ fontSize: 11, fontFamily: "'Space Mono', monospace", color: 'rgba(255,255,255,0.4)' }}>
+                  {page + 1} / {totalPages}{' '}<span style={{ color: 'rgba(255,255,255,0.2)' }}>({stats.rounds.length} rounds)</span>
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page === totalPages - 1}
+                  style={{
+                    ...s.pageBtn,
+                    opacity: page === totalPages - 1 ? 0.2 : 1,
+                    cursor: page === totalPages - 1 ? 'default' : 'pointer',
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 6 15 12 9 18" /></svg>
+                </button>
+              </div>
+            </NeonCard>
+
+          </div>
+        </div>
+      </main>
+
+      {isMobile && <AgentBottomNav currentPage="agents" />}
+
+      {/* Disclaimer modal */}
+      {showDisclaimer && (
+        <div
+          onClick={() => setShowDisclaimer(false)}
+          style={{
+            position: 'fixed', inset: 0, zIndex: 9999,
+            background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: '#0a0e1a',
+              border: '1px solid rgba(0,120,255,0.5)',
+              borderRadius: 16, padding: 28, maxWidth: 480, width: '100%',
+              boxShadow: '0 0 30px rgba(0,82,255,0.3)',
+            }}
+          >
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em', marginBottom: 12 }}>
+              {'// DISCLAIMER'}
+            </div>
+            <h2 style={{ fontSize: 18, fontWeight: 700, color: '#fff', margin: '0 0 16px 0' }}>
+              Before you invest
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.6 }}>
+              <p style={{ margin: 0 }}>
+                This agent is powered by <strong style={{ color: '#fff' }}>autonomous AI</strong>. Its strategy is executed algorithmically with no human oversight on individual trades.
+              </p>
+              <p style={{ margin: 0 }}>
+                <strong style={{ color: '#fff' }}>Past performance is not indicative of future results.</strong> All statistics shown are computed from on-chain history and reflect real outcomes, but market conditions change.
+              </p>
+              <p style={{ margin: 0 }}>
+                By investing, you acknowledge that you may <strong style={{ color: '#fff' }}>lose some or all of your deposited ETH</strong>. MineBean and its contributors are not liable for any losses incurred.
+              </p>
+              <p style={{ margin: 0 }}>
+                This is <strong style={{ color: '#fff' }}>experimental technology</strong>. Only invest what you can afford to lose. Do your own research.
+              </p>
+            </div>
+            <div style={{ display: 'flex', gap: 12, marginTop: 24 }}>
+              <button
+                onClick={() => setShowDisclaimer(false)}
+                style={{
+                  flex: 1, padding: '12px 0', border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8, background: 'transparent', color: 'rgba(255,255,255,0.5)',
+                  fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                  cursor: 'pointer',
+                }}
+              >
+                CANCEL
+              </button>
+              <button
+                onClick={() => {
+                  setShowDisclaimer(false)
+                  // TODO: open invest flow
+                }}
+                style={{
+                  flex: 1, padding: '12px 0', border: 'none',
+                  borderRadius: 8, background: '#0052FF', color: '#fff',
+                  fontSize: 12, fontWeight: 700, fontFamily: "'Space Mono', monospace",
+                  cursor: 'pointer',
+                }}
+              >
+                I UNDERSTAND, CONTINUE
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────
+
+const s: { [key: string]: React.CSSProperties } = {
+  page: { fontFamily: "'Inter', -apple-system, sans-serif", height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'transparent' },
+
+  back: { display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', color: 'rgba(0,82,255,0.5)', textDecoration: 'none', fontFamily: "'Space Mono', monospace", transition: 'color 0.15s' },
+
+  agentId: { fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em' },
+  title: { fontSize: 22, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.02em' },
+  strategyDetail: { fontSize: 12, color: 'rgba(255,255,255,0.35)', margin: 0, lineHeight: 1.5 },
+
+  statsGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 },
+  gridStat: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' },
+  gridStatVal: { fontSize: 17, fontWeight: 700, color: '#fff', fontFamily: "'Space Mono', monospace" },
+  gridStatLabel: { fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" },
+
+  detailLabel: { fontSize: 10, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em' },
+  detailVal: { fontSize: 11, fontWeight: 700, color: '#fff', fontFamily: "'Space Mono', monospace" },
+
+  analyticCard: {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+    background: 'linear-gradient(180deg, rgba(0,40,120,0.12) 0%, rgba(0,15,50,0.06) 100%)',
+    border: '1px solid rgba(0,120,255,0.7)',
+    borderRadius: 12, padding: '12px 8px',
+    boxShadow: '0 0 8px rgba(0,120,255,0.7), 0 0 20px rgba(0,100,255,0.4), 0 0 45px rgba(0,80,255,0.2), 0 0 80px rgba(0,60,255,0.08), inset 0 0 20px rgba(0,100,255,0.08)',
+  },
+  analyticLabel: { fontSize: 8, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' },
+  analyticVal: { fontSize: 14, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: '#fff' },
+  analyticSub: { fontSize: 9, color: 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" },
+
+  sectionLabel: { fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' },
+  chartLabel: { fontSize: 10, color: 'rgba(255,255,255,0.15)', fontFamily: "'Space Mono', monospace" },
+
+  tableRow: { display: 'grid', alignItems: 'center', gap: 8 },
+  tableHeader: { fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' },
+  blockBadge: { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 26, height: 22, borderRadius: 5, fontSize: 11, fontWeight: 700, fontFamily: "'Space Mono', monospace", background: 'rgba(255,255,255,0.05)', color: '#fff' },
+  numCell: { fontSize: 13, fontWeight: 600, color: '#fff', fontFamily: "'Space Mono', monospace" },
+
+  pageBtn: {
+    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+    width: 28, height: 28, borderRadius: 6,
+    background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+    color: 'rgba(255,255,255,0.5)',
+    transition: 'background 0.15s',
+  },
+}

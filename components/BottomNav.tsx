@@ -42,7 +42,7 @@ export default function BottomNav({ currentPage }: BottomNavProps) {
         {
             id: 'agents',
             label: 'Agents',
-            href: '/agents',
+            href: 'https://agent.minebean.com',
             icon: (active: boolean) => (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "#0052FF" : "#666"}>
                     <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1.17A3.001 3.001 0 0 1 15 19H9a3.001 3.001 0 0 1-4.83 0H3a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2zm-3 12a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
@@ -77,14 +77,28 @@ export default function BottomNav({ currentPage }: BottomNavProps) {
         <nav style={styles.nav}>
             {navItems.map((item) => {
                 const isActive = currentPage === item.id
+                const isExternal = item.href.startsWith('http')
+                const linkStyle = {
+                    ...styles.navItem,
+                    ...(isActive ? styles.navItemActive : {}),
+                }
+                if (isExternal) {
+                    return (
+                        <a
+                            key={item.id}
+                            href={item.href}
+                            style={linkStyle}
+                        >
+                            {item.icon(isActive)}
+                            <span style={styles.navLabel}>{item.label}</span>
+                        </a>
+                    )
+                }
                 return (
                     <Link
                         key={item.id}
                         href={item.href}
-                        style={{
-                            ...styles.navItem,
-                            ...(isActive ? styles.navItemActive : {}),
-                        }}
+                        style={linkStyle}
                     >
                         {item.icon(isActive)}
                         <span style={styles.navLabel}>{item.label}</span>

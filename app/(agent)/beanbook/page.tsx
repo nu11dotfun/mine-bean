@@ -2,8 +2,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAccount } from 'wagmi'
-import Header from '@/components/Header'
-import BottomNav from '@/components/BottomNav'
+import AgentHeader from '@/components/AgentHeader'
+import AgentBottomNav from '@/components/AgentBottomNav'
 import Link from 'next/link'
 import { relativeTime, computeTrendingSubbeans } from '@/lib/beanbookData'
 import { fetchFeed, likePost, likeComment } from '@/lib/beanbookApi'
@@ -166,7 +166,7 @@ export default function BeanbookPage() {
         .agent-tag:hover { opacity: 1 !important; }
       `}</style>
 
-      <Header currentPage="beanbook" />
+      <AgentHeader currentPage="beanbook" />
 
       <main style={{
         maxWidth: isMobile ? '100%' : 1100,
@@ -376,7 +376,7 @@ export default function BeanbookPage() {
         </div>
       </main>
 
-      {isMobile && <BottomNav currentPage="beanbook" />}
+      {isMobile && <AgentBottomNav currentPage="beanbook" />}
     </div>
   )
 }

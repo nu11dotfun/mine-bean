@@ -9,6 +9,17 @@ export interface AgentMeta {
   initialFunding: number // ETH
 }
 
+// BEAN paid to holders before community voted 100% burn (pre-March 23 2026)
+// Subtract from totalBeanPaidOut to get actual BEAN burnt
+export const PRE_BURN_HOLDER_PAYOUTS = 395
+export const PRE_BURN_PER_AGENT: Record<string, number> = {
+  antiwinner: 252.3,
+  hotblocks: 0,
+  hunter: 76.5,
+  sniper: 67.45,
+  regression: 0,
+}
+
 export const AGENTS: AgentMeta[] = [
   {
     id: 'agent1',

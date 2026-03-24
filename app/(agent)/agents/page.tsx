@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
-import { AGENTS } from '@/lib/agents'
+import { AGENTS, PRE_BURN_HOLDER_PAYOUTS } from '@/lib/agents'
 import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances } from '@/lib/agentData'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -369,12 +369,11 @@ export default function AgentsPage() {
         {(() => {
           const loadedAgents = AGENTS.filter(a => statsMap[a.id])
           if (loadedAgents.length === 0) return null
-          // PnL only counts profitable agents (holder incentive)
+          // PnL only counts profitable agents
           const eligibleAgents = loadedAgents.filter(a => (statsMap[a.id]?.netPnl ?? 0) > 0)
           const totalPnl = eligibleAgents.reduce((sum, a) => sum + (statsMap[a.id]?.netPnl ?? 0), 0)
-          // BEAN paid out = straight from payout contract, all agents
-          const totalBeanPaidOut = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
-          const totalBeanEarned = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.beansEarned ?? 0) + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0)
+          // BEAN burnt from agent profits (subtract pre-burn holder payouts)
+          const totalBeanPaidOut = Math.max(0, loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.totalBeanPaidOut ?? 0), 0) - PRE_BURN_HOLDER_PAYOUTS)
           const totalRounds = loadedAgents.reduce((sum, a) => sum + (statsMap[a.id]?.roundsPlayed ?? 0), 0)
           const eligibleCount = eligibleAgents.length
           const pnlPositive = totalPnl >= 0
@@ -397,20 +396,7 @@ export default function AgentsPage() {
                   {pnlPositive ? '+' : ''}{totalPnl.toFixed(4)} ETH
                 </span>
                 <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  HOLDER INCENTIVE TOTAL P&L
-                </span>
-              </div>
-              <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <span style={{
-                  fontSize: isMobile ? 16 : 18, fontWeight: 700,
-                  fontFamily: "'Space Mono', monospace",
-                  color: '#fff',
-                }}>
-                  {totalBeanEarned > 1000 ? `${(totalBeanEarned / 1000).toFixed(1)}k` : totalBeanEarned.toFixed(1)}
-                </span>
-                <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  BEAN EARNED
+                  AGENT TOTAL P&L
                 </span>
               </div>
               <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
@@ -437,7 +423,7 @@ export default function AgentsPage() {
                     {totalBeanPaidOut > 1000 ? `${(totalBeanPaidOut / 1000).toFixed(1)}k` : totalBeanPaidOut.toFixed(1)} BEAN
                   </span>
                   <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    PAID TO HOLDERS
+                    BEAN BURNT
                   </span>
                 </div>
               </>)}

@@ -5,7 +5,7 @@ import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
-import { AGENTS } from '@/lib/agents'
+import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
 import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
@@ -262,27 +262,32 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
               </div>
             </NeonCard>
 
-            {/* Holder Payouts card */}
+            {/* Bean Burnt card */}
+            {(() => {
+              const preBurn = PRE_BURN_PER_AGENT[agent.apiAgentId] ?? 0
+              const beanBurnt = Math.max(0, stats.totalBeanPaidOut - preBurn)
+              const burntValueEth = beanBurnt * stats.beanPriceEth
+              return (
             <NeonCard style={{ marginTop: 12 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
-                    {'// HOLDER PAYOUTS'}
+                    {'// BEAN BURNT'}
                   </span>
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
-                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.totalBeanPaidOut > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
-                      {stats.totalBeanPaidOut > 1000 ? `${(stats.totalBeanPaidOut / 1000).toFixed(1)}k` : stats.totalBeanPaidOut > 0 ? stats.totalBeanPaidOut.toFixed(1) : '0'}
+                    <span style={{ fontSize: 17, fontWeight: 700, color: beanBurnt > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {beanBurnt > 1000 ? `${(beanBurnt / 1000).toFixed(1)}k` : beanBurnt > 0 ? beanBurnt.toFixed(1) : '0'}
                     </span>
                     <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
-                      BEAN PAID
+                      BEAN BURNT
                     </span>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
-                    <span style={{ fontSize: 17, fontWeight: 700, color: stats.paidOutValueEth > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
-                      {stats.paidOutValueEth > 0 ? `+${stats.paidOutValueEth.toFixed(4)}` : '0'}
+                    <span style={{ fontSize: 17, fontWeight: 700, color: burntValueEth > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
+                      {burntValueEth > 0 ? `+${burntValueEth.toFixed(4)}` : '0'}
                     </span>
                     <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
                       ETH VALUE
@@ -292,6 +297,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
               </div>
             </NeonCard>
+              )
+            })()}
           </div>
 
           {/* ── Right content ── */}

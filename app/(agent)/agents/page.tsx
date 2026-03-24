@@ -66,7 +66,7 @@ export default function AgentsPage() {
         .then(res => {
           const map: Record<string, AgentStats> = {}
           for (const a of AGENTS) {
-            if (res.agents[a.id]) map[a.id] = res.agents[a.id]
+            if (res.agents[a.apiAgentId]) map[a.id] = res.agents[a.apiAgentId]
           }
           setStatsMap(map)
         })

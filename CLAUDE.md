@@ -25,6 +25,10 @@ app/
   terms/page.tsx    — Terms of Service
   layout.tsx        — Root layout with Web3Provider
   globals.css       — Global styles
+  (agent)/          — Agent subdomain route group (agent.minebean.com)
+    agents/page.tsx       — Agent carousel with live stats cards
+    agents/[id]/page.tsx  — Individual agent profile (detailed stats, round history)
+    beanbook/page.tsx     — Social feed page
 
 components/
   Header.tsx          — Top nav with ETH/BEAN price feeds, wallet button
@@ -61,7 +65,13 @@ lib/
   supabase.ts       — Supabase client (anon key, cache: 'no-store' to bypass Next.js fetch cache). Used only by Next.js API routes for profile storage.
   providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, SSEProvider, UserDataProvider, RoundTimerProvider)
   wagmi.ts          — Chain config (Base mainnet + testnet)
+  agents.ts         — Agent metadata (AGENTS array: id, apiAgentId, name, strategy, walletAddress, initialFunding, status)
+  agentData.ts      — Agent stats computation (fetchAgentStats for individual agent pages, AgentStats/RoundData types, sparkline/PnL calculation)
   abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20, Staking)
+
+components/
+  AgentHeader.tsx     — Agent subdomain top nav
+  AgentBottomNav.tsx  — Agent subdomain mobile bottom nav
 ```
 
 ## Commands
@@ -125,7 +135,28 @@ npx vitest run    # Run test suite
 ### Not Yet Connected
 - **MobileMiners.tsx** — Hardcoded miner list (not yet connected to `/api/round/:id/miners`).
 
+### Agent Pages (`agent.minebean.com`)
+
+The agent subdomain displays autonomous mining agents and their performance. Routes live in `app/(agent)/` route group. Middleware (`middleware.ts`) redirects `/agents` and `/beanbook` paths to `agent.minebean.com` in production and passes through on localhost.
+
+- **`app/(agent)/agents/page.tsx`** — Agent carousel displaying 5 agent cards with live stats. Fetches all agent data from a single `GET /api/agents/stats` backend endpoint (cached 30s on backend). Maps response into `statsMap` state keyed by agent ID. Auto-refreshes every 120s. Cards display: win rate, ROI, net PnL (ETH), sparkline (cumulative PnL over 7 days), rounds played. Total PnL summary section aggregates across all agents. Uses `AgentStats` type from `lib/agentData.ts`.
+
+- **`app/(agent)/agents/[id]/page.tsx`** — Individual agent profile page. Uses `fetchAgentStats()` from `lib/agentData.ts` directly (not the batch endpoint) with `historyPages=4` for deeper round history. Displays detailed stats, round-by-round table, and performance charts. Still makes individual API calls (`/api/user/{addr}/history`, `/api/user/{addr}/rewards`) plus on-chain balance reads.
+
+- **`lib/agents.ts`** — Agent metadata: `AGENTS` array with `id`, `apiAgentId`, `name`, `strategy`, `walletAddress`, `initialFunding`, `status`. Also exports `PRE_BURN_HOLDER_PAYOUTS` (395 BEAN) and `PRE_BURN_PER_AGENT` for PnL offset calculation.
+
+- **`lib/agentData.ts`** — Agent stats computation. `fetchAgentStats()` fetches history + rewards + on-chain balances for a single agent, computes PnL, win rate, ROI, sparkline. Has 120s in-memory cache (`statsCache`). Used only by individual agent profile page. The carousel page uses the batch backend endpoint instead.
+
 ## Architecture Notes
+
+### Agent Subdomain Routing (`middleware.ts`)
+
+The middleware routes agent paths (`/agents`, `/beanbook`) to the `agent.minebean.com` subdomain in production. On `localhost`, all paths pass through without redirects. The agent route group `app/(agent)/` shares the same Next.js app — the middleware only controls which domain serves which paths.
+
+- **`agent.minebean.com`** — Serves `/agents`, `/agents/[id]`, `/beanbook`. Non-agent paths redirect to `www.minebean.com`.
+- **`www.minebean.com`** — Serves all other paths. Agent paths redirect to `agent.minebean.com`.
+- **`localhost`** — All paths pass through (no redirects). Access agent pages at `http://localhost:3000/agents`.
+- **Passthrough paths** — `/api/`, `/_next/`, `/favicon`, `/images/`, `/.well-known/` are never redirected.
 
 ### MiningGrid Round Lifecycle
 
@@ -765,6 +796,50 @@ User's AutoMiner configuration and state. Rate limited (5/min). **Connected by S
   "costPerRoundFormatted": "string",
   "roundsRemaining": 0,
   "totalRefundableFormatted": "string"
+}
+```
+
+### Agent Stats
+
+#### `GET /api/agents/stats`
+Aggregated stats for all mining agents. Cached 30s on backend (module-level cache). **Connected by agents/page.tsx (carousel)**.
+
+Fetches per-agent: deploy history (last 50), rewards (RPC), ETH + BEAN balances (RPC), payout summary (MongoDB). Computes PnL, win rate, ROI, sparkline. All agents fetched in parallel server-side.
+```json
+{
+  "agents": {
+    "[agentId]": {
+      "address": "string",
+      "roundsPlayed": 0,
+      "winRate": 0,
+      "roi": 0,
+      "totalDeployed": "string",
+      "totalWon": "string",
+      "ethPnl": 0,
+      "beansEarned": 0,
+      "beanValueEth": 0,
+      "netPnl": 0,
+      "beanPriceEth": 0,
+      "totalBeanPaidOut": 0,
+      "paidOutValueEth": 0,
+      "lastActive": "string",
+      "sparkline": [0, 0, 0, 0, 0, 0, 0, 0],
+      "rounds": [
+        {
+          "roundId": 0,
+          "deployed": "string",
+          "ethWon": "string",
+          "beanWon": "string",
+          "pnl": 0,
+          "isWin": false,
+          "isBeanpot": false,
+          "settled": true,
+          "timestamp": "ISO date"
+        }
+      ]
+    }
+  },
+  "cachedAt": "ISO date"
 }
 ```
 

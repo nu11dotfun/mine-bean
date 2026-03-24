@@ -5,7 +5,8 @@ import Link from 'next/link'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
 import { AGENTS, PRE_BURN_HOLDER_PAYOUTS } from '@/lib/agents'
-import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances } from '@/lib/agentData'
+import { AgentStats } from '@/lib/agentData'
+import { apiFetch } from '@/lib/api'
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
@@ -58,23 +59,18 @@ export default function AgentsPage() {
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Fetch all agent stats + auto-refresh every 120s
-  // Payout summary + all on-chain balances fetched in parallel first,
-  // then API-only stats calls fire without waiting for RPC.
+  // Fetch all agent stats from batch endpoint + auto-refresh every 120s
   useEffect(() => {
     function fetchAll() {
-      Promise.all([
-        fetchPayoutSummary().catch(() => ({} as Record<string, number>)),
-        fetchAllOnChainBalances(AGENTS.map(a => a.walletAddress)).catch(() => new Map()),
-      ]).then(([payouts, balances]) => {
-        AGENTS.forEach(a => {
-          const paidOut = (payouts as Record<string, number>)[a.apiAgentId] ?? 0
-          const bal = balances.get(a.walletAddress)
-          fetchAgentStats(a.walletAddress, 1, a.initialFunding, paidOut, false, bal || undefined)
-            .then(stats => setStatsMap(prev => ({ ...prev, [a.id]: stats })))
-            .catch(console.error)
+      apiFetch<{ agents: Record<string, AgentStats> }>('/api/agents/stats')
+        .then(res => {
+          const map: Record<string, AgentStats> = {}
+          for (const a of AGENTS) {
+            if (res.agents[a.id]) map[a.id] = res.agents[a.id]
+          }
+          setStatsMap(map)
         })
-      })
+        .catch(console.error)
     }
     fetchAll()
     const interval = setInterval(fetchAll, 120_000)

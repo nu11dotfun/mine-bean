@@ -34,8 +34,9 @@ export default function AgentBottomNav({ currentPage }: AgentBottomNavProps) {
             label: 'MineBean',
             href: 'https://www.minebean.com',
             icon: (active: boolean) => (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill={active ? "#0052FF" : "#666"}>
-                    <path d="M11 21h-1l1-7H7.5c-.58 0-.57-.32-.38-.66l.07-.12C8.48 10.94 10.42 7.54 13 3h1l-1 7h3.5c.49 0 .56.33.47.51l-.07.15C12.96 17.55 11 21 11 21z" />
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke={active ? "#0052FF" : "#666"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                    <polyline points="9 22 9 12 15 12 15 22" />
                 </svg>
             )
         },

@@ -2,14 +2,7 @@
 
 import React, { useState, useEffect } from "react"
 import { useRoundTimer } from '@/lib/RoundTimerContext'
-
-// Move icons OUTSIDE component to prevent re-creation on each render
-const BeanIcon = () => (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="#0052FF">
-        <ellipse cx="12" cy="10" rx="7" ry="5" />
-        <ellipse cx="12" cy="14" rx="7" ry="5" />
-    </svg>
-)
+import BeanLogo from './BeanLogo'
 
 const ETH_LOGO_URL = "https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/f9461cf2-aacc-4c59-8b9d-59ade3c46c00/public"
 
@@ -60,7 +53,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
             <div style={styles.row}>
                 <div style={styles.stat}>
                     <div style={styles.valueRow}>
-                        <BeanIcon />
+                        <BeanLogo size={20} />
                         <span style={styles.value}>
                             {beanpotPool > 0 ? beanpotPool.toFixed(1) : '—'}
                         </span>

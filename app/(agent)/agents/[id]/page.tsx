@@ -1,12 +1,17 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { parseEther, formatEther } from 'viem'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
 import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
 import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
+import { CONTRACTS } from '@/lib/contracts'
+import InvestModal, { DepositStep } from '@/components/InvestModal'
+import PendingVaultClaim from '@/components/PendingVaultClaim'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -46,7 +51,246 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [stats, setStats] = useState<AgentStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
+  const [showInvestModal, setShowInvestModal] = useState(false)
+  const [depositStep, setDepositStep] = useState<DepositStep>('idle')
+  const [withdrawPending, setWithdrawPending] = useState(false)
+  const [claimingPending, setClaimingPending] = useState(false)
   const [historyPages] = useState(4)
+
+  // ── Wallet + vault contract reads ──
+  const { address, isConnected } = useAccount()
+  const vaultAddress = agent?.vaultAddress
+  const vaultAbi = CONTRACTS.AgentVault.abi
+
+  // User balances
+  const { data: ethBalanceData } = useBalance({ address })
+  const { data: beanBalanceData } = useBalance({ address, token: CONTRACTS.Bean.address })
+  const userEthBalance = ethBalanceData ? parseFloat(formatEther(ethBalanceData.value)) : 0
+  const userBeanBalance = beanBalanceData ? parseFloat(formatEther(beanBalanceData.value)) : 0
+
+  // Vault reads (only when vault exists and wallet connected)
+  const vaultReadEnabled = !!vaultAddress && !!address
+  const { data: beanLockAmountRaw } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'beanLockAmount',
+    query: { enabled: !!vaultAddress },
+  })
+  const beanLockAmount = beanLockAmountRaw ? formatEther(beanLockAmountRaw as bigint) : '10'
+
+  const { data: hasLockedRaw } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'hasLockedBEAN', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const hasLockedBEAN = !!hasLockedRaw
+
+  const { data: userETHBalRaw, refetch: refetchUserETH } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'userETHBalance', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const { data: userBEANBalRaw, refetch: refetchUserBEAN } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'userBEANBalance', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const { data: userSharesRaw, refetch: refetchShares } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'shares', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const { data: totalSharesRaw } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'totalShares',
+    query: { enabled: !!vaultAddress },
+  })
+  const { data: totalETHAssetsRaw } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'totalETHAssets',
+    query: { enabled: !!vaultAddress },
+  })
+  const { data: pendingWithdrawalRaw, refetch: refetchPending } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'userPendingWithdrawal', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const { data: pendingDepositRaw } = useReadContract({
+    address: vaultAddress, abi: vaultAbi, functionName: 'pendingDeposit', args: [address!],
+    query: { enabled: vaultReadEnabled },
+  })
+
+  // BEAN allowance for vault
+  const { data: beanAllowanceRaw } = useReadContract({
+    address: CONTRACTS.Bean.address, abi: CONTRACTS.Bean.abi, functionName: 'allowance',
+    args: [address!, vaultAddress!],
+    query: { enabled: vaultReadEnabled },
+  })
+  const beanAllowanceSufficient = beanAllowanceRaw
+    ? (beanAllowanceRaw as bigint) >= (beanLockAmountRaw as bigint || BigInt(0))
+    : false
+
+  // Compute vault stats
+  const userShares = userSharesRaw ? (userSharesRaw as bigint) : BigInt(0)
+  const totalShares = totalSharesRaw ? (totalSharesRaw as bigint) : BigInt(0)
+  const userSharePct = totalShares > BigInt(0) ? Number(userShares * BigInt(10000) / totalShares) / 100 : 0
+  const userETHInVault = userETHBalRaw ? formatEther(userETHBalRaw as bigint) : '0'
+  const userBEANInVault = userBEANBalRaw ? formatEther(userBEANBalRaw as bigint) : '0'
+  const totalPooled = totalETHAssetsRaw ? formatEther(totalETHAssetsRaw as bigint) : '0'
+  const pendingDep = pendingDepositRaw ? formatEther(pendingDepositRaw as bigint) : '0'
+
+  // Pending withdrawal
+  const pendingWithdrawal = pendingWithdrawalRaw as [bigint, bigint, boolean] | undefined
+  const pendingETHAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[0]) : '0'
+  const pendingBEANAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[1]) : '0'
+  const pendingResolved = pendingWithdrawal ? pendingWithdrawal[2] : false
+  const hasPendingWithdrawal = pendingWithdrawal ? pendingWithdrawal[0] > BigInt(0) : false
+
+  const vaultStats = {
+    userDeposited: userETHInVault,
+    userSharePct,
+    availableToWithdraw: userETHInVault,
+    pendingAllocation: pendingDep,
+    lockedBean: hasLockedBEAN ? beanLockAmount : '0',
+    totalPooled,
+    beanEarned: userBEANInVault,
+  }
+
+  // ── Write contracts ──
+  const { writeContract: writeApprove, data: approveTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
+  const { writeContract: writeLock, data: lockTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
+  const { writeContract: writeDeposit, data: depositTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
+  const { writeContract: writeWithdrawETH, data: withdrawETHTxHash } = useWriteContract({ mutation: { onError: () => setWithdrawPending(false) } })
+  const { writeContract: writeClaimBEAN, data: claimBEANTxHash } = useWriteContract()
+  const { writeContract: writeClaimPending, data: claimPendingTxHash } = useWriteContract()
+
+  // Transaction receipts
+  const { isSuccess: approveConfirmed, isError: approveReverted } = useWaitForTransactionReceipt({ hash: approveTxHash })
+  const { isSuccess: lockConfirmed, isError: lockReverted } = useWaitForTransactionReceipt({ hash: lockTxHash })
+  const { isSuccess: depositConfirmed, isError: depositReverted } = useWaitForTransactionReceipt({ hash: depositTxHash })
+  const { isSuccess: withdrawETHConfirmed, isError: withdrawReverted } = useWaitForTransactionReceipt({ hash: withdrawETHTxHash })
+  const { isSuccess: claimBEANConfirmed } = useWaitForTransactionReceipt({ hash: claimBEANTxHash })
+  const { isSuccess: claimPendingConfirmed } = useWaitForTransactionReceipt({ hash: claimPendingTxHash })
+
+  // Approve confirmed → reset step (UI will auto-show lock button since allowance is now sufficient)
+  useEffect(() => {
+    if (approveConfirmed && depositStep === 'approving') {
+      setDepositStep('idle')
+    }
+  }, [approveConfirmed])
+
+  // Lock confirmed → reset step (UI will auto-show deposit form since hasLockedBEAN is now true)
+  useEffect(() => {
+    if (lockConfirmed && depositStep === 'locking') {
+      setDepositStep('idle')
+    }
+  }, [lockConfirmed])
+
+  // Deposit confirmed
+  useEffect(() => {
+    if (depositConfirmed && depositStep === 'depositing') {
+      setDepositStep('done')
+      refetchUserETH(); refetchShares(); refetchUserBEAN()
+      setTimeout(() => { refetchUserETH(); refetchShares(); refetchUserBEAN() }, 2000)
+      setTimeout(() => setDepositStep('idle'), 3000)
+    }
+  }, [depositConfirmed])
+
+  // On-chain revert handling — reset UI when tx submits but reverts
+  useEffect(() => { if (approveReverted) setDepositStep('idle') }, [approveReverted])
+  useEffect(() => { if (lockReverted) setDepositStep('idle') }, [lockReverted])
+  useEffect(() => { if (depositReverted) setDepositStep('idle') }, [depositReverted])
+  useEffect(() => { if (withdrawReverted) setWithdrawPending(false) }, [withdrawReverted])
+
+  // Withdraw confirmed — close and reopen modal to force fresh contract reads
+  useEffect(() => {
+    if (withdrawETHConfirmed) {
+      setWithdrawPending(false)
+      setShowInvestModal(false)
+      setTimeout(() => {
+        refetchUserETH(); refetchShares(); refetchPending(); refetchUserBEAN()
+        setShowInvestModal(true)
+      }, 1500)
+    }
+  }, [withdrawETHConfirmed])
+
+  // Claim BEAN confirmed
+  useEffect(() => {
+    if (claimBEANConfirmed) { refetchUserBEAN() }
+  }, [claimBEANConfirmed])
+
+  // Claim pending withdrawal confirmed
+  useEffect(() => {
+    if (claimPendingConfirmed) {
+      setClaimingPending(false)
+      refetchPending()
+    }
+  }, [claimPendingConfirmed])
+
+  // Refetch vault data periodically
+  useEffect(() => {
+    if (!vaultReadEnabled) return
+    const interval = setInterval(() => {
+      refetchUserETH(); refetchShares(); refetchUserBEAN(); refetchPending()
+    }, 30_000)
+    return () => clearInterval(interval)
+  }, [vaultReadEnabled])
+
+  // ── Handlers ──
+  const handleInvestClick = () => {
+    const disclaimerKey = `vault_disclaimer_${agent?.id}`
+    if (typeof window !== 'undefined' && localStorage.getItem(disclaimerKey)) {
+      setShowInvestModal(true)
+    } else {
+      setShowDisclaimer(true)
+    }
+  }
+
+  const handleDisclaimerAccept = () => {
+    const disclaimerKey = `vault_disclaimer_${agent?.id}`
+    if (typeof window !== 'undefined') localStorage.setItem(disclaimerKey, '1')
+    setShowDisclaimer(false)
+    setShowInvestModal(true)
+  }
+
+  const handleApproveBEAN = () => {
+    if (!vaultAddress) return
+    setDepositStep('approving')
+    writeApprove({
+      address: CONTRACTS.Bean.address,
+      abi: CONTRACTS.Bean.abi,
+      functionName: 'approve',
+      args: [vaultAddress, BigInt('0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')], // infinite approval
+    })
+  }
+
+  const handleLockBEAN = () => {
+    if (!vaultAddress) return
+    setDepositStep('locking')
+    writeLock({ address: vaultAddress, abi: vaultAbi, functionName: 'lockBEAN' })
+  }
+
+  const handleDepositETH = (amount: string) => {
+    if (!vaultAddress || !hasLockedBEAN) return
+    setDepositStep('depositing')
+    writeDeposit({ address: vaultAddress, abi: vaultAbi, functionName: 'deposit', value: parseEther(amount) })
+  }
+
+  const handleWithdrawETH = () => {
+    if (!vaultAddress || userShares === BigInt(0)) return
+    setWithdrawPending(true)
+    const ethAmt = userETHBalRaw as bigint || BigInt(0)
+    writeWithdrawETH({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH', args: [ethAmt] })
+  }
+
+  const handleWithdrawBEAN = () => {
+    // unlockBEAN returns locked BEAN after withdrawing ETH
+    if (!vaultAddress) return
+    setWithdrawPending(true)
+    writeWithdrawETH({ address: vaultAddress, abi: vaultAbi, functionName: 'unlockBEAN' })
+  }
+
+  const handleClaimBEAN = () => {
+    if (!vaultAddress) return
+    writeClaimBEAN({ address: vaultAddress, abi: vaultAbi, functionName: 'claimBEAN' })
+  }
+
+  const handleClaimPendingETH = () => {
+    if (!vaultAddress) return
+    setClaimingPending(true)
+    writeClaimPending({ address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
+  }
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= 768)
@@ -241,24 +485,36 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   ))}
                 </div>
 
-                {/* Invest button */}
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                <button
-                  disabled
-                  style={{
-                    width: '100%', padding: '14px 0',
-                    border: '1px solid rgba(0,82,255,0.4)',
-                    borderRadius: 10,
-                    background: 'rgba(0,82,255,0.12)',
-                    color: 'rgba(0,82,255,0.6)',
-                    fontSize: 14, fontWeight: 700,
-                    fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
-                    cursor: 'not-allowed',
-                    boxShadow: '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)',
-                  }}
-                >
-                  INVEST — COMING SOON
-                </button>
+                {/* Invest button — only for agents with vaults */}
+                {agent.vaultAddress && (
+                  <>
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                    <button
+                      onClick={handleInvestClick}
+                      style={{
+                        width: '100%', padding: '14px 0',
+                        border: '1px solid rgba(0,82,255,0.5)',
+                        borderRadius: 10,
+                        background: 'rgba(0,82,255,0.15)',
+                        color: '#fff',
+                        fontSize: 14, fontWeight: 700,
+                        fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                        cursor: 'pointer',
+                        boxShadow: '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      INVEST
+                    </button>
+
+                    {/* Pending vault claim */}
+                    <PendingVaultClaim
+                      claimableETH={hasPendingWithdrawal && pendingResolved ? pendingETHAmount : '0'}
+                      onClaim={handleClaimPendingETH}
+                      claiming={claimingPending}
+                    />
+                  </>
+                )}
               </div>
             </NeonCard>
 
@@ -518,10 +774,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                 CANCEL
               </button>
               <button
-                onClick={() => {
-                  setShowDisclaimer(false)
-                  // TODO: open invest flow
-                }}
+                onClick={handleDisclaimerAccept}
                 style={{
                   flex: 1, padding: '12px 0', border: 'none',
                   borderRadius: 8, background: '#0052FF', color: '#fff',
@@ -535,6 +788,34 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           </div>
         </div>
       )}
+
+      {/* Invest modal */}
+      <InvestModal
+        isOpen={showInvestModal}
+        onClose={() => { setShowInvestModal(false); setDepositStep('idle') }}
+        agentName={agent.name}
+        isMobile={isMobile}
+        isConnected={isConnected}
+        userBeanBalance={userBeanBalance}
+        userEthBalance={userEthBalance}
+        vaultStats={vaultStats}
+        beanAllowanceSufficient={beanAllowanceSufficient}
+        hasLockedBEAN={hasLockedBEAN}
+        beanLockAmount={beanLockAmount}
+        onApproveBEAN={handleApproveBEAN}
+        onLockBEAN={handleLockBEAN}
+        onDepositETH={handleDepositETH}
+        onWithdrawETH={handleWithdrawETH}
+        onWithdrawBEAN={handleWithdrawBEAN}
+        onClaimBEAN={handleClaimBEAN}
+        onClaimPendingWithdrawal={handleClaimPendingETH}
+        pendingWithdrawalETH={pendingETHAmount}
+        pendingWithdrawalBEAN={pendingBEANAmount}
+        pendingWithdrawalResolved={pendingResolved}
+        hasPendingWithdrawal={hasPendingWithdrawal}
+        depositStep={depositStep}
+        withdrawPending={withdrawPending}
+      />
     </div>
   )
 }

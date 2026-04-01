@@ -3,6 +3,7 @@ import AutoMinerABI from './abis/AutoMiner.json'
 import BeanABI from './abis/Bean.json'
 import TreasuryABI from './abis/Treasury.json'
 import StakingABI from './abis/Staking.json'
+import AgentVaultABI from './abis/AgentVault.json'
 
 export const CONTRACTS = {
   GridMining: {
@@ -27,6 +28,9 @@ export const CONTRACTS = {
   Staking: {
     address: '0xfe177128Df8d336cAf99F787b72183D1E68Ff9c2' as `0x${string}`,
     abi: StakingABI,
+  },
+  AgentVault: {
+    abi: AgentVaultABI, // Each agent has its own vault address — see agents.ts vaultAddress field
   },
 } as const
 

@@ -5,6 +5,7 @@ export interface AgentMeta {
   strategy: string
   strategyDetail: string
   walletAddress: string
+  vaultAddress?: `0x${string}` // vault contract for investing
   status: 'active' | 'paused' | 'new'
   initialFunding: number // ETH
 }
@@ -28,6 +29,7 @@ export const AGENTS: AgentMeta[] = [
     strategy: 'Deploys to all 24 blocks except the previous round\'s winner',
     strategyDetail: 'Deploys to all 24 blocks except the previous round\'s winner. 96% win probability. Optimal sizing formula adjusts based on grid activity. High frequency, steady BEAN accumulation.',
     walletAddress: '0x8A4ca6c796fD765537Fa367f1557bcF5Dc48C73d',
+    vaultAddress: '0x6F57a1063833282E7C1cC1F43a54C6362B807FEc',
     status: 'active',
     initialFunding: 1.0,
   },
@@ -48,6 +50,7 @@ export const AGENTS: AgentMeta[] = [
     strategy: 'Deploys to all 25 blocks, ramps up bets as the beanpot grows.',
     strategyDetail: 'Deploys to all 25 blocks at minimum. Waits for the pot to build, then scales up deployment as it approaches the historical beanpot max. The strategy isn\'t per-round, it\'s hunting the jackpot. Expected ~233 BEAN per hit at 1/777 odds.',
     walletAddress: '0x0d2bD39Dc8C3E8F6b2Bcf141D2a08F05C377bdBf',
+    vaultAddress: '0xF6458A627eA93dee0c29A4A6b94b3e202875C208',
     status: 'active',
     initialFunding: 1.0,
   },
@@ -58,6 +61,7 @@ export const AGENTS: AgentMeta[] = [
     strategy: 'Deploys to all 25 blocks as late as possible, only if EV is positive.',
     strategyDetail: 'Waits until seconds before round end to see the final grid state, then decides whether to deploy or skip entirely based on an EV formula. Adaptive timing targets the latest safe window before round close. Skips any round where the grid is too full for positive EV.',
     walletAddress: '0x573714A0a2F530a8b850E5308AF3151C3CCEa160',
+    vaultAddress: '0x29bbD4445BA27002D688bdB1FF652A67fA8f24ce',
     status: 'active',
     initialFunding: 0.5,
   },

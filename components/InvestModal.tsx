@@ -454,9 +454,9 @@ function WithdrawTab({
       <button
         onClick={onClaimBEAN}
         disabled={!claimBeanChecked || withdrawPending || claimBeanPending || !isConnected}
-        style={{ display: hasETHDeposited ? undefined : 'none' }}
         style={{
           ...s.claimBeanBtn,
+          display: hasETHDeposited ? undefined : 'none',
           opacity: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 0.3 : 1,
           cursor: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 'not-allowed' : 'pointer',
         }}

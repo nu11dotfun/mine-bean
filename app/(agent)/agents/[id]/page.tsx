@@ -211,7 +211,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   // Claim pending withdrawal confirmed
   useEffect(() => {
     if (claimPendingConfirmed) {
-      setClaimingPending(false)
       refetchPending()
     }
   }, [claimPendingConfirmed])
@@ -286,7 +285,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   const handleClaimPendingETH = () => {
     if (!vaultAddress) return
-    setClaimingPending(true)
     writeClaimPending({ address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
   }
 

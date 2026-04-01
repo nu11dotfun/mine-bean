@@ -503,6 +503,42 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       INVEST
                     </button>
 
+                    {/* Pending vault claim — shows when user has resolved ETH from mid-round withdrawal */}
+                    {hasPendingWithdrawal && pendingResolved && parseFloat(pendingETHAmount) > 0 && (
+                      <div style={{
+                        marginTop: 8,
+                        padding: '10px 14px',
+                        background: 'rgba(0,82,255,0.06)',
+                        border: '1px solid rgba(0,82,255,0.15)',
+                        borderRadius: 10,
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}>
+                        <div>
+                          <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Mono', monospace", textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block' }}>PENDING VAULT CLAIM</span>
+                          <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: "'Space Mono', monospace" }}>{parseFloat(pendingETHAmount).toFixed(6)} ETH</span>
+                        </div>
+                        <button
+                          onClick={handleClaimPendingETH}
+                          style={{
+                            padding: '6px 14px',
+                            background: 'rgba(0,82,255,0.15)',
+                            border: '1px solid rgba(0,82,255,0.3)',
+                            borderRadius: 8,
+                            color: '#fff',
+                            fontSize: 11,
+                            fontWeight: 700,
+                            fontFamily: "'Space Mono', monospace",
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease',
+                          }}
+                        >
+                          CLAIM ETH
+                        </button>
+                      </div>
+                    )}
+
                   </>
                 )}
               </div>

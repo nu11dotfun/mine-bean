@@ -11,7 +11,6 @@ import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
 import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
 import { CONTRACTS } from '@/lib/contracts'
 import InvestModal, { DepositStep } from '@/components/InvestModal'
-import PendingVaultClaim from '@/components/PendingVaultClaim'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -54,7 +53,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [showInvestModal, setShowInvestModal] = useState(false)
   const [depositStep, setDepositStep] = useState<DepositStep>('idle')
   const [withdrawPending, setWithdrawPending] = useState(false)
-  const [claimingPending, setClaimingPending] = useState(false)
   const [historyPages] = useState(4)
 
   // ── Wallet + vault contract reads ──
@@ -507,12 +505,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       INVEST
                     </button>
 
-                    {/* Pending vault claim */}
-                    <PendingVaultClaim
-                      claimableETH={hasPendingWithdrawal && pendingResolved ? pendingETHAmount : '0'}
-                      onClaim={handleClaimPendingETH}
-                      claiming={claimingPending}
-                    />
                   </>
                 )}
               </div>

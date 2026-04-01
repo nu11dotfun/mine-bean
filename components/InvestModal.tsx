@@ -70,7 +70,8 @@ export default function InvestModal({
     beanEarned: '0',
   }
 
-  const hasPosition = parseFloat(stats.userDeposited) > 0 || hasLockedBEAN || hasPendingWithdrawal
+  const hasBeanToClaim = parseFloat(stats.beanEarned) > 0
+  const hasPosition = parseFloat(stats.userDeposited) > 0 || hasLockedBEAN || hasPendingWithdrawal || hasBeanToClaim
 
   // Deposit button logic — no chaining, separate steps
   const isDepositBusy = ['approving', 'locking', 'depositing'].includes(depositStep)

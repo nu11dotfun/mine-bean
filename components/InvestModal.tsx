@@ -429,7 +429,7 @@ function WithdrawTab({
       )}
 
       {/* Claim BEAN section - show if user has any position */}
-      {(hasETHDeposited || hasLockedBEAN) && (
+      {(hasETHDeposited || hasLockedBEAN || parseFloat(stats.beanEarned) > 0) && (
         <>
           <div style={{ height: 1, background: 'rgba(255,255,255,0.06)', margin: '6px 0' }} />
 
@@ -457,7 +457,7 @@ function WithdrawTab({
         disabled={!claimBeanChecked || withdrawPending || claimBeanPending || !isConnected}
         style={{
           ...s.claimBeanBtn,
-          display: (hasETHDeposited || hasLockedBEAN) ? undefined : 'none',
+          display: (hasETHDeposited || hasLockedBEAN || parseFloat(stats.beanEarned) > 0) ? undefined : 'none',
           opacity: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 0.3 : 1,
           cursor: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 'not-allowed' : 'pointer',
         }}

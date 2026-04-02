@@ -41,6 +41,7 @@ interface Props {
   hasPendingWithdrawal: boolean
   depositStep: DepositStep
   withdrawPending: boolean
+  claimBeanPending: boolean
 }
 
 // ── Component ──
@@ -51,12 +52,11 @@ export default function InvestModal({
   vaultStats, beanAllowanceSufficient, hasLockedBEAN, beanLockAmount,
   onApproveBEAN, onLockBEAN, onDepositETH, onWithdrawETH, onWithdrawBEAN, onClaimBEAN, onClaimPendingWithdrawal,
   pendingWithdrawalETH, pendingWithdrawalBEAN, pendingWithdrawalResolved, hasPendingWithdrawal,
-  depositStep, withdrawPending,
+  depositStep, withdrawPending, claimBeanPending,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit')
   const [ethAmount, setEthAmount] = useState('')
   const [claimBeanChecked, setClaimBeanChecked] = useState(false)
-  const [claimBeanPending, setClaimBeanPending] = useState(false)
 
   if (!isOpen) return null
 
@@ -158,7 +158,7 @@ export default function InvestModal({
               hasETHDeposited={parseFloat(stats.userDeposited) > 0}
               onWithdrawETH={onWithdrawETH}
               onWithdrawBEAN={onWithdrawBEAN}
-              onClaimBEAN={() => { setClaimBeanPending(true); onClaimBEAN() }}
+              onClaimBEAN={onClaimBEAN}
               onClaimPendingWithdrawal={onClaimPendingWithdrawal}
               pendingWithdrawalETH={pendingWithdrawalETH}
               pendingWithdrawalResolved={pendingWithdrawalResolved}
@@ -333,24 +333,26 @@ function WithdrawTab({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      {/* Current position */}
-      <div style={s.positionRow}>
-        {hasETHDeposited && (
-          <>
+      {/* Current position - only show if there's something to display */}
+      {(hasETHDeposited || hasLockedBEAN) && (
+        <div style={s.positionRow}>
+          {hasETHDeposited && (
+            <>
+              <div style={s.positionItem}>
+                <span style={s.positionLabel}>ETH Deposited</span>
+                <span style={s.positionValue}>{parseFloat(stats.userDeposited).toFixed(4)} ETH</span>
+              </div>
+              {hasLockedBEAN && <div style={s.positionDivider} />}
+            </>
+          )}
+          {hasLockedBEAN && (
             <div style={s.positionItem}>
-              <span style={s.positionLabel}>ETH Deposited</span>
-              <span style={s.positionValue}>{parseFloat(stats.userDeposited).toFixed(4)} ETH</span>
+              <span style={s.positionLabel}>BEAN Locked</span>
+              <span style={s.positionValue}>{beanLockAmount} BEAN</span>
             </div>
-            <div style={s.positionDivider} />
-          </>
-        )}
-        {hasLockedBEAN && (
-          <div style={s.positionItem}>
-            <span style={s.positionLabel}>BEAN Locked</span>
-            <span style={s.positionValue}>{beanLockAmount} BEAN</span>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
 
       {/* Active round warning */}
       {parseFloat(stats.pendingAllocation) > 0 && (
@@ -362,25 +364,23 @@ function WithdrawTab({
         </div>
       )}
 
-      {/* Withdraw ETH button - only show if ETH deposited */}
-      {hasETHDeposited && (
-        <>
-          <button
-            onClick={onWithdrawETH}
-            disabled={withdrawPending || !isConnected}
-            style={{
-              ...s.actionBtn,
-              opacity: withdrawPending ? 0.4 : 1,
-              cursor: withdrawPending ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {withdrawPending ? 'WITHDRAWING...' : 'WITHDRAW ETH'}
-          </button>
-        </>
+      {/* Withdraw button - calls unlockBEAN() which returns ETH + locked BEAN in one tx */}
+      {(hasETHDeposited || hasLockedBEAN) && !hasPendingWithdrawal && (
+        <button
+          onClick={onWithdrawBEAN}
+          disabled={withdrawPending || !isConnected}
+          style={{
+            ...s.actionBtn,
+            opacity: withdrawPending ? 0.4 : 1,
+            cursor: withdrawPending ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {withdrawPending ? 'WITHDRAWING...' : 'WITHDRAW'}
+        </button>
       )}
 
       {/* Pending withdrawal from mid-round exit */}
-      {hasPendingWithdrawal && !hasETHDeposited && (
+      {hasPendingWithdrawal && (
         <>
           <div style={s.positionRow}>
             <div style={s.positionItem}>
@@ -408,23 +408,6 @@ function WithdrawTab({
               </div>
             </div>
           )}
-        </>
-      )}
-
-      {/* Unlock BEAN button - show when BEAN is locked and no ETH deposited and no pending withdrawal */}
-      {hasLockedBEAN && !hasETHDeposited && !hasPendingWithdrawal && (
-        <>
-          <button
-            onClick={onWithdrawBEAN}
-            disabled={withdrawPending || !isConnected}
-            style={{
-              ...s.actionBtn,
-              opacity: withdrawPending ? 0.4 : 1,
-              cursor: withdrawPending ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {withdrawPending ? 'UNLOCKING...' : `UNLOCK ${beanLockAmount} BEAN`}
-          </button>
         </>
       )}
 

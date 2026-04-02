@@ -55,6 +55,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [showInvestModal, setShowInvestModal] = useState(false)
   const [depositStep, setDepositStep] = useState<DepositStep>('idle')
   const [withdrawPending, setWithdrawPending] = useState(false)
+  const [claimBeanPending, setClaimBeanPending] = useState(false)
   const [rounds, setRounds] = useState<RoundData[]>([])
   const HISTORY_PAGES = 4
 
@@ -154,7 +155,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const { writeContract: writeLock, data: lockTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
   const { writeContract: writeDeposit, data: depositTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
   const { writeContractAsync: writeWithdrawETHAsync, data: withdrawETHTxHash } = useWriteContract()
-  const { writeContract: writeClaimBEAN, data: claimBEANTxHash } = useWriteContract()
+  const { writeContractAsync: writeClaimBEANAsync, data: claimBEANTxHash } = useWriteContract()
   const { writeContract: writeClaimPending, data: claimPendingTxHash } = useWriteContract()
 
   // Transaction receipts
@@ -162,8 +163,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const { isSuccess: lockConfirmed, isError: lockReverted } = useWaitForTransactionReceipt({ hash: lockTxHash })
   const { isSuccess: depositConfirmed, isError: depositReverted } = useWaitForTransactionReceipt({ hash: depositTxHash })
   const { isSuccess: withdrawETHConfirmed, isError: withdrawReverted } = useWaitForTransactionReceipt({ hash: withdrawETHTxHash })
-  const { isSuccess: claimBEANConfirmed } = useWaitForTransactionReceipt({ hash: claimBEANTxHash })
-  const { isSuccess: claimPendingConfirmed } = useWaitForTransactionReceipt({ hash: claimPendingTxHash })
+  const { isSuccess: claimBEANConfirmed, isError: claimBEANReverted } = useWaitForTransactionReceipt({ hash: claimBEANTxHash })
+  const { isSuccess: claimPendingConfirmed, isError: claimPendingReverted } = useWaitForTransactionReceipt({ hash: claimPendingTxHash })
 
   // Approve confirmed → reset step (UI will auto-show lock button since allowance is now sufficient)
   useEffect(() => {
@@ -196,16 +197,16 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   // Withdraw confirmed — invalidate all queries to force fresh contract reads
   useEffect(() => {
-    if (withdrawETHConfirmed) {
+    if (withdrawETHConfirmed || withdrawReverted) {
       setWithdrawPending(false)
       queryClient.invalidateQueries()
     }
-  }, [withdrawETHConfirmed])
+  }, [withdrawETHConfirmed, withdrawReverted])
 
   // Claim BEAN confirmed
   useEffect(() => {
-    if (claimBEANConfirmed) { queryClient.invalidateQueries() }
-  }, [claimBEANConfirmed])
+    if (claimBEANConfirmed || claimBEANReverted) { setClaimBeanPending(false); queryClient.invalidateQueries() }
+  }, [claimBEANConfirmed, claimBEANReverted])
 
   // Claim pending withdrawal confirmed
   useEffect(() => {
@@ -281,9 +282,12 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     } catch { setWithdrawPending(false) }
   }
 
-  const handleClaimBEAN = () => {
+  const handleClaimBEAN = async () => {
     if (!vaultAddress) return
-    writeClaimBEAN({ address: vaultAddress, abi: vaultAbi, functionName: 'claimBEAN' })
+    setClaimBeanPending(true)
+    try {
+      await writeClaimBEANAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'claimBEAN' })
+    } catch { setClaimBeanPending(false) }
   }
 
   const handleClaimPendingETH = () => {
@@ -820,7 +824,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       {/* Invest modal */}
       <InvestModal
         isOpen={showInvestModal}
-        onClose={() => { setShowInvestModal(false); setDepositStep('idle'); setWithdrawPending(false) }}
+        onClose={() => { setShowInvestModal(false); setDepositStep('idle'); setWithdrawPending(false); setClaimBeanPending(false) }}
         agentName={agent.name}
         isMobile={isMobile}
         isConnected={isConnected}
@@ -843,6 +847,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         hasPendingWithdrawal={hasPendingWithdrawal}
         depositStep={depositStep}
         withdrawPending={withdrawPending}
+        claimBeanPending={claimBeanPending}
       />
     </div>
   )

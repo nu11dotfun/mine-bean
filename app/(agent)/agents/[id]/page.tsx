@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useQueryClient } from '@tanstack/react-query'
 import { parseEther, formatEther } from 'viem'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
@@ -59,6 +60,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   // ── Wallet + vault contract reads ──
   const { address, isConnected } = useAccount()
+  const queryClient = useQueryClient()
   const vaultAddress = agent?.vaultAddress
   const vaultAbi = CONTRACTS.AgentVault.abi
 
@@ -151,7 +153,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const { writeContract: writeApprove, data: approveTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
   const { writeContract: writeLock, data: lockTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
   const { writeContract: writeDeposit, data: depositTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
-  const { writeContract: writeWithdrawETH, data: withdrawETHTxHash } = useWriteContract({ mutation: { onError: () => setWithdrawPending(false) } })
+  const { writeContractAsync: writeWithdrawETHAsync, data: withdrawETHTxHash } = useWriteContract()
   const { writeContract: writeClaimBEAN, data: claimBEANTxHash } = useWriteContract()
   const { writeContract: writeClaimPending, data: claimPendingTxHash } = useWriteContract()
 
@@ -181,8 +183,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   useEffect(() => {
     if (depositConfirmed && depositStep === 'depositing') {
       setDepositStep('done')
-      refetchUserETH(); refetchShares(); refetchUserBEAN()
-      setTimeout(() => { refetchUserETH(); refetchShares(); refetchUserBEAN() }, 2000)
+      queryClient.invalidateQueries()
       setTimeout(() => setDepositStep('idle'), 3000)
     }
   }, [depositConfirmed])
@@ -193,27 +194,23 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   useEffect(() => { if (depositReverted) setDepositStep('idle') }, [depositReverted])
   useEffect(() => { if (withdrawReverted) setWithdrawPending(false) }, [withdrawReverted])
 
-  // Withdraw confirmed — close and reopen modal to force fresh contract reads
+  // Withdraw confirmed — invalidate all queries to force fresh contract reads
   useEffect(() => {
     if (withdrawETHConfirmed) {
       setWithdrawPending(false)
-      setShowInvestModal(false)
-      setTimeout(() => {
-        refetchUserETH(); refetchShares(); refetchPending(); refetchUserBEAN()
-        setShowInvestModal(true)
-      }, 1500)
+      queryClient.invalidateQueries()
     }
   }, [withdrawETHConfirmed])
 
   // Claim BEAN confirmed
   useEffect(() => {
-    if (claimBEANConfirmed) { refetchUserBEAN() }
+    if (claimBEANConfirmed) { queryClient.invalidateQueries() }
   }, [claimBEANConfirmed])
 
   // Claim pending withdrawal confirmed
   useEffect(() => {
     if (claimPendingConfirmed) {
-      refetchPending()
+      queryClient.invalidateQueries()
     }
   }, [claimPendingConfirmed])
 
@@ -266,18 +263,22 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     writeDeposit({ address: vaultAddress, abi: vaultAbi, functionName: 'deposit', value: parseEther(amount) })
   }
 
-  const handleWithdrawETH = () => {
+  const handleWithdrawETH = async () => {
     if (!vaultAddress || userShares === BigInt(0)) return
     setWithdrawPending(true)
-    const ethAmt = userETHBalRaw as bigint || BigInt(0)
-    writeWithdrawETH({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH', args: [ethAmt] })
+    try {
+      const ethAmt = userETHBalRaw as bigint || BigInt(0)
+      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH', args: [ethAmt] })
+    } catch { setWithdrawPending(false) }
   }
 
-  const handleWithdrawBEAN = () => {
+  const handleWithdrawBEAN = async () => {
     // unlockBEAN returns locked BEAN after withdrawing ETH
     if (!vaultAddress) return
     setWithdrawPending(true)
-    writeWithdrawETH({ address: vaultAddress, abi: vaultAbi, functionName: 'unlockBEAN' })
+    try {
+      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'unlockBEAN' })
+    } catch { setWithdrawPending(false) }
   }
 
   const handleClaimBEAN = () => {
@@ -819,7 +820,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       {/* Invest modal */}
       <InvestModal
         isOpen={showInvestModal}
-        onClose={() => { setShowInvestModal(false); setDepositStep('idle') }}
+        onClose={() => { setShowInvestModal(false); setDepositStep('idle'); setWithdrawPending(false) }}
         agentName={agent.name}
         isMobile={isMobile}
         isConnected={isConnected}

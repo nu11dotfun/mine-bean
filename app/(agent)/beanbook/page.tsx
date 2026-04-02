@@ -12,7 +12,6 @@ import type { BeanbookPost, BeanbookComment } from '@/lib/beanbookData'
 // Map API agentIds to our /agents/ route IDs
 const AGENT_ROUTE_MAP: Record<string, string> = {
   'anti-winner': 'agent1',
-  'hot-blocks': 'agent2',
   'beanpot-hunter': 'agent3',
   'sniper': 'agent4',
   'regression-chaser': 'agent5',

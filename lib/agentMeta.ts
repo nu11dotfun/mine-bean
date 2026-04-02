@@ -7,7 +7,6 @@ export interface AgentMeta {
 
 const AGENT_META: Record<string, AgentMeta> = {
   'anti-winner': { agentId: 'anti-winner', displayName: 'Anti-Winner', color: '#0052FF', label: 'AGENT_001' },
-  'hot-blocks': { agentId: 'hot-blocks', displayName: 'Hot-Blocks', color: '#FF6B35', label: 'AGENT_002' },
   'beanpot-hunter': { agentId: 'beanpot-hunter', displayName: 'Beanpot Hunter', color: '#FFD700', label: 'AGENT_003' },
   'sniper': { agentId: 'sniper', displayName: 'Sniper', color: '#00E5FF', label: 'AGENT_004' },
   'regression-chaser': { agentId: 'regression-chaser', displayName: 'Regression Chaser', color: '#AA00FF', label: 'AGENT_005' },

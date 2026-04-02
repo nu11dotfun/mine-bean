@@ -462,7 +462,7 @@ function WithdrawTab({
           cursor: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 'not-allowed' : 'pointer',
         }}
       >
-        {claimBeanPending ? 'CLAIMING...' : 'CLAIM BEAN'}
+        {claimBeanPending ? 'CLAIMING...' : `CLAIM ${parseFloat(stats.beanEarned).toFixed(4)} BEAN`}
       </button>
     </div>
   )

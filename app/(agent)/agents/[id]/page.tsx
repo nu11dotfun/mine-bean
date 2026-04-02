@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
@@ -8,7 +8,8 @@ import { parseEther, formatEther } from 'viem'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
 import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
-import { AgentStats, fetchAgentStats, fetchPayoutSummary, fetchAllOnChainBalances, relativeTime } from '@/lib/agentData'
+import { AgentStats, RoundData, fetchAgentRounds, relativeTime } from '@/lib/agentData'
+import { apiFetch } from '@/lib/api'
 import { CONTRACTS } from '@/lib/contracts'
 import InvestModal, { DepositStep } from '@/components/InvestModal'
 
@@ -53,7 +54,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [showInvestModal, setShowInvestModal] = useState(false)
   const [depositStep, setDepositStep] = useState<DepositStep>('idle')
   const [withdrawPending, setWithdrawPending] = useState(false)
-  const [historyPages] = useState(4)
+  const [rounds, setRounds] = useState<RoundData[]>([])
+  const HISTORY_PAGES = 4
 
   // ── Wallet + vault contract reads ──
   const { address, isConnected } = useAccount()
@@ -295,27 +297,26 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     return () => window.removeEventListener('resize', check)
   }, [])
 
-  // Fetch + auto-refresh every 120s
-  // Payout + on-chain balances fetched in parallel, then API-only stats
+  // Fetch pre-calculated stats + round history, auto-refresh every 120s
   useEffect(() => {
     if (!agent) return
     function fetchData() {
-      Promise.all([
-        fetchPayoutSummary().catch(() => ({} as Record<string, number>)),
-        fetchAllOnChainBalances([agent!.walletAddress]).catch(() => new Map()),
-      ]).then(([payouts, balances]) => {
-        const paidOut = (payouts as Record<string, number>)[agent!.apiAgentId] ?? 0
-        const bal = balances.get(agent!.walletAddress)
-        fetchAgentStats(agent!.walletAddress, historyPages, agent!.initialFunding, paidOut, false, bal || undefined)
-          .then(setStats)
-          .catch(console.error)
-          .finally(() => setLoading(false))
-      })
+      apiFetch<{ agents: Record<string, AgentStats> }>('/api/agents/stats')
+        .then(res => {
+          const agentStats = res.agents[agent!.apiAgentId]
+          if (!agentStats) return
+          setStats(agentStats)
+          // Fetch round history using the vault address from backend
+          return fetchAgentRounds(agentStats.address, HISTORY_PAGES, agentStats.beanPriceEth)
+            .then(setRounds)
+        })
+        .catch(console.error)
+        .finally(() => setLoading(false))
     }
     fetchData()
     const interval = setInterval(fetchData, 120_000)
     return () => clearInterval(interval)
-  }, [agent?.walletAddress, historyPages])
+  }, [agent?.apiAgentId])
 
 
 
@@ -351,7 +352,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   }).join(' ')
 
   // Derived stats from rounds
-  const settledRounds = stats.rounds.filter(r => r.settled)
+  const settledRounds = rounds.filter(r => r.settled)
   const avgPosition = stats.roundsPlayed > 0 ? stats.totalDeployed / stats.roundsPlayed : 0
   const bestRound = settledRounds.length > 0 ? Math.max(...settledRounds.map(r => r.truePnl)) : 0
   const worstRound = settledRounds.length > 0 ? Math.min(...settledRounds.map(r => r.truePnl)) : 0
@@ -359,8 +360,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const losses = stats.roundsPlayed - wins
 
   // Pagination
-  const totalPages = Math.ceil(stats.rounds.length / ROWS_PER_PAGE)
-  const pagedRounds = stats.rounds.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
+  const totalPages = Math.ceil(rounds.length / ROWS_PER_PAGE)
+  const pagedRounds = rounds.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
 
   return (
     <div className="agent-page" style={s.page}>
@@ -469,8 +470,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                     ['TOTAL DEPLOYED', `${stats.totalDeployed.toFixed(4)} ETH`],
                     ['ETH WON', `${stats.totalWon.toFixed(4)} ETH`],
                     ['ETH P&L', `${stats.ethPnl >= 0 ? '+' : ''}${stats.ethPnl.toFixed(4)} ETH`],
-                    ['BEAN EARNED', `${stats.beansEarned > 1000 ? `${(stats.beansEarned / 1000).toFixed(1)}k` : stats.beansEarned < 1 ? stats.beansEarned.toFixed(4) : stats.beansEarned.toFixed(1)}`],
-                    ['BEAN VALUE', `+${stats.beanValueEth.toFixed(4)} ETH`],
+                    ['BEAN EARNED', `${stats.totalBeanEarned > 1000 ? `${(stats.totalBeanEarned / 1000).toFixed(1)}k` : stats.totalBeanEarned < 1 ? stats.totalBeanEarned.toFixed(4) : stats.totalBeanEarned.toFixed(1)}`],
+                    ['BEAN VALUE', `+${stats.totalBeanEarnedEth.toFixed(4)} ETH`],
                     ['TRUE P&L', `${isPositive ? '+' : ''}${stats.netPnl.toFixed(4)} ETH`],
                     ['LAST ACTIVE', stats.lastActive],
                   ].map(([label, val], i) => (
@@ -725,7 +726,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="15 18 9 12 15 6" /></svg>
                 </button>
                 <span style={{ fontSize: 11, fontFamily: "'Space Mono', monospace", color: 'rgba(255,255,255,0.4)' }}>
-                  {page + 1} / {totalPages}{' '}<span style={{ color: 'rgba(255,255,255,0.2)' }}>({stats.rounds.length} rounds)</span>
+                  {page + 1} / {totalPages}{' '}<span style={{ color: 'rgba(255,255,255,0.2)' }}>({rounds.length} rounds)</span>
                 </span>
                 <button
                   onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}

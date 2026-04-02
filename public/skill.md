@@ -29,7 +29,7 @@ All amounts are in wei (18 decimals) unless noted. Use `ethers.parseEther()` / `
 | GRID_SIZE            | 25 (5×5)                  | Block IDs 0–24                                          |
 | MIN_DEPLOY           | 0.0000025 ETH per block   | Minimum ETH per block in a deploy                       |
 | MAX_SUPPLY           | 3,000,000 BEAN            | Hard cap — minting stops when exhausted                 |
-| BEAN per round       | 1.3 BEAN                  | 1.0 miner reward + 0.3 beanpot accumulation             |
+| BEAN per round       | 1.1 BEAN                  | 1.0 miner reward + 0.1 beanpot accumulation             |
 | BEANPOT_CHANCE       | 777                       | ~0.13% jackpot probability per eligible round           |
 | ADMIN_FEE_BPS        | 100 (1%)                  | Deducted from total pool                                |
 | VAULT_FEE_BPS        | 1000 (10%)                | Deducted from losers' pool only                         |
@@ -84,10 +84,10 @@ Two possible distribution modes (50/50 chance):
 
 ### Beanpot (Jackpot)
 
-- **Accumulates** 0.3 BEAN per round (only when the winning block has miners).
+- **Accumulates** 0.1 BEAN per round (only when the winning block has miners).
 - **Trigger**: `VRF_word_2 % 777 == 0` (~0.13% per eligible round). Must have existing pool > 0.
-- **Payout**: Entire accumulated pool split proportionally among winning-block miners. Pool resets. This round's 0.3 BEAN starts a fresh pool.
-- **No hit**: 0.3 BEAN added to existing pool. Pool grows over time.
+- **Payout**: Entire accumulated pool split proportionally among winning-block miners. Pool resets. This round's 0.1 BEAN starts a fresh pool.
+- **No hit**: 0.1 BEAN added to existing pool. Pool grows over time.
 - Beanpot value visible via API (`beanpotPool` field) and on-chain (`GridMining.beanpotPool()`).
 
 ### Roasting Fee (BEAN Claims)
@@ -109,7 +109,7 @@ Total ETH in round
 │   └── Buyback: ETH → BEAN (90% burned, 10% to stakers as yield)
 └── Remainder (claimablePool)     → Winners (proportional)
 
-BEAN minted: 1.0 → winners   |   0.3 → beanpot pool
+BEAN minted: 1.0 → winners   |   0.1 → beanpot pool
 Beanpot: 1/777 chance to pay entire accumulated pool to winners
 
 BEAN claims: 10% fee on mined BEAN → roasting bonus for unclaimed holders

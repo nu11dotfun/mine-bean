@@ -42,6 +42,7 @@ interface Props {
   depositStep: DepositStep
   withdrawPending: boolean
   claimBeanPending: boolean
+  depositsPaused?: boolean
 }
 
 // ── Component ──
@@ -52,9 +53,9 @@ export default function InvestModal({
   vaultStats, beanAllowanceSufficient, hasLockedBEAN, beanLockAmount,
   onApproveBEAN, onLockBEAN, onDepositETH, onWithdrawETH, onWithdrawBEAN, onClaimBEAN, onClaimPendingWithdrawal,
   pendingWithdrawalETH, pendingWithdrawalBEAN, pendingWithdrawalResolved, hasPendingWithdrawal,
-  depositStep, withdrawPending, claimBeanPending,
+  depositStep, withdrawPending, claimBeanPending, depositsPaused,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>('deposit')
+  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>(depositsPaused ? 'withdraw' : 'deposit')
   const [ethAmount, setEthAmount] = useState('')
   const [claimBeanChecked, setClaimBeanChecked] = useState(false)
 
@@ -116,8 +117,9 @@ export default function InvestModal({
         {/* Tabs */}
         <div style={s.tabRow}>
           <button
-            onClick={() => setActiveTab('deposit')}
-            style={{ ...s.tab, ...(activeTab === 'deposit' ? s.tabActive : {}) }}
+            onClick={() => !depositsPaused && setActiveTab('deposit')}
+            disabled={depositsPaused}
+            style={{ ...s.tab, ...(activeTab === 'deposit' ? s.tabActive : {}), ...(depositsPaused ? { opacity: 0.3, cursor: 'not-allowed' } : {}) }}
           >
             DEPOSIT
           </button>

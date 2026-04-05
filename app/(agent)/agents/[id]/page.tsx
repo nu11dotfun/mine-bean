@@ -334,8 +334,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     if (!oldVaultAddress) return
     setOldVaultPending(true)
     try {
-      // Old vault: unlockBEAN withdraws ETH + returns locked BEAN
       await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'unlockBEAN' })
+      setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
 
@@ -344,6 +344,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     setOldVaultPending(true)
     try {
       await writeClaimBEANAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimBEAN' })
+      setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
 
@@ -352,6 +353,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     setOldVaultPending(true)
     try {
       await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimPendingWithdrawal' })
+      setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
 

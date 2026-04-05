@@ -4,6 +4,7 @@ import BeanABI from './abis/Bean.json'
 import TreasuryABI from './abis/Treasury.json'
 import StakingABI from './abis/Staking.json'
 import AgentVaultABI from './abis/AgentVault.json'
+import AgentVaultV1ABI from './abis/AgentVaultV1.json'
 
 export const CONTRACTS = {
   GridMining: {
@@ -31,6 +32,9 @@ export const CONTRACTS = {
   },
   AgentVault: {
     abi: AgentVaultABI, // Each agent has its own vault address — see agents.ts vaultAddress field
+  },
+  AgentVaultV1: {
+    abi: AgentVaultV1ABI, // Legacy vault ABI (withdrawETH takes uint256 param)
   },
 } as const
 

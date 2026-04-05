@@ -136,6 +136,36 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const totalPooled = totalETHAssetsRaw ? formatEther(totalETHAssetsRaw as bigint) : '0'
   const pendingDep = pendingDepositRaw ? formatEther(pendingDepositRaw as bigint) : '0'
 
+  // ── Old vault reads (legacy withdrawal support) ──
+  const oldVaultAddress = agent?.oldVaultAddress
+  const oldVaultAbi = CONTRACTS.AgentVaultV1.abi
+  const oldVaultReadEnabled = !!oldVaultAddress && !!address
+
+  const { data: oldUserETHRaw } = useReadContract({
+    address: oldVaultAddress, abi: oldVaultAbi, functionName: 'userETHBalance', args: [address!],
+    query: { enabled: oldVaultReadEnabled },
+  })
+  const { data: oldUserBEANRaw } = useReadContract({
+    address: oldVaultAddress, abi: oldVaultAbi, functionName: 'userBEANBalance', args: [address!],
+    query: { enabled: oldVaultReadEnabled },
+  })
+  const { data: oldHasLockedRaw } = useReadContract({
+    address: oldVaultAddress, abi: oldVaultAbi, functionName: 'hasLockedBEAN', args: [address!],
+    query: { enabled: oldVaultReadEnabled },
+  })
+  const { data: oldPendingWithdrawalRaw } = useReadContract({
+    address: oldVaultAddress, abi: oldVaultAbi, functionName: 'userPendingWithdrawal', args: [address!],
+    query: { enabled: oldVaultReadEnabled },
+  })
+
+  const oldUserETH = oldUserETHRaw ? parseFloat(formatEther(oldUserETHRaw as bigint)) : 0
+  const oldUserBEAN = oldUserBEANRaw ? parseFloat(formatEther(oldUserBEANRaw as bigint)) : 0
+  const oldHasLockedBEAN = !!oldHasLockedRaw
+  const oldPendingWithdrawal = oldPendingWithdrawalRaw as [bigint, bigint, boolean] | undefined
+  const oldPendingETH = oldPendingWithdrawal ? parseFloat(formatEther(oldPendingWithdrawal[0])) : 0
+  const oldPendingResolved = oldPendingWithdrawal ? oldPendingWithdrawal[2] : false
+  const hasOldVaultBalance = oldUserETH > 0 || oldUserBEAN > 0 || oldHasLockedBEAN || oldPendingETH > 0
+
   // Pending withdrawal
   const pendingWithdrawal = pendingWithdrawalRaw as [bigint, bigint, boolean] | undefined
   const pendingETHAmount = pendingWithdrawal ? formatEther(pendingWithdrawal[0]) : '0'
@@ -271,8 +301,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     if (!vaultAddress || userShares === BigInt(0)) return
     setWithdrawPending(true)
     try {
-      const ethAmt = userETHBalRaw as bigint || BigInt(0)
-      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH', args: [ethAmt] })
+      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH' })
     } catch { setWithdrawPending(false) }
   }
 
@@ -296,6 +325,34 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const handleClaimPendingETH = () => {
     if (!vaultAddress) return
     writeClaimPending({ address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
+  }
+
+  // ── Old vault handlers ──
+  const [oldVaultPending, setOldVaultPending] = useState(false)
+
+  const handleOldVaultWithdraw = async () => {
+    if (!oldVaultAddress) return
+    setOldVaultPending(true)
+    try {
+      // Old vault: unlockBEAN withdraws ETH + returns locked BEAN
+      await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'unlockBEAN' })
+    } catch { setOldVaultPending(false) }
+  }
+
+  const handleOldVaultClaimBEAN = async () => {
+    if (!oldVaultAddress) return
+    setOldVaultPending(true)
+    try {
+      await writeClaimBEANAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimBEAN' })
+    } catch { setOldVaultPending(false) }
+  }
+
+  const handleOldVaultClaimPending = async () => {
+    if (!oldVaultAddress) return
+    setOldVaultPending(true)
+    try {
+      await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimPendingWithdrawal' })
+    } catch { setOldVaultPending(false) }
   }
 
   useEffect(() => {
@@ -556,6 +613,89 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                         >
                           CLAIM ETH
                         </button>
+                      </div>
+                    )}
+
+                    {/* Legacy vault — shows when user has balance in old vault contract */}
+                    {hasOldVaultBalance && isConnected && (
+                      <div style={{
+                        marginTop: 8,
+                        padding: '12px 14px',
+                        background: 'rgba(0,200,100,0.04)',
+                        border: '1px solid rgba(0,200,100,0.15)',
+                        borderRadius: 10,
+                      }}>
+                        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Mono', monospace", textTransform: 'uppercase' as const, letterSpacing: '0.06em', display: 'block', marginBottom: 8 }}>CLAIMABLE BALANCE</span>
+                        {oldUserETH > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 13, color: '#fff', fontFamily: "'Space Mono', monospace" }}>{oldUserETH.toFixed(4)} ETH</span>
+                          </div>
+                        )}
+                        {oldUserBEAN > 0 && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 13, color: '#fff', fontFamily: "'Space Mono', monospace" }}>{oldUserBEAN.toFixed(4)} BEAN</span>
+                          </div>
+                        )}
+                        {oldHasLockedBEAN && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', fontFamily: "'Space Mono', monospace" }}>BEAN locked</span>
+                          </div>
+                        )}
+                        {oldPendingETH > 0 && oldPendingResolved && (
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                            <span style={{ fontSize: 13, color: '#fff', fontFamily: "'Space Mono', monospace" }}>{oldPendingETH.toFixed(4)} ETH (pending)</span>
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          {(oldUserETH > 0 || oldHasLockedBEAN) && (
+                            <button
+                              onClick={handleOldVaultWithdraw}
+                              disabled={oldVaultPending}
+                              style={{
+                                flex: 1, padding: '8px 0',
+                                background: 'rgba(0,200,100,0.1)',
+                                border: '1px solid rgba(0,200,100,0.25)',
+                                borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace", cursor: oldVaultPending ? 'not-allowed' : 'pointer',
+                                opacity: oldVaultPending ? 0.5 : 1, transition: 'all 0.2s ease',
+                              }}
+                            >
+                              {oldVaultPending ? 'PROCESSING...' : 'WITHDRAW'}
+                            </button>
+                          )}
+                          {oldUserBEAN > 0 && !oldHasLockedBEAN && (
+                            <button
+                              onClick={handleOldVaultClaimBEAN}
+                              disabled={oldVaultPending}
+                              style={{
+                                flex: 1, padding: '8px 0',
+                                background: 'rgba(0,200,100,0.1)',
+                                border: '1px solid rgba(0,200,100,0.25)',
+                                borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace", cursor: oldVaultPending ? 'not-allowed' : 'pointer',
+                                opacity: oldVaultPending ? 0.5 : 1, transition: 'all 0.2s ease',
+                              }}
+                            >
+                              {oldVaultPending ? 'PROCESSING...' : 'CLAIM BEAN'}
+                            </button>
+                          )}
+                          {oldPendingETH > 0 && oldPendingResolved && (
+                            <button
+                              onClick={handleOldVaultClaimPending}
+                              disabled={oldVaultPending}
+                              style={{
+                                flex: 1, padding: '8px 0',
+                                background: 'rgba(0,200,100,0.1)',
+                                border: '1px solid rgba(0,200,100,0.25)',
+                                borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace", cursor: oldVaultPending ? 'not-allowed' : 'pointer',
+                                opacity: oldVaultPending ? 0.5 : 1, transition: 'all 0.2s ease',
+                              }}
+                            >
+                              {oldVaultPending ? 'PROCESSING...' : 'CLAIM ETH'}
+                            </button>
+                          )}
+                        </div>
                       </div>
                     )}
 

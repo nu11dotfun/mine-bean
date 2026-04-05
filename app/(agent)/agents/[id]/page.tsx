@@ -377,7 +377,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           if (!agentStats) return
           setStats(agentStats)
           // Fetch round history using the vault address from backend
-          return fetchAgentRounds(agentStats.address, HISTORY_PAGES, agentStats.beanPriceEth)
+          return fetchAgentRounds(agentStats.address, HISTORY_PAGES, agentStats.beanPriceEth, agent!.oldVaultAddress)
             .then(setRounds)
         })
         .catch(console.error)

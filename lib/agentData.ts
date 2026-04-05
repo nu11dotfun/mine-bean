@@ -117,32 +117,43 @@ export function relativeTime(iso: string): string {
 export async function fetchAgentRounds(
   address: string,
   historyPages: number,
-  beanPriceEth: number
+  beanPriceEth: number,
+  oldAddress?: string
 ): Promise<RoundData[]> {
-  const data = await apiFetch<HistoryResponse>(
-    `/api/user/${address}/history?type=deploy&limit=50`
-  )
-
-  // Fetch additional history pages in parallel if requested
-  const allHistory = [...data.history]
-  if (historyPages > 1) {
-    const pagesToFetch = Math.min(historyPages, data.pagination.pages)
-    const pagePromises = []
-    for (let page = 2; page <= pagesToFetch; page++) {
-      pagePromises.push(
-        apiFetch<HistoryResponse>(
-          `/api/user/${address}/history?type=deploy&limit=50&page=${page}`
-        ).catch(e => {
-          console.error(`[${address.slice(0, 8)}] Failed page ${page}:`, e)
-          return null
-        })
-      )
+  // Fetch history for primary address
+  const fetchHistory = async (addr: string, pages: number): Promise<HistoryEntry[]> => {
+    const data = await apiFetch<HistoryResponse>(
+      `/api/user/${addr}/history?type=deploy&limit=50`
+    )
+    const history = [...data.history]
+    if (pages > 1) {
+      const pagesToFetch = Math.min(pages, data.pagination.pages)
+      const pagePromises = []
+      for (let page = 2; page <= pagesToFetch; page++) {
+        pagePromises.push(
+          apiFetch<HistoryResponse>(
+            `/api/user/${addr}/history?type=deploy&limit=50&page=${page}`
+          ).catch(e => {
+            console.error(`[${addr.slice(0, 8)}] Failed page ${page}:`, e)
+            return null
+          })
+        )
+      }
+      const results = await Promise.all(pagePromises)
+      for (const pageData of results) {
+        if (pageData) history.push(...pageData.history)
+      }
     }
-    const results = await Promise.all(pagePromises)
-    for (const pageData of results) {
-      if (pageData) allHistory.push(...pageData.history)
-    }
+    return history
   }
+
+  // Fetch both addresses in parallel
+  const [newHistory, oldHistory] = await Promise.all([
+    fetchHistory(address, historyPages),
+    oldAddress ? fetchHistory(oldAddress, historyPages) : Promise.resolve([]),
+  ])
+
+  const allHistory = [...newHistory, ...oldHistory]
 
   // Consolidate entries by roundId (multiple deploys per round possible)
   const roundMap = new Map<number, {

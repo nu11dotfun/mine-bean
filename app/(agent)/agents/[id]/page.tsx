@@ -506,18 +506,20 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   <>
                     <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
                     <button
-                      onClick={handleInvestClick}
+                      onClick={agent.status !== 'paused' ? handleInvestClick : undefined}
+                      disabled={agent.status === 'paused'}
                       style={{
                         width: '100%', padding: '14px 0',
-                        border: '1px solid rgba(0,82,255,0.5)',
+                        border: `1px solid ${agent.status === 'paused' ? 'rgba(255,255,255,0.08)' : 'rgba(0,82,255,0.5)'}`,
                         borderRadius: 10,
-                        background: 'rgba(0,82,255,0.15)',
-                        color: '#fff',
+                        background: agent.status === 'paused' ? 'rgba(255,255,255,0.02)' : 'rgba(0,82,255,0.15)',
+                        color: agent.status === 'paused' ? 'rgba(255,255,255,0.2)' : '#fff',
                         fontSize: 14, fontWeight: 700,
                         fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
-                        cursor: 'pointer',
-                        boxShadow: '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)',
+                        cursor: agent.status === 'paused' ? 'not-allowed' : 'pointer',
+                        boxShadow: agent.status === 'paused' ? 'none' : '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)',
                         transition: 'all 0.2s ease',
+                        opacity: agent.status === 'paused' ? 0.5 : 1,
                       }}
                     >
                       INVEST

@@ -13,6 +13,7 @@ import { AgentStats, RoundData, fetchAgentRounds, relativeTime } from '@/lib/age
 import { apiFetch } from '@/lib/api'
 import { CONTRACTS } from '@/lib/contracts'
 import InvestModal, { DepositStep } from '@/components/InvestModal'
+import VaultStatsModal from '@/components/VaultStatsModal'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -53,6 +54,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [loading, setLoading] = useState(true)
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [showInvestModal, setShowInvestModal] = useState(false)
+  const [showVaultStats, setShowVaultStats] = useState(false)
+  const [vaultApiData, setVaultApiData] = useState<any>(null)
   const [depositStep, setDepositStep] = useState<DepositStep>('idle')
   const [withdrawPending, setWithdrawPending] = useState(false)
   const [claimBeanPending, setClaimBeanPending] = useState(false)
@@ -323,7 +326,16 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     return () => clearInterval(interval)
   }, [agent?.apiAgentId])
 
-
+  // Fetch vault stats from API
+  useEffect(() => {
+    if (!agent) return
+    apiFetch<{ vaults: Record<string, any> }>('/api/agents/vaults')
+      .then(res => {
+        const v = res.vaults?.[agent.apiAgentId]
+        if (v) setVaultApiData(v)
+      })
+      .catch(() => {})
+  }, [agent?.apiAgentId])
 
   if (!agent) notFound()
 
@@ -379,9 +391,11 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
           50% { opacity: 0.25; }
         }
         .back-link:hover { color: rgba(255,255,255,0.7) !important; }
-        .rounds-scroll::-webkit-scrollbar, .left-sidebar::-webkit-scrollbar { width: 4px; }
-        .rounds-scroll::-webkit-scrollbar-track, .left-sidebar::-webkit-scrollbar-track { background: transparent; }
-        .rounds-scroll::-webkit-scrollbar-thumb, .left-sidebar::-webkit-scrollbar-thumb { background: rgba(0,82,255,0.3); border-radius: 2px; }
+        .rounds-scroll::-webkit-scrollbar { width: 4px; }
+        .rounds-scroll::-webkit-scrollbar-track { background: transparent; }
+        .rounds-scroll::-webkit-scrollbar-thumb { background: rgba(0,82,255,0.3); border-radius: 2px; }
+        .left-sidebar::-webkit-scrollbar { display: none; }
+        .left-sidebar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <AgentHeader currentPage="agents" />
@@ -424,8 +438,8 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
             flexDirection: 'column',
             minHeight: 0,
             overflowY: isMobile ? undefined : 'auto',
-            padding: isMobile ? 0 : 25,
-            margin: isMobile ? 0 : -25,
+            padding: isMobile ? 0 : 30,
+            margin: isMobile ? 0 : -30,
           }}>
             <NeonCard>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -544,6 +558,24 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                         </button>
                       </div>
                     )}
+
+                    {/* Vault Stats button */}
+                    <button
+                      onClick={() => setShowVaultStats(true)}
+                      style={{
+                        width: '100%', padding: '12px 0', marginTop: 8,
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        borderRadius: 10,
+                        background: 'rgba(255,255,255,0.03)',
+                        color: 'rgba(255,255,255,0.6)',
+                        fontSize: 12, fontWeight: 700,
+                        fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      VAULT STATS
+                    </button>
 
                   </>
                 )}
@@ -848,6 +880,16 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         depositStep={depositStep}
         withdrawPending={withdrawPending}
         claimBeanPending={claimBeanPending}
+      />
+
+      <VaultStatsModal
+        isOpen={showVaultStats}
+        onClose={() => setShowVaultStats(false)}
+        agentName={agent.name}
+        isMobile={isMobile}
+        vaultData={vaultApiData ? { ...vaultApiData, address: agent.vaultAddress } : null}
+        roundsPlayed={stats?.roundsPlayed}
+        beanPriceEth={stats?.beanPriceEth}
       />
     </div>
   )

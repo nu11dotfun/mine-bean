@@ -32,7 +32,7 @@ export const AGENTS: AgentMeta[] = [
     status: 'active',
   },
   {
-    id: 'agent3',
+    id: 'agent2',
     apiAgentId: 'hunter',
     name: 'Beanpot Hunter',
     strategy: 'Deploys to all 25 blocks, ramps up bets as the beanpot grows.',
@@ -43,7 +43,7 @@ export const AGENTS: AgentMeta[] = [
     status: 'active',
   },
   {
-    id: 'agent4',
+    id: 'agent3',
     apiAgentId: 'sniper',
     name: 'Sniper',
     strategy: 'Deploys to all 25 blocks as late as possible, only if EV is positive.',
@@ -54,7 +54,7 @@ export const AGENTS: AgentMeta[] = [
     status: 'active',
   },
   {
-    id: 'agent6',
+    id: 'agent4',
     apiAgentId: 'anti-loser',
     name: 'Anti-Loser',
     strategy: 'Deploys to 24 blocks, skipping the coldest block over the last 100 rounds.',

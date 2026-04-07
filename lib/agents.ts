@@ -53,4 +53,13 @@ export const AGENTS: AgentMeta[] = [
     oldVaultAddress: '0x29bbD4445BA27002D688bdB1FF652A67fA8f24ce',
     status: 'active',
   },
+  {
+    id: 'agent6',
+    apiAgentId: 'anti-loser',
+    name: 'Anti-Loser',
+    strategy: 'Deploys to 24 blocks, skipping the coldest block over the last 100 rounds.',
+    strategyDetail: 'Deploys to 24 out of 25 blocks, skipping the coldest block over the last 100 rounds. Calculates deployment amount and only deploys when EV is positive, otherwise skips the round entirely.',
+    walletAddress: '0xCfed0969a7D638cBe23Ff01C2C795d2D39C60887',
+    status: 'active',
+  },
 ]

@@ -563,6 +563,29 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   ))}
                 </div>
 
+                {/* Invest button — coming soon for agents without vaults */}
+                {!agent.vaultAddress && (
+                  <>
+                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
+                    <button
+                      disabled
+                      style={{
+                        width: '100%', padding: '14px 0',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        borderRadius: 10,
+                        background: 'rgba(255,255,255,0.02)',
+                        color: 'rgba(255,255,255,0.25)',
+                        fontSize: 14, fontWeight: 700,
+                        fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                        cursor: 'not-allowed',
+                        opacity: 0.6,
+                      }}
+                    >
+                      INVEST — COMING SOON
+                    </button>
+                  </>
+                )}
+
                 {/* Invest button — only for agents with vaults */}
                 {agent.vaultAddress && (
                   <>
@@ -727,43 +750,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
               </div>
             </NeonCard>
 
-            {/* Bean Burnt card */}
-            {(() => {
-              const preBurn = PRE_BURN_PER_AGENT[agent.apiAgentId] ?? 0
-              const beanBurnt = Math.max(0, stats.totalBeanPaidOut - preBurn)
-              const burntValueEth = beanBurnt * stats.beanPriceEth
-              return (
-            <NeonCard style={{ marginTop: 12 }}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: 'rgba(0,82,255,0.5)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
-                    {'// BEAN BURNT'}
-                  </span>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
-                    <span style={{ fontSize: 17, fontWeight: 700, color: beanBurnt > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
-                      {beanBurnt > 1000 ? `${(beanBurnt / 1000).toFixed(1)}k` : beanBurnt > 0 ? beanBurnt.toFixed(1) : '0'}
-                    </span>
-                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
-                      BEAN BURNT
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 8, padding: '10px 0' }}>
-                    <span style={{ fontSize: 17, fontWeight: 700, color: burntValueEth > 0 ? '#00C853' : 'rgba(255,255,255,0.2)', fontFamily: "'Space Mono', monospace" }}>
-                      {burntValueEth > 0 ? `+${burntValueEth.toFixed(4)}` : '0'}
-                    </span>
-                    <span style={{ fontSize: 8, color: 'rgba(255,255,255,0.25)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: "'Space Mono', monospace" }}>
-                      ETH VALUE
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </NeonCard>
-              )
-            })()}
           </div>
 
           {/* ── Right content ── */}

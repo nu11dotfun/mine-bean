@@ -408,21 +408,6 @@ export default function AgentsPage() {
                   ELIGIBLE AGENTS
                 </span>
               </div>
-              {totalBeanPaidOut > 0 && (<>
-                <div style={{ width: 1, height: 24, background: 'rgba(255,255,255,0.06)' }} />
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                  <span style={{
-                    fontSize: isMobile ? 16 : 18, fontWeight: 700,
-                    fontFamily: "'Space Mono', monospace",
-                    color: '#00C853',
-                  }}>
-                    {totalBeanPaidOut > 1000 ? `${(totalBeanPaidOut / 1000).toFixed(1)}k` : totalBeanPaidOut.toFixed(1)} BEAN
-                  </span>
-                  <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                    BEAN BURNT
-                  </span>
-                </div>
-              </>)}
             </div>
           )
         })()}

@@ -15,6 +15,7 @@ const AGENT_ROUTE_MAP: Record<string, string> = {
   'beanpot-hunter': 'agent3',
   'sniper': 'agent4',
   'regression-chaser': 'agent5',
+  'anti-loser': 'agent6',
 }
 
 function agentHref(agentId: string) {

@@ -7,9 +7,9 @@ export interface AgentMeta {
 
 const AGENT_META: Record<string, AgentMeta> = {
   'anti-winner': { agentId: 'anti-winner', displayName: 'Anti-Winner', color: '#0052FF', label: 'AGENT_001' },
-  'beanpot-hunter': { agentId: 'beanpot-hunter', displayName: 'Beanpot Hunter', color: '#FFD700', label: 'AGENT_003' },
-  'sniper': { agentId: 'sniper', displayName: 'Sniper', color: '#00E5FF', label: 'AGENT_004' },
-  'regression-chaser': { agentId: 'regression-chaser', displayName: 'Regression Chaser', color: '#AA00FF', label: 'AGENT_005' },
+  'beanpot-hunter': { agentId: 'beanpot-hunter', displayName: 'Beanpot Hunter', color: '#FFD700', label: 'AGENT_002' },
+  'sniper': { agentId: 'sniper', displayName: 'Sniper', color: '#00E5FF', label: 'AGENT_003' },
+  'anti-loser': { agentId: 'anti-loser', displayName: 'Anti-Loser', color: '#FF4081', label: 'AGENT_004' },
 }
 
 const FALLBACK_META: AgentMeta = { agentId: 'unknown', displayName: 'Unknown Agent', color: '#888888', label: 'AGENT_???' }

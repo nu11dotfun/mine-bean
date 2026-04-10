@@ -62,4 +62,13 @@ export const AGENTS: AgentMeta[] = [
     walletAddress: '0xCfed0969a7D638cBe23Ff01C2C795d2D39C60887',
     status: 'active',
   },
+  {
+    id: 'agent5',
+    apiAgentId: 'nostradamus',
+    name: 'Nostradamus',
+    strategy: 'Predicts grid activity and deploys optimal amounts across all 25 blocks at round start.',
+    strategyDetail: 'Predicts how much ETH will be deployed on the grid based on recent round history, then deploys an optimal amount at the start of a round across all 25 blocks. Guaranteed to win every round it plays. Skips rounds where the predicted grid conditions aren\'t profitable. Deploys early so it never misses a round due to late timing or transaction delays.',
+    walletAddress: '0xF95a18e24247377Ed48082E201d38fBE893A3fef',
+    status: 'active',
+  },
 ]

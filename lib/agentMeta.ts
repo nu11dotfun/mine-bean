@@ -10,6 +10,7 @@ const AGENT_META: Record<string, AgentMeta> = {
   'beanpot-hunter': { agentId: 'beanpot-hunter', displayName: 'Beanpot Hunter', color: '#FFD700', label: 'AGENT_002' },
   'sniper': { agentId: 'sniper', displayName: 'Sniper', color: '#00E5FF', label: 'AGENT_003' },
   'anti-loser': { agentId: 'anti-loser', displayName: 'Anti-Loser', color: '#FF4081', label: 'AGENT_004' },
+  'nostradamus': { agentId: 'nostradamus', displayName: 'Nostradamus', color: '#9C27B0', label: 'AGENT_005' },
 }
 
 const FALLBACK_META: AgentMeta = { agentId: 'unknown', displayName: 'Unknown Agent', color: '#888888', label: 'AGENT_???' }

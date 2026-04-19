@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useCallback, useRef } from "react"
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { apiFetch } from "@/lib/api"
 import { useSSE } from "@/lib/SSEContext"
 
@@ -118,6 +118,13 @@ export default function MiningGrid({
     const [hasDeployedThisRound, setHasDeployedThisRound] = useState(false)
     const [autoMode, setAutoMode] = useState<{ enabled: boolean, strategy: "all" | "random" | "select" | null }>({ enabled: false, strategy: null })
 const [isAutoMinerActive, setIsAutoMinerActive] = useState(false)
+
+    // Heat map state — toggle controlled by SidebarControls/MobileControls via heatmapToggle event
+    const [heatmapEnabled, setHeatmapEnabled] = useState(false)
+    const [heatmapCounts, setHeatmapCounts] = useState<number[]>(() => Array(25).fill(0))
+    const [heatmapTotal, setHeatmapTotal] = useState(0)
+    const [heatmapHover, setHeatmapHover] = useState<number | null>(null)
+
     // Animation state: snapshot freezes grid data so resets can't wipe it mid-animation
     const animatingRef = useRef(false)
     const snapshotCellsRef = useRef<CellData[] | null>(null)
@@ -411,6 +418,134 @@ setCells(blocksToGrid(d.blocks))
         }
     }, [])
 
+    // ── HEAT MAP ──
+    // Listen for toggle from sidebar/mobile controls
+    useEffect(() => {
+        const handleToggle = (e: Event) => {
+            const detail = (e as CustomEvent<{ enabled: boolean }>).detail
+            setHeatmapEnabled(!!detail?.enabled)
+        }
+        window.addEventListener("heatmapToggle" as any, handleToggle)
+        return () => window.removeEventListener("heatmapToggle" as any, handleToggle)
+    }, [])
+
+    // Fetch 500 rounds of winning-block data when heat map is enabled
+    useEffect(() => {
+        if (!heatmapEnabled) return
+        let cancelled = false
+
+        const fetchHeatmap = async () => {
+            try {
+                // Backend caps limit at 50 — 10 pages of 50 in parallel = 500 total
+                const pages = await Promise.all(
+                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) =>
+                        apiFetch<{ rounds: Array<{ winningBlock: number }> }>(
+                            `/api/rounds?page=${p}&limit=50&settled=true`
+                        ).catch(() => ({ rounds: [] as Array<{ winningBlock: number }> }))
+                    )
+                )
+                if (cancelled) return
+                const counts = Array(25).fill(0) as number[]
+                let total = 0
+                for (const page of pages) {
+                    for (const r of page.rounds || []) {
+                        if (typeof r.winningBlock === "number" && r.winningBlock >= 0 && r.winningBlock < 25) {
+                            counts[r.winningBlock]++
+                            total++
+                        }
+                    }
+                }
+                setHeatmapCounts(counts)
+                setHeatmapTotal(total)
+            } catch (err) {
+                console.error("Heat map fetch failed:", err)
+            }
+        }
+
+        fetchHeatmap()
+        return () => { cancelled = true }
+    }, [heatmapEnabled])
+
+    // Live update: increment the winning block when a round settles (while enabled)
+    useEffect(() => {
+        if (!heatmapEnabled) return
+        const unsub = subscribeGlobal("roundSettled", (data: any) => {
+            const winner = typeof data?.winningBlock === "number"
+                ? data.winningBlock
+                : parseInt(String(data?.winningBlock ?? ""), 10)
+            if (!Number.isNaN(winner) && winner >= 0 && winner < 25) {
+                setHeatmapCounts((prev) => {
+                    const next = [...prev]
+                    next[winner] = (next[winner] || 0) + 1
+                    return next
+                })
+                setHeatmapTotal((t) => t + 1)
+            }
+        })
+        return () => unsub()
+    }, [heatmapEnabled, subscribeGlobal])
+
+    // Rank cells into quintiles (0 = coldest, 4 = hottest) — 5 cells per bin.
+    // Discrete bins scale better than continuous gradients on a 25-cell grid.
+    const heatmapRanks = useMemo(() => {
+        if (!heatmapEnabled || heatmapTotal === 0) return null
+        const sorted = heatmapCounts
+            .map((count, i) => ({ count, i }))
+            .sort((a, b) => a.count - b.count)
+        const ranks = new Array(25).fill(0)
+        sorted.forEach((item, pos) => {
+            ranks[item.i] = Math.min(4, Math.floor(pos / 5))
+        })
+        return ranks as number[]
+    }, [heatmapEnabled, heatmapCounts, heatmapTotal])
+
+    // Monochrome amber scale — single-hue discrete bins, dark-UI friendly.
+    // Number on the cell does the primary work; color is ambient pattern signal.
+    // Agent-card style: bright border is the main signal. Background stays dark & uniform-ish.
+    // No big outer glows (they'd clash between adjacent cells). Inset glow gives the "lit from inside" feel.
+    const HEAT_TIERS: Array<{ bg: string; text: string; border: string; glow: string }> = [
+        {
+            bg: "rgba(0,82,255,0.03)",
+            text: "rgba(255,255,255,0.4)",
+            border: "rgba(0,120,255,0.18)",
+            glow: "none",
+        }, // coldest
+        {
+            bg: "rgba(0,82,255,0.05)",
+            text: "rgba(200,220,255,0.62)",
+            border: "rgba(0,130,255,0.32)",
+            glow: "none",
+        },
+        {
+            bg: "rgba(0,82,255,0.08)",
+            text: "rgba(220,235,255,0.88)",
+            border: "rgba(0,140,255,0.5)",
+            glow: "inset 0 0 6px rgba(0,120,255,0.12)",
+        }, // neutral
+        {
+            bg: "rgba(0,82,255,0.12)",
+            text: "rgba(240,248,255,1)",
+            border: "rgba(80,170,255,0.7)",
+            glow: "inset 0 0 8px rgba(0,130,255,0.18)",
+        },
+        {
+            bg: "rgba(0,82,255,0.18)",
+            text: "rgba(255,255,255,1)",
+            border: "rgba(140,200,255,0.9)",
+            glow: "inset 0 0 10px rgba(0,140,255,0.25)",
+        }, // hottest
+    ]
+
+    const heatmapStyleFor = (index: number): React.CSSProperties | null => {
+        if (!heatmapRanks) return null
+        const tier = HEAT_TIERS[heatmapRanks[index]]
+        return {
+            background: tier.bg,
+            border: `1px solid ${tier.border}`,
+            boxShadow: tier.glow,
+        }
+    }
+
     const handleBlockClick = (index: number) => {
         if (autoMode.enabled && autoMode.strategy !== "select") return  // Allow clicks in select mode
         if (phase !== "counting") return
@@ -434,6 +569,10 @@ setCells(blocksToGrid(d.blocks))
                     const isWinner = winningBlock === index
                     const isEliminated = eliminatedBlocks.includes(index)
                     const isDeployed = userDeployedBlocks.has(index)
+                    const heatStyle = heatmapStyleFor(index)
+                    const heatFreq = heatmapTotal > 0 ? ((heatmapCounts[index] || 0) / heatmapTotal) * 100 : 0
+                    const heatCount = heatmapCounts[index] || 0
+                    const applyHeat = heatStyle && !isEliminated && !isSelected && !isDeployed && !(isWinner && phase === "winner")
 
                     return (
                         <button
@@ -445,8 +584,13 @@ setCells(blocksToGrid(d.blocks))
                                 ...(isSelected && !isEliminated && !isDeployed ? styles.cellSelected : {}),
                                 ...(isEliminated ? styles.cellEliminated : {}),
                                 ...(isWinner && phase === "winner" ? styles.cellWinner : {}),
-...(isAutoMinerActive && !isDeployed ? styles.cellDisabled : {}),                            }}
+...(isAutoMinerActive && !isDeployed ? styles.cellDisabled : {}),
+                                ...(applyHeat ? heatStyle! : {}),
+                                position: 'relative' as const,
+                            }}
                             onClick={() => handleBlockClick(index)}
+                            onMouseEnter={() => heatmapEnabled && setHeatmapHover(index)}
+                            onMouseLeave={() => heatmapEnabled && setHeatmapHover(null)}
 disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMinerActive}                        >
                             {!isEliminated && (
                                 <>
@@ -458,15 +602,77 @@ disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMi
                                             <span style={styles.minerCount}>{cell.minerCount}</span>
                                         ) : null}
                                     </div>
-                                    <div className="cell-amount" style={styles.cellAmount}>
-                                        {cell.amount > 0 ? cell.amount.toFixed(4) : '—'}
+                                    <div className="cell-amount" style={{
+                                        ...styles.cellAmount,
+                                        ...(applyHeat ? {
+                                            color: HEAT_TIERS[heatmapRanks![index]].text,
+                                            fontVariantNumeric: 'tabular-nums' as const,
+                                        } : {}),
+                                    }}>
+                                        {applyHeat
+                                            ? `${heatFreq.toFixed(1)}%`
+                                            : (cell.amount > 0 ? cell.amount.toFixed(4) : '—')}
                                     </div>
+                                    {heatmapEnabled && heatmapHover === index && heatmapTotal > 0 && (
+                                        <div style={{
+                                            position: 'absolute',
+                                            bottom: '100%',
+                                            left: '50%',
+                                            transform: 'translateX(-50%)',
+                                            marginBottom: 6,
+                                            padding: '6px 10px',
+                                            background: 'rgba(10,14,26,0.95)',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            borderRadius: 6,
+                                            fontSize: 10,
+                                            whiteSpace: 'nowrap' as const,
+                                            color: '#fff',
+                                            fontFamily: "'Space Mono', monospace",
+                                            zIndex: 100,
+                                            pointerEvents: 'none' as const,
+                                        }}>
+                                            Block #{index + 1} · Won {heatCount}× · {heatFreq.toFixed(1)}%
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </button>
                     )
                 })}
             </div>
+
+            {/* Heat map legend — shown only when enabled */}
+            {heatmapEnabled && (
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 10,
+                    marginTop: 12,
+                    padding: '8px 14px',
+                    background: 'rgba(255,255,255,0.03)',
+                    border: '1px solid rgba(255,255,255,0.06)',
+                    borderRadius: 10,
+                    fontSize: 10,
+                    color: 'rgba(255,255,255,0.5)',
+                    fontFamily: "'Space Mono', monospace",
+                    letterSpacing: '0.04em',
+                }}>
+                    <span>COLD</span>
+                    <div style={{
+                        width: 120,
+                        height: 6,
+                        borderRadius: 3,
+                        background: 'linear-gradient(to right, #0f1420 0%, #0a2d5e 25%, #0f4a9e 50%, #1f6fd6 75%, #4a9fff 100%)',
+                    }} />
+                    <span>HOT</span>
+                    {heatmapTotal > 0 && (
+                        <span style={{ marginLeft: 8, color: 'rgba(255,255,255,0.3)' }}>
+                            · {heatmapTotal} rounds
+                        </span>
+                    )}
+                </div>
+            )}
 
             <style>{`
                 @media (max-width: 768px) {

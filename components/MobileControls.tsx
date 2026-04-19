@@ -57,6 +57,14 @@ export default function MobileControls({
     const [autoMinerState, setAutoMinerState] = useState<AutoMinerState | null>(null)
     const autoMinerActive = autoMinerState?.active === true
 
+    // Heat map toggle — broadcasts to MiningGrid via window event
+    const [heatmapEnabled, setHeatmapEnabled] = useState(false)
+    const toggleHeatmap = () => {
+        const next = !heatmapEnabled
+        setHeatmapEnabled(next)
+        window.dispatchEvent(new CustomEvent("heatmapToggle", { detail: { enabled: next } }))
+    }
+
     // Round data driven by MiningGrid events
     const { timeRemaining: timer } = useRoundTimer()
     const [_currentRound, setCurrentRound] = useState("")
@@ -297,6 +305,58 @@ export default function MobileControls({
                         >
                             Auto
                         </button>
+                    </div>
+                )}
+
+                {/* Heat Map toggle — affects grid rendering via window event */}
+                {!autoMinerActive && (
+                    <div
+                        onClick={toggleHeatmap}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "8px 12px",
+                            marginBottom: 10,
+                            background: heatmapEnabled ? "rgba(0,82,255,0.1)" : "rgba(255,255,255,0.03)",
+                            border: `1px solid ${heatmapEnabled ? "rgba(140,200,255,0.7)" : "rgba(255,255,255,0.06)"}`,
+                            boxShadow: heatmapEnabled ? "inset 0 0 8px rgba(0,130,255,0.18)" : "none",
+                            borderRadius: 10,
+                            cursor: "pointer",
+                            transition: "all 0.15s ease",
+                            userSelect: "none" as const,
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={heatmapEnabled ? "#4a9fff" : "#888"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+                            </svg>
+                            <span style={{ fontSize: 12, fontWeight: 500, color: heatmapEnabled ? "#fff" : "#bbb" }}>Heat Map</span>
+                            <span style={{ fontSize: 9, color: "#666", fontFamily: "'Space Mono', monospace" }}>500 rounds</span>
+                        </div>
+                        <div
+                            style={{
+                                width: 30,
+                                height: 17,
+                                borderRadius: 9,
+                                background: heatmapEnabled ? "#4a9fff" : "rgba(255,255,255,0.1)",
+                                position: "relative",
+                                transition: "background 0.15s ease",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: 2,
+                                    left: heatmapEnabled ? 15 : 2,
+                                    width: 13,
+                                    height: 13,
+                                    borderRadius: "50%",
+                                    background: "#fff",
+                                    transition: "left 0.15s ease",
+                                }}
+                            />
+                        </div>
                     </div>
                 )}
 

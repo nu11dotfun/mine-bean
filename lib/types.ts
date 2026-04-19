@@ -45,6 +45,10 @@ export interface AutoMinerModeEvent {
   strategy: string | null
 }
 
+export interface HeatmapToggleEvent {
+  enabled: boolean
+}
+
 // Combined round transition event (replaces separate roundSettled + gameStarted)
 export interface RoundTransitionEvent {
   settled: RoundSettledEvent | null  // null for empty rounds
@@ -71,6 +75,7 @@ declare global {
     autoMinerMode: CustomEvent<AutoMinerModeEvent>
     autoMinerActivated: CustomEvent<void>
     autoMinerStopped: CustomEvent<void>
+    heatmapToggle: CustomEvent<HeatmapToggleEvent>
   }
 }
 

@@ -122,6 +122,7 @@ const [isAutoMinerActive, setIsAutoMinerActive] = useState(false)
     // Heat map state — toggle controlled by SidebarControls/MobileControls via heatmapToggle event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
     const [heatmapCounts, setHeatmapCounts] = useState<number[]>(() => Array(25).fill(0))
+    const [heatmapPayouts, setHeatmapPayouts] = useState<number[]>(() => Array(25).fill(0))
     const [heatmapTotal, setHeatmapTotal] = useState(0)
     const [heatmapHover, setHeatmapHover] = useState<number | null>(null)
 
@@ -439,23 +440,29 @@ setCells(blocksToGrid(d.blocks))
                 // Backend caps limit at 50 — 10 pages of 50 in parallel = 500 total
                 const pages = await Promise.all(
                     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) =>
-                        apiFetch<{ rounds: Array<{ winningBlock: number }> }>(
+                        apiFetch<{ rounds: Array<{ winningBlock: number, totalWinnings?: string }> }>(
                             `/api/rounds?page=${p}&limit=50&settled=true`
-                        ).catch(() => ({ rounds: [] as Array<{ winningBlock: number }> }))
+                        ).catch(() => ({ rounds: [] as Array<{ winningBlock: number, totalWinnings?: string }> }))
                     )
                 )
                 if (cancelled) return
                 const counts = Array(25).fill(0) as number[]
+                const payouts = Array(25).fill(0) as number[]
                 let total = 0
                 for (const page of pages) {
                     for (const r of page.rounds || []) {
                         if (typeof r.winningBlock === "number" && r.winningBlock >= 0 && r.winningBlock < 25) {
                             counts[r.winningBlock]++
+                            const winnings = parseFloat(r.totalWinnings || "0") / 1e18
+                            if (!Number.isNaN(winnings)) {
+                                payouts[r.winningBlock] += winnings
+                            }
                             total++
                         }
                     }
                 }
                 setHeatmapCounts(counts)
+                setHeatmapPayouts(payouts)
                 setHeatmapTotal(total)
             } catch (err) {
                 console.error("Heat map fetch failed:", err)
@@ -480,6 +487,18 @@ setCells(blocksToGrid(d.blocks))
                     return next
                 })
                 setHeatmapTotal((t) => t + 1)
+                // Add this round's payout to the winning block's running total
+                const rawWinnings = data?.totalWinnings
+                const payoutEth = typeof rawWinnings === "string" && rawWinnings.startsWith("0x")
+                    ? Number(BigInt(rawWinnings)) / 1e18
+                    : parseFloat(rawWinnings ?? "0") / 1e18
+                if (!Number.isNaN(payoutEth) && payoutEth > 0) {
+                    setHeatmapPayouts((prev) => {
+                        const next = [...prev]
+                        next[winner] = (next[winner] || 0) + payoutEth
+                        return next
+                    })
+                }
             }
         })
         return () => unsub()
@@ -631,7 +650,7 @@ disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMi
                                             zIndex: 100,
                                             pointerEvents: 'none' as const,
                                         }}>
-                                            Block #{index + 1} · Won {heatCount}× · {heatFreq.toFixed(1)}%
+                                            Block #{index + 1} · Won {heatCount}× · {heatFreq.toFixed(1)}% · {(heatmapPayouts[index] || 0).toFixed(3)} ETH paid out
                                         </div>
                                     )}
                                 </>

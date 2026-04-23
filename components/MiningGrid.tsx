@@ -601,38 +601,89 @@ setCells(blocksToGrid(d.blocks))
     // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable
     }, [canInteract])
 
+    // Drag lifecycle: small movement threshold before we "commit" to a drag.
+    // On touch: if the finger moves mostly vertically first, we let the browser scroll;
+    // only a horizontal / sustained movement upgrades to drag mode.
+    const dragStartPosRef = useRef<{ x: number; y: number } | null>(null)
+    const dragCommittedRef = useRef(false)
+    const DRAG_THRESHOLD = 8 // px
+
     const handleBlockPointerDown = (index: number, e: React.PointerEvent) => {
         if (!canInteract(index)) return
-        // Release pointer capture so pointermove fires on the grid container instead of just this cell
-        try { (e.currentTarget as Element).releasePointerCapture?.(e.pointerId) } catch {}
         isDraggingRef.current = true
+        dragCommittedRef.current = false
+        dragStartPosRef.current = { x: e.clientX, y: e.clientY }
         dragToggledRef.current = new Set([index])
         const willAdd = !selectedBlocksRef.current.includes(index)
         pendingDragOpRef.current = willAdd ? "add" : "remove"
+        // Toggle the first block immediately so a simple tap still works like a click
         applyToggle(index, pendingDragOpRef.current)
-    }
 
-    const handleGridPointerMove = (e: React.PointerEvent) => {
-        if (!isDraggingRef.current) return
-        const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
-        if (!el) return
-        const cellEl = el.closest('[data-block-id]') as HTMLElement | null
-        if (!cellEl) return
-        const blockIdAttr = cellEl.getAttribute('data-block-id')
-        if (blockIdAttr === null) return
-        const blockId = parseInt(blockIdAttr, 10)
-        if (Number.isNaN(blockId)) return
-        if (dragToggledRef.current.has(blockId)) return
-        dragToggledRef.current.add(blockId)
-        if (pendingDragOpRef.current) {
-            applyToggle(blockId, pendingDragOpRef.current)
+        const pointerType = e.pointerType
+
+        const handleMove = (ev: PointerEvent) => {
+            if (!isDraggingRef.current) return
+            const start = dragStartPosRef.current
+            if (!start) return
+
+            const dx = ev.clientX - start.x
+            const dy = ev.clientY - start.y
+            const adx = Math.abs(dx)
+            const ady = Math.abs(dy)
+
+            // Not yet committed — decide between scroll (touch + mostly-vertical) and drag.
+            if (!dragCommittedRef.current) {
+                if (Math.max(adx, ady) < DRAG_THRESHOLD) return
+                // On touch, if first movement is more vertical than horizontal, bail out
+                // and let the browser scroll. On mouse/pen, always drag (scroll isn't in play).
+                if (pointerType === 'touch' && ady > adx * 1.3) {
+                    isDraggingRef.current = false
+                    dragStartPosRef.current = null
+                    cleanup()
+                    return
+                }
+                dragCommittedRef.current = true
+            }
+
+            // Prevent scroll while an active drag is in progress
+            if (dragCommittedRef.current && ev.cancelable) {
+                ev.preventDefault()
+            }
+
+            const el = document.elementFromPoint(ev.clientX, ev.clientY) as HTMLElement | null
+            if (!el) return
+            const cellEl = el.closest('[data-block-id]') as HTMLElement | null
+            if (!cellEl) return
+            const blockIdAttr = cellEl.getAttribute('data-block-id')
+            if (blockIdAttr === null) return
+            const blockId = parseInt(blockIdAttr, 10)
+            if (Number.isNaN(blockId)) return
+            if (dragToggledRef.current.has(blockId)) return
+            dragToggledRef.current.add(blockId)
+            if (pendingDragOpRef.current) {
+                applyToggle(blockId, pendingDragOpRef.current)
+            }
         }
-    }
 
-    const endDrag = () => {
-        isDraggingRef.current = false
-        dragToggledRef.current = new Set()
-        pendingDragOpRef.current = null
+        const handleEnd = () => {
+            isDraggingRef.current = false
+            dragCommittedRef.current = false
+            dragToggledRef.current = new Set()
+            pendingDragOpRef.current = null
+            dragStartPosRef.current = null
+            cleanup()
+        }
+
+        const cleanup = () => {
+            window.removeEventListener('pointermove', handleMove)
+            window.removeEventListener('pointerup', handleEnd)
+            window.removeEventListener('pointercancel', handleEnd)
+        }
+
+        // Register native window listeners so mobile pointer capture doesn't block cross-cell tracking
+        window.addEventListener('pointermove', handleMove, { passive: false })
+        window.addEventListener('pointerup', handleEnd)
+        window.addEventListener('pointercancel', handleEnd)
     }
 
     // During animation, render from the frozen snapshot so resets don't wipe visible data
@@ -643,10 +694,6 @@ setCells(blocksToGrid(d.blocks))
             <div
                 className="mining-grid"
                 style={styles.grid}
-                onPointerMove={handleGridPointerMove}
-                onPointerUp={endDrag}
-                onPointerCancel={endDrag}
-                onPointerLeave={endDrag}
             >
                 {displayCells.map((cell, index) => {
                     const isSelected = selectedBlocks.includes(index)
@@ -672,7 +719,7 @@ setCells(blocksToGrid(d.blocks))
 ...(isAutoMinerActive && !isDeployed ? styles.cellDisabled : {}),
                                 ...(applyHeat ? heatStyle! : {}),
                                 position: 'relative' as const,
-                                touchAction: 'none',
+                                touchAction: 'manipulation',
                             }}
                             onPointerDown={(e) => handleBlockPointerDown(index, e)}
                             onMouseEnter={() => heatmapEnabled && setHeatmapHover(index)}

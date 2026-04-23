@@ -565,16 +565,74 @@ setCells(blocksToGrid(d.blocks))
         }
     }
 
-    const handleBlockClick = (index: number) => {
-        if (autoMode.enabled && autoMode.strategy !== "select") return  // Allow clicks in select mode
-        if (phase !== "counting") return
-        if (hasDeployedThisRound) return
-        if (userDeployedBlocks.has(index)) return
-        const newSelection = selectedBlocks.includes(index)
-            ? selectedBlocks.filter((i) => i !== index)
-            : [...selectedBlocks, index]
-        setSelectedBlocks(newSelection)
-        window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: newSelection, count: newSelection.length } }))
+    const canInteract = useCallback((index: number) => {
+        if (autoMode.enabled && autoMode.strategy !== "select") return false
+        if (phase !== "counting") return false
+        if (hasDeployedThisRound) return false
+        if (isAutoMinerActive) return false
+        if (userDeployedBlocks.has(index)) return false
+        return true
+    }, [autoMode.enabled, autoMode.strategy, phase, hasDeployedThisRound, isAutoMinerActive, userDeployedBlocks])
+
+    // Keep latest selectedBlocks in a ref so drag handlers always see current state
+    const selectedBlocksRef = useRef(selectedBlocks)
+    selectedBlocksRef.current = selectedBlocks
+
+    // Drag-to-select state (refs — avoid re-renders during a drag gesture)
+    const isDraggingRef = useRef(false)
+    const dragToggledRef = useRef<Set<number>>(new Set())
+    const pendingDragOpRef = useRef<"add" | "remove" | null>(null)
+
+    const applyToggle = useCallback((index: number, forceOp?: "add" | "remove") => {
+        if (!canInteract(index)) return
+        const current = selectedBlocksRef.current
+        const isSelected = current.includes(index)
+        const op = forceOp ?? (isSelected ? "remove" : "add")
+        let next: number[]
+        if (op === "add") {
+            if (isSelected) return
+            next = [...current, index]
+        } else {
+            if (!isSelected) return
+            next = current.filter((i) => i !== index)
+        }
+        setSelectedBlocks(next)
+        window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: next, count: next.length } }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- setSelectedBlocks is stable
+    }, [canInteract])
+
+    const handleBlockPointerDown = (index: number, e: React.PointerEvent) => {
+        if (!canInteract(index)) return
+        // Release pointer capture so pointermove fires on the grid container instead of just this cell
+        try { (e.currentTarget as Element).releasePointerCapture?.(e.pointerId) } catch {}
+        isDraggingRef.current = true
+        dragToggledRef.current = new Set([index])
+        const willAdd = !selectedBlocksRef.current.includes(index)
+        pendingDragOpRef.current = willAdd ? "add" : "remove"
+        applyToggle(index, pendingDragOpRef.current)
+    }
+
+    const handleGridPointerMove = (e: React.PointerEvent) => {
+        if (!isDraggingRef.current) return
+        const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null
+        if (!el) return
+        const cellEl = el.closest('[data-block-id]') as HTMLElement | null
+        if (!cellEl) return
+        const blockIdAttr = cellEl.getAttribute('data-block-id')
+        if (blockIdAttr === null) return
+        const blockId = parseInt(blockIdAttr, 10)
+        if (Number.isNaN(blockId)) return
+        if (dragToggledRef.current.has(blockId)) return
+        dragToggledRef.current.add(blockId)
+        if (pendingDragOpRef.current) {
+            applyToggle(blockId, pendingDragOpRef.current)
+        }
+    }
+
+    const endDrag = () => {
+        isDraggingRef.current = false
+        dragToggledRef.current = new Set()
+        pendingDragOpRef.current = null
     }
 
     // During animation, render from the frozen snapshot so resets don't wipe visible data
@@ -582,7 +640,14 @@ setCells(blocksToGrid(d.blocks))
 
     return (
         <div className="mining-grid-container" style={styles.container}>
-            <div className="mining-grid" style={styles.grid}>
+            <div
+                className="mining-grid"
+                style={styles.grid}
+                onPointerMove={handleGridPointerMove}
+                onPointerUp={endDrag}
+                onPointerCancel={endDrag}
+                onPointerLeave={endDrag}
+            >
                 {displayCells.map((cell, index) => {
                     const isSelected = selectedBlocks.includes(index)
                     const isWinner = winningBlock === index
@@ -597,6 +662,7 @@ setCells(blocksToGrid(d.blocks))
                         <button
                             key={index}
                             className="mining-cell"
+                            data-block-id={index}
                             style={{
                                 ...styles.cell,
                                 ...(isDeployed && !isEliminated ? styles.cellDeployed : {}),
@@ -606,8 +672,9 @@ setCells(blocksToGrid(d.blocks))
 ...(isAutoMinerActive && !isDeployed ? styles.cellDisabled : {}),
                                 ...(applyHeat ? heatStyle! : {}),
                                 position: 'relative' as const,
+                                touchAction: 'none',
                             }}
-                            onClick={() => handleBlockClick(index)}
+                            onPointerDown={(e) => handleBlockPointerDown(index, e)}
                             onMouseEnter={() => heatmapEnabled && setHeatmapHover(index)}
                             onMouseLeave={() => heatmapEnabled && setHeatmapHover(null)}
 disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMinerActive}                        >

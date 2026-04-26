@@ -715,22 +715,64 @@ export default function ProfilePage() {
               {/* PFP */}
               <div style={{ display: 'flex', justifyContent: 'center', marginTop: -28, marginBottom: 6 }}>
                 <div
-                  onClick={() => fileInputRef.current?.click()}
                   onMouseEnter={() => setPfpHovered(true)}
                   onMouseLeave={() => setPfpHovered(false)}
-                  style={{ position: 'relative', width: 76, height: 76, borderRadius: '50%', cursor: 'pointer', overflow: 'hidden', border: '3px solid #080910', boxShadow: '0 0 0 1px rgba(0,82,255,0.3), 0 8px 24px rgba(0,0,0,0.5)' }}>
-                  {pfpUrl
-                    ? <img src={pfpUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    : <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  style={{ position: 'relative', width: 76, height: 76 }}
+                >
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{ position: 'relative', width: 76, height: 76, borderRadius: '50%', cursor: 'pointer', overflow: 'hidden', border: '3px solid #080910', boxShadow: '0 0 0 1px rgba(0,82,255,0.3), 0 8px 24px rgba(0,0,0,0.5)' }}
+                  >
+                    {pfpUrl
+                      ? <img src={pfpUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : <div style={{ width: '100%', height: '100%', background: 'rgba(255,255,255,0.04)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="1.5"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        </div>
+                    }
+                    {pfpUrl && pfpHovered && (
+                      <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
                       </div>
-                  }
-                  {pfpUrl && pfpHovered && (
-                    <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-                    </div>
+                    )}
+                    <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePfpUpload} />
+                  </div>
+                  {pfpUrl && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        if (saving) return
+                        setPfpUrl(null)
+                        const addr = address?.toLowerCase()
+                        if (addr) localStorage.removeItem(`pfp_${addr}`)
+                        saveProfile({ pfpUrl: null })
+                      }}
+                      title="Remove profile picture"
+                      aria-label="Remove profile picture"
+                      style={{
+                        position: 'absolute',
+                        top: -2,
+                        right: -2,
+                        width: 22,
+                        height: 22,
+                        borderRadius: '50%',
+                        background: 'rgba(0,0,0,0.88)',
+                        border: '1.5px solid #fff',
+                        color: '#fff',
+                        fontSize: 12,
+                        lineHeight: 1,
+                        cursor: saving ? 'not-allowed' : 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 0,
+                        zIndex: 2,
+                        opacity: saving ? 0.5 : 1,
+                        fontFamily: 'inherit',
+                    }}
+                    >
+                      ✕
+                    </button>
                   )}
-                  <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handlePfpUpload} />
                 </div>
               </div>
 

@@ -61,6 +61,9 @@ export default function StakePage({
     const [stakingStats, setStakingStats] = useState<StakingStats | null>(null)
     const { stakeInfo: userStakeInfo, refetchStakeInfo } = useUserData()
 
+    // 7d buyback flow to stakers — used to project user rewards at current stake level
+    const [recentBeansToStakers7d, setRecentBeansToStakers7d] = useState<number>(0)
+
     // Fetch BEAN price
     useEffect(() => {
         const fetchBeansPrice = async () => {
@@ -96,14 +99,43 @@ export default function StakePage({
         fetchStakingStats()
     }, [fetchStakingStats])
 
-    // SSE: global yield distribution → refresh stats + user pending rewards
+    // Fetch recent buybacks to compute 7-day average yield to stakers.
+    // Used for "Estimated Rewards" projections in the user position card.
+    const fetchRecentBuybacks = useCallback(async () => {
+        try {
+            const data = await apiFetch<{
+                buybacks: Array<{ beanToStakersFormatted: string; timestamp: string }>
+            }>('/api/treasury/buybacks?page=1&limit=50')
+            const sevenDaysAgoMs = Date.now() - 7 * 24 * 60 * 60 * 1000
+            const recent = (data.buybacks || []).filter(b => {
+                const t = new Date(b.timestamp).getTime()
+                return Number.isFinite(t) && t >= sevenDaysAgoMs
+            })
+            const sum = recent.reduce(
+                (s, b) => s + (parseFloat(b.beanToStakersFormatted) || 0),
+                0
+            )
+            setRecentBeansToStakers7d(sum)
+        } catch (err) {
+            console.error('Failed to fetch recent buybacks:', err)
+        }
+    }, [])
+
+    useEffect(() => {
+        fetchRecentBuybacks()
+        const interval = setInterval(fetchRecentBuybacks, 5 * 60 * 1000) // refresh every 5 min
+        return () => clearInterval(interval)
+    }, [fetchRecentBuybacks])
+
+    // SSE: global yield distribution → refresh stats + user pending rewards + recent buybacks
     useEffect(() => {
         const unsub = subscribeGlobal('yieldDistributed', () => {
             fetchStakingStats()
             refetchStakeInfo()
+            fetchRecentBuybacks()
         })
         return () => unsub()
-    }, [subscribeGlobal, fetchStakingStats, refetchStakeInfo])
+    }, [subscribeGlobal, fetchStakingStats, refetchStakeInfo, fetchRecentBuybacks])
 
     // SSE: user staking events → refresh stats (user stake info handled by UserDataContext)
     // Note: /api/staking/stats is cached (60s refresh) so we re-fetch immediately
@@ -204,6 +236,15 @@ export default function StakePage({
     const apr = stakingStats ? parseFloat(stakingStats.apr) : 0
     const totalStaked = stakingStats ? parseFloat(stakingStats.totalStakedFormatted) : 0
 
+    // Pool share + projected rewards based on last 7d of buyback flow
+    const poolShare = totalStaked > 0 ? (userStakedBalance / totalStaked) * 100 : 0
+    const dailyBeansToStakers = recentBeansToStakers7d / 7
+    const userDailyProjection =
+        totalStaked > 0 ? (userStakedBalance / totalStaked) * dailyBeansToStakers : 0
+    const projection24h = userDailyProjection
+    const projection7d = userDailyProjection * 7
+    const projection30d = userDailyProjection * 30
+
     const calcBeansAmount = parseFloat(calcAmount) || 0
     const dailyRate = apr / 365
     const weeklyRate = apr / 52
@@ -216,6 +257,8 @@ export default function StakePage({
         totalDeposits: "Total BEAN tokens staked in the protocol by all users.",
         apr: "Annual Percentage Rate based on the last 7 days of yield distributions. Actual returns may vary.",
         tvl: "Total Value Locked — the USD value of all staked BEAN at current market price.",
+        poolShare: "Your share of the staking pool. Calculated as your staked BEAN ÷ total staked BEAN.",
+        estimatedRewards: "Projected based on the last 7 days of buyback flow to stakers, scaled to your current pool share. Actual rewards depend on future protocol activity and may vary.",
     }
 
     const InfoIcon = ({ id, size = 12 }: { id: string, size?: number }) => (
@@ -403,6 +446,18 @@ export default function StakePage({
                             </div>
                         </div>
 
+                        <div style={isMobile ? styles.positionRowMobile : styles.positionRow}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <span style={isMobile ? { fontSize: '13px', color: '#999' } : { fontSize: '14px', color: '#999' }}>Pool Share</span>
+                                <InfoIcon id="poolShare" />
+                            </div>
+                            <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#fff' } : { fontSize: '15px', fontWeight: 500, color: '#fff' }}>
+                                {totalStaked > 0
+                                    ? `${poolShare.toLocaleString(undefined, { maximumFractionDigits: poolShare < 0.01 ? 4 : 2 })}%`
+                                    : '—'}
+                            </span>
+                        </div>
+
                         {pendingRewards > 0 && (
                             <>
                                 <div style={{ ...isMobile ? styles.positionRowMobile : styles.positionRow, borderBottom: 'none' }}>
@@ -434,6 +489,56 @@ export default function StakePage({
                                 </div>
                             </>
                         )}
+
+                        {/* Estimated rewards — projected from last 7d buyback flow */}
+                        <div style={styles.estRewardsSection}>
+                            <div style={styles.estRewardsHeader}>
+                                <span style={isMobile ? { fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', color: '#777' } : { fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em', color: '#777' }}>
+                                    ESTIMATED REWARDS
+                                </span>
+                                <InfoIcon id="estimatedRewards" />
+                            </div>
+
+                            {[
+                                { label: 'Next 24h', value: projection24h },
+                                { label: 'Next 7d', value: projection7d },
+                                { label: 'Next 30d', value: projection30d },
+                            ].map((row) => (
+                                <div
+                                    key={row.label}
+                                    style={isMobile ? styles.positionRowMobile : styles.positionRow}
+                                >
+                                    <span style={isMobile ? { fontSize: '13px', color: '#999' } : { fontSize: '14px', color: '#999' }}>
+                                        {row.label}
+                                    </span>
+                                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                                        <div style={styles.positionValue}>
+                                            <BeanLogo size={14} />
+                                            <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#fff' } : { fontSize: '15px', fontWeight: 500, color: '#fff' }}>
+                                                {row.value > 0
+                                                    ? `~${row.value.toLocaleString(undefined, {
+                                                          maximumFractionDigits: row.value < 1 ? 3 : row.value < 100 ? 2 : 0,
+                                                      })}`
+                                                    : '—'}
+                                            </span>
+                                        </div>
+                                        {row.value > 0 && beansPrice > 0 && (
+                                            <span style={{ fontSize: '12px', color: '#777' }}>
+                                                {`~$${(row.value * beansPrice).toLocaleString(undefined, {
+                                                    maximumFractionDigits: row.value * beansPrice < 1 ? 3 : 2,
+                                                })}`}
+                                            </span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+
+                            {recentBeansToStakers7d <= 0 && (
+                                <div style={{ fontSize: '11px', color: '#777', marginTop: 8, textAlign: 'center' }}>
+                                    Waiting for buyback data — projections will appear once protocol revenue distributes.
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 
@@ -950,6 +1055,19 @@ const styles: { [key: string]: React.CSSProperties } = {
         border: "1px solid #0052FF",
         color: "#fff",
         fontWeight: 600,
+    },
+    // Estimated rewards (in user position card)
+    estRewardsSection: {
+        marginTop: "20px",
+        paddingTop: "16px",
+        borderTop: "1px solid rgba(255,255,255,0.06)",
+    },
+    estRewardsHeader: {
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        marginBottom: "8px",
+        textTransform: "uppercase",
     },
     // Summary
     summary: {

@@ -17,12 +17,25 @@ interface BeanEmissions {
     '30d'?: PeriodEmission
 }
 
+interface PeriodBurn {
+    burnt: number
+    events: number
+}
+
+interface BeanBurns {
+    '1d'?: PeriodBurn
+    '7d'?: PeriodBurn
+    '14d'?: PeriodBurn
+    '30d'?: PeriodBurn
+}
+
 interface StatsResponse {
     totalSupply: string
     totalSupplyFormatted: string
     totalMinted: string
     totalMintedFormatted: string
     beanEmissions?: BeanEmissions
+    beanBurns?: BeanBurns
 }
 
 interface TreasuryStatsResponse {
@@ -32,20 +45,10 @@ interface TreasuryStatsResponse {
     totalBurnedFormatted: string
 }
 
-interface Buyback {
-    beanBurnedFormatted: string
-    timestamp: string
-}
-
-interface BuybacksResponse {
-    buybacks: Buyback[]
-    pagination: { page: number; limit: number; total: number; pages: number }
-}
-
 // Contract constant
 const MAX_SUPPLY = 3_000_000
 
-type PeriodKey = '1D' | '7D' | '14D' | '30D' | 'ALL'
+type PeriodKey = '7D' | '14D'
 
 interface GlobalStatsProps {
     isMobile?: boolean
@@ -62,7 +65,7 @@ export default function GlobalStats({
         protocolRevenue: number
         totalMinted: number
         emissions: BeanEmissions
-        buybacks: Buyback[]
+        burns: BeanBurns
     } | null>(null)
 
     useEffect(() => {
@@ -74,10 +77,9 @@ export default function GlobalStats({
 
         const fetchStats = async () => {
             try {
-                const [statsRes, treasuryRes, buybacksRes] = await Promise.all([
+                const [statsRes, treasuryRes] = await Promise.all([
                     apiFetch<StatsResponse>('/api/stats'),
                     apiFetch<TreasuryStatsResponse>('/api/treasury/stats'),
-                    apiFetch<BuybacksResponse>('/api/treasury/buybacks?page=1&limit=100'),
                 ])
                 setData({
                     circulatingSupply: parseFloat(statsRes.totalSupplyFormatted),
@@ -85,7 +87,7 @@ export default function GlobalStats({
                     protocolRevenue: parseFloat(treasuryRes.totalVaultedFormatted),
                     totalMinted: parseFloat(statsRes.totalMintedFormatted),
                     emissions: statsRes.beanEmissions || {},
-                    buybacks: buybacksRes.buybacks || [],
+                    burns: statsRes.beanBurns || {},
                 })
             } catch (err) {
                 console.error('Failed to fetch stats:', err)
@@ -130,7 +132,7 @@ export default function GlobalStats({
 
     // Compute period values from real API data
     const { periodBurned, periodMinted, periodNet, isDeflationary } = computePeriod(selectedPeriod, data)
-    const periods: PeriodKey[] = ['7D', '14D', '30D']
+    const periods: PeriodKey[] = ['7D', '14D']
 
     if (isMobile) {
         return (
@@ -225,41 +227,14 @@ export default function GlobalStats({
 
 // ── Helpers ──
 
-// Hardcoded baseline snapshot from tracker launch (Apr 17 2026)
-// When the selected period is longer than time-since-launch, values are capped to the
-// baseline so we never pull historical data from before the tracker went live.
-const TRACKER_LAUNCH_DATE = new Date('2026-04-17T00:00:00Z')
-const TRACKER_LAUNCH_MINTED = 129401
-const TRACKER_LAUNCH_BURNED = 57542
-
-function computePeriod(period: PeriodKey, data: { totalMinted: number; burnedTotal: number; circulatingSupply: number; emissions: BeanEmissions; buybacks: Buyback[] } | null) {
+function computePeriod(period: PeriodKey, data: { totalMinted: number; burnedTotal: number; circulatingSupply: number; emissions: BeanEmissions; burns: BeanBurns } | null) {
     if (!data) {
         return { periodBurned: 0, periodMinted: 0, periodNet: 0, isDeflationary: false }
     }
 
-    const daysSinceLaunch = (Date.now() - TRACKER_LAUNCH_DATE.getTime()) / (24 * 60 * 60 * 1000)
-    const periodDays = period === 'ALL' ? Infinity : ({ '1D': 1, '7D': 7, '14D': 14, '30D': 30 }[period] as number)
-
-    const totalBurnedNow = Math.max(0, data.totalMinted - data.circulatingSupply)
-
-    let periodMinted: number
-    let periodBurned: number
-
-    if (periodDays >= daysSinceLaunch) {
-        // Selected period exceeds tracking window → cap to "since launch" baseline
-        periodMinted = Math.max(0, data.totalMinted - TRACKER_LAUNCH_MINTED)
-        periodBurned = Math.max(0, totalBurnedNow - TRACKER_LAUNCH_BURNED)
-    } else {
-        // Selected period fits within tracking window → use real rolling-window data
-        const key = period.toLowerCase() as '1d' | '7d' | '14d' | '30d'
-        periodMinted = data.emissions[key]?.minted ?? 0
-
-        const periodMs = periodDays * 24 * 60 * 60 * 1000
-        const cutoff = Date.now() - periodMs
-        periodBurned = data.buybacks
-            .filter(b => new Date(b.timestamp).getTime() >= cutoff)
-            .reduce((sum, b) => sum + (parseFloat(b.beanBurnedFormatted) || 0), 0)
-    }
+    const key = period.toLowerCase() as '7d' | '14d'
+    const periodMinted = data.emissions[key]?.minted ?? 0
+    const periodBurned = data.burns[key]?.burnt ?? 0
 
     // Sign convention: negative = deflationary (burns > emissions), positive = inflationary
     const periodNet = periodMinted - periodBurned

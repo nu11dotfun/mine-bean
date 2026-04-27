@@ -1067,7 +1067,6 @@ const styles: { [key: string]: React.CSSProperties } = {
         alignItems: "center",
         gap: "6px",
         marginBottom: "8px",
-        textTransform: "uppercase",
     },
     // Summary
     summary: {
@@ -1133,7 +1132,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         bottom: "calc(100% + 8px)",
         left: "50%",
         transform: "translateX(-50%)",
-        background: "rgba(255, 255, 255, 0.04)",
+        background: "#0d1117",
         border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
@@ -1144,12 +1143,13 @@ const styles: { [key: string]: React.CSSProperties } = {
         zIndex: 1000,
         pointerEvents: "none" as const,
         backdropFilter: "blur(10px)",
+        textTransform: "none" as const,
     },
     tooltipMobile: {
         position: "absolute" as const,
         bottom: "calc(100% + 8px)",
         left: "0",
-        background: "rgba(255, 255, 255, 0.04)",
+        background: "#0d1117",
         border: "1px solid #444",
         borderRadius: "8px",
         padding: "10px 12px",
@@ -1158,6 +1158,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         lineHeight: 1.5,
         width: "200px",
         zIndex: 1000,
+        textTransform: "none" as const,
     },
     tooltipWide: {
         position: "absolute" as const,

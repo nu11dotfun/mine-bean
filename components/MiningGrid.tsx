@@ -121,6 +121,7 @@ const [isAutoMinerActive, setIsAutoMinerActive] = useState(false)
 
     // Heat map state — toggle controlled by SidebarControls/MobileControls via heatmapToggle event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
+    const [heatmapRounds, setHeatmapRounds] = useState<number>(500)
     const [heatmapCounts, setHeatmapCounts] = useState<number[]>(() => Array(25).fill(0))
     const [heatmapPayouts, setHeatmapPayouts] = useState<number[]>(() => Array(25).fill(0))
     const [heatmapTotal, setHeatmapTotal] = useState(0)
@@ -420,50 +421,48 @@ setCells(blocksToGrid(d.blocks))
     }, [])
 
     // ── HEAT MAP ──
-    // Listen for toggle from sidebar/mobile controls
+    // Listen for toggle + round-count changes from sidebar/mobile controls
     useEffect(() => {
         const handleToggle = (e: Event) => {
             const detail = (e as CustomEvent<{ enabled: boolean }>).detail
             setHeatmapEnabled(!!detail?.enabled)
         }
+        const handleRoundsChange = (e: Event) => {
+            const detail = (e as CustomEvent<{ rounds: number }>).detail
+            if (typeof detail?.rounds === "number" && detail.rounds > 0) {
+                setHeatmapRounds(detail.rounds)
+            }
+        }
         window.addEventListener("heatmapToggle" as any, handleToggle)
-        return () => window.removeEventListener("heatmapToggle" as any, handleToggle)
+        window.addEventListener("heatmapRoundsChange" as any, handleRoundsChange)
+        return () => {
+            window.removeEventListener("heatmapToggle" as any, handleToggle)
+            window.removeEventListener("heatmapRoundsChange" as any, handleRoundsChange)
+        }
     }, [])
 
-    // Fetch 500 rounds of winning-block data when heat map is enabled
+    // Fetch winning-block data when heat map is enabled or round count changes
     useEffect(() => {
         if (!heatmapEnabled) return
         let cancelled = false
 
         const fetchHeatmap = async () => {
             try {
-                // Backend caps limit at 50 — 10 pages of 50 in parallel = 500 total
-                const pages = await Promise.all(
-                    [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((p) =>
-                        apiFetch<{ rounds: Array<{ winningBlock: number, totalWinnings?: string }> }>(
-                            `/api/rounds?page=${p}&limit=50&settled=true`
-                        ).catch(() => ({ rounds: [] as Array<{ winningBlock: number, totalWinnings?: string }> }))
-                    )
-                )
+                const res = await apiFetch<{
+                    sampleSize?: number
+                    blocks?: Array<{ blockId: number, wins: number }>
+                }>(`/api/stats/heatmap?rounds=${heatmapRounds}`)
                 if (cancelled) return
                 const counts = Array(25).fill(0) as number[]
                 const payouts = Array(25).fill(0) as number[]
-                let total = 0
-                for (const page of pages) {
-                    for (const r of page.rounds || []) {
-                        if (typeof r.winningBlock === "number" && r.winningBlock >= 0 && r.winningBlock < 25) {
-                            counts[r.winningBlock]++
-                            const winnings = parseFloat(r.totalWinnings || "0") / 1e18
-                            if (!Number.isNaN(winnings)) {
-                                payouts[r.winningBlock] += winnings
-                            }
-                            total++
-                        }
+                for (const b of res.blocks || []) {
+                    if (typeof b.blockId === "number" && b.blockId >= 0 && b.blockId < 25) {
+                        counts[b.blockId] = b.wins || 0
                     }
                 }
                 setHeatmapCounts(counts)
                 setHeatmapPayouts(payouts)
-                setHeatmapTotal(total)
+                setHeatmapTotal(typeof res.sampleSize === "number" ? res.sampleSize : 0)
             } catch (err) {
                 console.error("Heat map fetch failed:", err)
             }
@@ -471,7 +470,7 @@ setCells(blocksToGrid(d.blocks))
 
         fetchHeatmap()
         return () => { cancelled = true }
-    }, [heatmapEnabled])
+    }, [heatmapEnabled, heatmapRounds])
 
     // Live update: increment the winning block when a round settles (while enabled)
     useEffect(() => {

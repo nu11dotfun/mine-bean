@@ -88,10 +88,15 @@ export default function SidebarControls({
 
     // Heat map toggle — broadcasts to MiningGrid via window event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
+    const [heatmapRounds, setHeatmapRounds] = useState<number>(500)
     const toggleHeatmap = () => {
         const next = !heatmapEnabled
         setHeatmapEnabled(next)
         window.dispatchEvent(new CustomEvent("heatmapToggle", { detail: { enabled: next } }))
+    }
+    const selectHeatmapRounds = (rounds: number) => {
+        setHeatmapRounds(rounds)
+        window.dispatchEvent(new CustomEvent("heatmapRoundsChange", { detail: { rounds } }))
     }
 
     // Round data driven by MiningGrid events
@@ -480,7 +485,7 @@ const handleSelectClick = () => {
                                 <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
                             </svg>
                             <span style={{ fontSize: 13, fontWeight: 500, color: heatmapEnabled ? "#fff" : "#bbb" }}>Heat Map</span>
-                            <span style={{ fontSize: 10, color: "#666", fontFamily: "'Space Mono', monospace" }}>500 rounds</span>
+                            <span style={{ fontSize: 10, color: "#666", fontFamily: "'Space Mono', monospace" }}>{heatmapRounds} rounds</span>
                         </div>
                         <div
                             style={{
@@ -505,6 +510,33 @@ const handleSelectClick = () => {
                                 }}
                             />
                         </div>
+                    </div>
+                )}
+
+                {/* Heat Map round-count selector — visible only when heatmap is enabled */}
+                {!autoMinerActive && heatmapEnabled && (
+                    <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
+                        {[250, 500, 750, 1000].map((n) => (
+                            <button
+                                key={n}
+                                onClick={() => selectHeatmapRounds(n)}
+                                style={{
+                                    flex: 1,
+                                    padding: "6px 0",
+                                    borderRadius: 8,
+                                    border: heatmapRounds === n ? "1px solid rgba(140,200,255,0.7)" : "1px solid rgba(255,255,255,0.06)",
+                                    background: heatmapRounds === n ? "rgba(0,82,255,0.15)" : "rgba(255,255,255,0.02)",
+                                    color: heatmapRounds === n ? "#fff" : "rgba(255,255,255,0.45)",
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    cursor: "pointer",
+                                    transition: "all 0.15s ease",
+                                    fontFamily: "'Space Mono', monospace",
+                                }}
+                            >
+                                {n}
+                            </button>
+                        ))}
                     </div>
                 )}
 

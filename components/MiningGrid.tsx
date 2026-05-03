@@ -780,7 +780,7 @@ disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMi
                                             zIndex: 100,
                                             pointerEvents: 'none' as const,
                                         }}>
-                                            Block #{index + 1} · Won {heatCount}× · {heatFreq.toFixed(1)}% · {(heatmapPayouts[index] || 0).toFixed(3)} ETH paid out
+                                            Block #{index + 1} · Won {heatCount}× · {heatFreq.toFixed(1)}%
                                         </div>
                                     )}
                                 </>

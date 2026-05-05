@@ -79,6 +79,15 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   // Beanpot Hunter
   const [hunterGridFillWaitSec, setHunterGridFillWaitSec] = useState(HUNTER_DEFAULTS.gridFillWaitSec)
   const [beanpotThreshold, setBeanpotThreshold] = useState(HUNTER_DEFAULTS.beanpotThreshold)
+  // String buffer for the Hunter rounds input — same free-typing pattern as deposit/backtest.
+  const [hunterRoundsInput, setHunterRoundsInput] = useState(String(beanToRounds(HUNTER_DEFAULTS.beanpotThreshold)))
+  // Sync buffer when threshold changes externally (defaults load, preset, reset, slider).
+  // Skips when the typed value already matches, preserving in-progress typing.
+  useEffect(() => {
+    const expected = beanToRounds(beanpotThreshold)
+    if (Number(hunterRoundsInput) !== expected) setHunterRoundsInput(String(expected))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [beanpotThreshold])
 
   // Deposit (shared) — string buffers allow free typing (clear field, partial values).
   // Derived numeric values clamp to a sane minimum at use-time.
@@ -837,23 +846,52 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
                 value={`${beanToRounds(beanpotThreshold)} rounds since last hit`}
                 help="Beanpot hits roughly every 1 in 777 rounds on average. Default 622 fires ~20% before the average — slightly aggressive baseline. Lower = chase the pot earlier (more shots, smaller pots). Higher = hold out for fatter pots (fewer shots, bigger pots when they land)."
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div style={{ flex: 1 }}>
+                    <input
+                      type="range" className="acd-slider"
+                      min={0} max={2000} step={10}
+                      value={Math.max(0, Math.min(2000, beanToRounds(beanpotThreshold)))}
+                      onChange={(e) => setBeanpotThreshold(roundsToBean(Number(e.target.value)))}
+                      style={{ width: '100%' }}
+                    />
+                    {/* Absolutely-positioned labels with thumb-radius compensation
+                        so each tick lines up with the slider thumb at that value.
+                        Thumb is 18px → radius 9px → offset = (0.5 - pct) * 18px. */}
+                    <div style={{ position: 'relative', height: 14, marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em' }}>
+                      {[0, 500, 1000, 1500, 2000].map((v) => {
+                        const pct = v / 2000
+                        return (
+                          <span key={v} style={{
+                            position: 'absolute',
+                            left: `calc(${pct * 100}% + ${(0.5 - pct) * 18}px)`,
+                            transform: 'translateX(-50%)',
+                            whiteSpace: 'nowrap',
+                          }}>
+                            {v}
+                          </span>
+                        )
+                      })}
+                    </div>
+                  </div>
                   <input
-                    type="range" className="acd-slider"
-                    min={100} max={2000} step={10}
-                    value={Math.max(100, Math.min(2000, beanToRounds(beanpotThreshold)))}
-                    onChange={(e) => setBeanpotThreshold(roundsToBean(Number(e.target.value)))}
-                    style={{ flex: 1 }}
-                  />
-                  <input
-                    type="number" className="acd-input"
-                    step={10} min={100} max={2000}
-                    value={beanToRounds(beanpotThreshold)}
-                    onChange={(e) => setBeanpotThreshold(roundsToBean(Math.max(100, Math.min(2000, Number(e.target.value) || 100))))}
+                    type="text"
+                    inputMode="numeric"
+                    className="acd-input"
+                    value={hunterRoundsInput}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/[^0-9]/g, '')
+                      const capped = digits === '' ? '' : String(Math.min(2000, Number(digits) || 0))
+                      setHunterRoundsInput(capped)
+                      if (capped !== '') setBeanpotThreshold(roundsToBean(Number(capped)))
+                    }}
+                    onBlur={() => {
+                      if (hunterRoundsInput === '') setHunterRoundsInput(String(beanToRounds(beanpotThreshold)))
+                    }}
                     style={{ ...inputStyle, width: 90, padding: '6px 8px', fontSize: 11, textAlign: 'right' }}
                   />
                 </div>
-                <Ticks left="100" mid="1000" right="2000" />
                 <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em', textAlign: 'right' as const }}>
                   ≈ {beanpotThreshold.toFixed(2)} BEAN
                 </div>
@@ -1334,7 +1372,8 @@ function FeedStat({ label, value }: { label: string; value: string }) {
   )
 }
 
-function Ticks({ left, mid, right }: { left: string; mid: string; right: string }) {
+function Ticks({ left, mid, right, labels }: { left?: string; mid?: string; right?: string; labels?: string[] }) {
+  const items = labels ?? [left ?? '', mid ?? '', right ?? '']
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between',
@@ -1342,7 +1381,7 @@ function Ticks({ left, mid, right }: { left: string; mid: string; right: string 
       fontFamily: "'Space Mono', monospace",
       marginTop: 6, letterSpacing: '0.04em',
     }}>
-      <span>{left}</span><span>{mid}</span><span>{right}</span>
+      {items.map((t, i) => <span key={i}>{t}</span>)}
     </div>
   )
 }

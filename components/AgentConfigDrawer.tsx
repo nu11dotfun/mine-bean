@@ -201,14 +201,34 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   useEffect(() => {
     if (stopTxHash && stopStep === 'confirming') setStopStep('pending')
   }, [stopTxHash, stopStep])
+  // After stop tx confirms, listen for the backend's `stopped` SSE event
+  // (emitted once the webhook fires and disables the agent config). When it
+  // arrives, clear local state so the gate disappears with no API roundtrip.
+  // Single delayed GET as a fallback if SSE drops — keeps us under the 5 req/min
+  // strict rate limit on user endpoints.
   useEffect(() => {
-    if (stopConfirmed && stopStep === 'pending') {
+    if (!stopConfirmed || stopStep !== 'pending' || !walletAddress) return
+    let cancelled = false
+    const clearGate = () => {
+      if (cancelled) return
+      setExistingConfig(null)
+      setAutoMinerState(null)
       setStopStep('done')
-      // Force re-fetch so the gate clears and the user lands in the fresh-setup flow.
-      setAutoMinerChecked(false)
-      setExistingConfigChecked(false)
     }
-  }, [stopConfirmed, stopStep])
+    const unsub = subscribeUser('stopped', () => clearGate())
+    const fallback = setTimeout(async () => {
+      if (cancelled) return
+      try {
+        const lower = walletAddress.toLowerCase()
+        const res = await apiFetch<any>(`/api/user/${lower}/agent-config`)
+        if (!res?.config?.enabled) clearGate()
+        else if (!cancelled) setStopStep('done')
+      } catch {
+        if (!cancelled) setStopStep('done')
+      }
+    }, 5000)
+    return () => { cancelled = true; unsub(); clearTimeout(fallback) }
+  }, [stopConfirmed, stopStep, walletAddress, subscribeUser])
   const handleStopAutoMiner = () => {
     if (!walletAddress) return
     setStopError(null)

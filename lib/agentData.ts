@@ -73,10 +73,11 @@ export interface AgentStats {
   roundsPlayed: number
   winRate: number
   roi: number
-  totalDeployed: number
-  totalWon: number
-  ethPnl: number
-  netPnl: number
+  totalDeployed: number       // lifetime
+  totalDeployed7d?: number    // last 7 days (added by backend; optional for safety)
+  totalWon: number            // 7-day rolling
+  ethPnl: number              // 7-day rolling
+  netPnl: number              // 7-day rolling
   beanPriceEth: number
   totalBeanClaimed: number
   totalBeanEarned: number

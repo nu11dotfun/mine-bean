@@ -14,6 +14,7 @@ import { apiFetch } from '@/lib/api'
 import { CONTRACTS } from '@/lib/contracts'
 import InvestModal, { DepositStep } from '@/components/InvestModal'
 import VaultStatsModal from '@/components/VaultStatsModal'
+import AgentConfigDrawer from '@/components/AgentConfigDrawer'
 
 function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
   const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
@@ -55,6 +56,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [showDisclaimer, setShowDisclaimer] = useState(false)
   const [showInvestModal, setShowInvestModal] = useState(false)
   const [showVaultStats, setShowVaultStats] = useState(false)
+  const [showAgentConfig, setShowAgentConfig] = useState(false)
   const [vaultApiData, setVaultApiData] = useState<any>(null)
   const [depositStep, setDepositStep] = useState<DepositStep>('idle')
   const [withdrawPending, setWithdrawPending] = useState(false)
@@ -548,7 +550,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                 {/* Detail rows */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {[
-                    ['TOTAL DEPLOYED', `${stats.totalDeployed.toFixed(4)} ETH`],
+                    ['TOTAL DEPLOYED', `${(stats.totalDeployed7d ?? stats.totalDeployed).toFixed(4)} ETH`],
                     ['ETH WON', `${stats.totalWon.toFixed(4)} ETH`],
                     ['ETH P&L', `${stats.ethPnl >= 0 ? '+' : ''}${stats.ethPnl.toFixed(4)} ETH`],
                     ['BEAN EARNED', `${stats.totalBeanEarned > 1000 ? `${(stats.totalBeanEarned / 1000).toFixed(1)}k` : stats.totalBeanEarned < 1 ? stats.totalBeanEarned.toFixed(4) : stats.totalBeanEarned.toFixed(1)}`],
@@ -606,6 +608,36 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       }}
                     >
                       INVEST
+                    </button>
+
+                    {/* Custom Params — opens config drawer with custom params + backtest */}
+                    <button
+                      onClick={() => setShowAgentConfig(true)}
+                      style={{
+                        marginTop: 8,
+                        width: '100%', padding: '14px 0',
+                        border: '1px solid rgba(0,82,255,0.3)',
+                        borderRadius: 10,
+                        background: 'rgba(0,82,255,0.06)',
+                        color: '#fff',
+                        fontSize: 14, fontWeight: 700,
+                        fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                        cursor: 'pointer',
+                        boxShadow: '0 0 10px rgba(0,82,255,0.08), inset 0 0 10px rgba(0,82,255,0.04)',
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(0,82,255,0.5)'
+                        e.currentTarget.style.background = 'rgba(0,82,255,0.12)'
+                        e.currentTarget.style.boxShadow = '0 0 15px rgba(0,82,255,0.15), 0 0 30px rgba(0,82,255,0.08), inset 0 0 15px rgba(0,82,255,0.06)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(0,82,255,0.3)'
+                        e.currentTarget.style.background = 'rgba(0,82,255,0.06)'
+                        e.currentTarget.style.boxShadow = '0 0 10px rgba(0,82,255,0.08), inset 0 0 10px rgba(0,82,255,0.04)'
+                      }}
+                    >
+                      CUSTOM INVEST
                     </button>
 
                     {/* Pending vault claim — shows when user has resolved ETH from mid-round withdrawal */}
@@ -732,14 +764,22 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       onClick={() => setShowVaultStats(true)}
                       style={{
                         width: '100%', padding: '12px 0', marginTop: 8,
-                        border: '1px solid rgba(255,255,255,0.15)',
+                        border: '1px solid rgba(255,255,255,0.1)',
                         borderRadius: 10,
-                        background: 'rgba(255,255,255,0.03)',
-                        color: 'rgba(255,255,255,0.6)',
-                        fontSize: 12, fontWeight: 700,
+                        background: 'transparent',
+                        color: 'rgba(255,255,255,0.5)',
+                        fontSize: 11, fontWeight: 700,
                         fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
                         cursor: 'pointer',
                         transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.18)'
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.75)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)'
+                        e.currentTarget.style.color = 'rgba(255,255,255,0.5)'
                       }}
                     >
                       VAULT STATS
@@ -1022,6 +1062,20 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         vaultData={vaultApiData ? { ...vaultApiData, address: agent.vaultAddress } : null}
         roundsPlayed={stats?.roundsPlayed}
         beanPriceEth={stats?.beanPriceEth}
+      />
+
+      {/* Agent strategy customization drawer */}
+      <AgentConfigDrawer
+        isOpen={showAgentConfig}
+        onClose={() => setShowAgentConfig(false)}
+        agentId={
+          // Map FE apiAgentId → backend agentId per AGENT_CONFIG_API.md
+          agent.apiAgentId === 'antiwinner' ? 'anti-winner'
+          : agent.apiAgentId === 'hunter' ? 'beanpot-hunter'
+          : agent.apiAgentId
+        }
+        agentName={agent.name}
+        agentLabel={`AGENT_${String(parseInt(agent.id.replace('agent', ''))).padStart(3, '0')}`}
       />
     </div>
   )

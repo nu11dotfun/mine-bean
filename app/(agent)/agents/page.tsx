@@ -402,10 +402,10 @@ export default function AgentsPage() {
                   fontFamily: "'Space Mono', monospace",
                   color: '#fff',
                 }}>
-                  {eligibleCount} / {AGENTS.length}
+                  {AGENTS.filter(a => a.vaultAddress).length} / {AGENTS.length}
                 </span>
                 <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  ELIGIBLE AGENTS
+                  Vaulted Agents
                 </span>
               </div>
             </div>

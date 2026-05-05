@@ -134,11 +134,44 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   // Live projection toggle (collapsed by default — backtest is the headline)
   const [showLiveProjection, setShowLiveProjection] = useState(false)
 
-  // ── Activate flow state machine ──
-  type ActivateStep = 'idle' | 'sending-tx' | 'tx-pending' | 'fetching-nonce' | 'signing' | 'posting' | 'success' | 'error'
+  // ── Activate flow state machine (sign-first per AGENT_CONFIG_API v2) ──
+  // Order: idle → fetching-nonce → signing → posting → sending-tx → tx-pending → success.
+  // If on-chain AutoMiner is already active and compatible, the on-chain steps are skipped.
+  type ActivateStep = 'idle' | 'fetching-nonce' | 'signing' | 'posting' | 'sending-tx' | 'tx-pending' | 'success' | 'error'
   const [activateStep, setActivateStep] = useState<ActivateStep>('idle')
   const [activateError, setActivateError] = useState<string | null>(null)
-  const postedOnceRef = useRef(false)
+  const [agentConfigExpiresAt, setAgentConfigExpiresAt] = useState<string | null>(null)
+
+  // On-chain AutoMiner state (for M3 pre-check + skip-tx-when-compatible).
+  type AutoMinerState = { active: boolean; strategyId: number; numBlocks: number; numRounds: number; roundsExecuted: number } | null
+  const [autoMinerState, setAutoMinerState] = useState<AutoMinerState>(null)
+  const [autoMinerChecked, setAutoMinerChecked] = useState(false)
+
+  // M4: ticker for the awaitingActivation 5-min expiry countdown. Only ticks
+  // while we're between POSTing the agent-config and the on-chain tx confirming.
+  const [now, setNow] = useState<number>(() => Date.now())
+  useEffect(() => {
+    if (!agentConfigExpiresAt) return
+    if (activateStep !== 'sending-tx' && activateStep !== 'tx-pending') return
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [agentConfigExpiresAt, activateStep])
+  const secondsRemaining = agentConfigExpiresAt
+    ? Math.max(0, Math.floor((Date.parse(agentConfigExpiresAt) - now) / 1000))
+    : null
+  const expiryLabel = secondsRemaining === null
+    ? null
+    : `${Math.floor(secondsRemaining / 60)}:${String(secondsRemaining % 60).padStart(2, '0')}`
+
+  // Auto-error if the signature TTL passes while we're still waiting on-chain.
+  // Backend will have dropped the awaitingActivation record, so this signature
+  // is no longer redeemable — force the user to re-sign.
+  useEffect(() => {
+    if (secondsRemaining !== 0) return
+    if (activateStep !== 'sending-tx' && activateStep !== 'tx-pending') return
+    setActivateError('Signature expired — please try again')
+    setActivateStep('error')
+  }, [secondsRemaining, activateStep])
 
   // Wagmi hooks
   const { address: walletAddress, isConnected } = useAccount()
@@ -152,6 +185,47 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   })
   const { isSuccess: setConfigConfirmed, isError: setConfigReverted } = useWaitForTransactionReceipt({ hash: setConfigTxHash })
   const { signMessageAsync } = useSignMessage()
+
+  // M6: AutoMiner.stop() write for the in-drawer STOP button.
+  const [stopStep, setStopStep] = useState<'idle' | 'confirming' | 'pending' | 'done' | 'error'>('idle')
+  const [stopError, setStopError] = useState<string | null>(null)
+  const { writeContract: writeStop, data: stopTxHash, reset: resetStop } = useWriteContract({
+    mutation: {
+      onError: (err) => {
+        setStopError(err?.message?.split('\n')[0] || 'Transaction rejected')
+        setStopStep('error')
+      },
+    },
+  })
+  const { isSuccess: stopConfirmed } = useWaitForTransactionReceipt({ hash: stopTxHash })
+  useEffect(() => {
+    if (stopTxHash && stopStep === 'confirming') setStopStep('pending')
+  }, [stopTxHash, stopStep])
+  useEffect(() => {
+    if (stopConfirmed && stopStep === 'pending') {
+      setStopStep('done')
+      // Force re-fetch so the gate clears and the user lands in the fresh-setup flow.
+      setAutoMinerChecked(false)
+      setExistingConfigChecked(false)
+    }
+  }, [stopConfirmed, stopStep])
+  const handleStopAutoMiner = () => {
+    if (!walletAddress) return
+    setStopError(null)
+    setStopStep('confirming')
+    try {
+      writeStop({
+        address: CONTRACTS.AutoMiner.address,
+        abi: CONTRACTS.AutoMiner.abi,
+        functionName: 'stop',
+        args: [],
+      } as any)
+    } catch (err: any) {
+      setStopError(err?.message?.split('\n')[0] || 'Failed to send stop tx')
+      setStopStep('error')
+    }
+  }
+  const isStopping = stopStep === 'confirming' || stopStep === 'pending'
 
   const isSupported = (agentId in SUPPORTED) as boolean
   const isUnsupported = !isSupported
@@ -285,33 +359,56 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     }
   }, [isOpen, apiDefaults, agentId, existingConfigChecked, isSniper, isAntiWinner, isHunter])
 
-  // Fetch the user's existing agent-config on open
+  // Fetch the user's existing agent-config + on-chain AutoMiner state on open.
   useEffect(() => {
     if (!isOpen || isUnsupported || !walletAddress) {
-      // Clear when wallet absent
-      if (!walletAddress) { setExistingConfig(null); setExistingConfigChecked(false); prefillAppliedRef.current = false }
+      if (!walletAddress) {
+        setExistingConfig(null); setExistingConfigChecked(false); prefillAppliedRef.current = false
+        setAutoMinerState(null); setAutoMinerChecked(false)
+      }
       return
     }
-    if (existingConfigChecked) return
+    if (existingConfigChecked && autoMinerChecked) return
 
     const lower = walletAddress.toLowerCase()
-    apiFetch<any>(`/api/user/${lower}/agent-config`)
-      .then(res => {
-        const cfg = res?.config
-        if (cfg && cfg.agentId && cfg.params) {
-          setExistingConfig({
-            agentId: cfg.agentId,
-            enabled: !!cfg.enabled,
-            params: cfg.params,
-            updatedAt: cfg.updatedAt,
-          })
-        } else {
-          setExistingConfig(null)
-        }
-      })
-      .catch(() => setExistingConfig(null))
-      .finally(() => setExistingConfigChecked(true))
-  }, [isOpen, isUnsupported, walletAddress, existingConfigChecked])
+    if (!existingConfigChecked) {
+      apiFetch<any>(`/api/user/${lower}/agent-config`)
+        .then(res => {
+          const cfg = res?.config
+          if (cfg && cfg.agentId && cfg.params) {
+            setExistingConfig({
+              agentId: cfg.agentId,
+              enabled: !!cfg.enabled,
+              params: cfg.params,
+              updatedAt: cfg.updatedAt,
+            })
+          } else {
+            setExistingConfig(null)
+          }
+        })
+        .catch(() => setExistingConfig(null))
+        .finally(() => setExistingConfigChecked(true))
+    }
+    if (!autoMinerChecked) {
+      apiFetch<any>(`/api/automine/${lower}`)
+        .then(res => {
+          const c = res?.config
+          if (c && typeof c.active === 'boolean') {
+            setAutoMinerState({
+              active: c.active,
+              strategyId: Number(c.strategyId) || 0,
+              numBlocks: Number(c.numBlocks) || 0,
+              numRounds: Number(c.numRounds) || 0,
+              roundsExecuted: Number(c.roundsExecuted) || 0,
+            })
+          } else {
+            setAutoMinerState(null)
+          }
+        })
+        .catch(() => setAutoMinerState(null))
+        .finally(() => setAutoMinerChecked(true))
+    }
+  }, [isOpen, isUnsupported, walletAddress, existingConfigChecked, autoMinerChecked])
 
   // Re-fetch existing config after a successful activate so we move to "Active" state
   useEffect(() => {
@@ -451,6 +548,22 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   // Per-block must meet on-chain AutoMiner minimum or setConfig will revert.
   const perBlockBelowMin = perBlock < MIN_PER_BLOCK
 
+  // M3: on-chain AutoMiner ↔ agent compatibility check.
+  // null = no on-chain config (no conflict, fresh setup).
+  // true = active and matches selected agent (skip on-chain step, sign+POST only).
+  // false = active but conflicts (block setup, prompt user to stop).
+  const onChainCompat: null | true | false = (() => {
+    if (!autoMinerState || !autoMinerState.active) return null
+    if (isSniper || isHunter) return autoMinerState.strategyId === 1
+    if (isAntiWinner) {
+      const expected = Math.max(1, 25 - excludeLastN)
+      return autoMinerState.strategyId === 0 && autoMinerState.numBlocks === expected
+    }
+    return false
+  })()
+  const autoMinerActiveIncompatible = onChainCompat === false
+  const autoMinerActiveCompatible = onChainCompat === true
+
   // Active config flags
   const hasActiveConfig = !!existingConfig?.enabled
   const isThisAgentActive = hasActiveConfig && existingConfig?.agentId === agentId
@@ -461,6 +574,9 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
        (existingConfig?.agentId === 'beanpot-hunter' && 'Beanpot Hunter') ||
        existingConfig?.agentId)
     : null
+
+  // M6: any state that requires stopping the existing AutoMiner before proceeding.
+  const showStopGate = isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible
 
   // Deposit total (mirrors AutoMiner +1% padding)
   const depositTotal = X * numRounds * 1.01
@@ -497,16 +613,64 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     return null
   })()
 
-  const handleActivate = () => {
+  // Sign-first activation flow (per AGENT_CONFIG_API v2).
+  // 1. GET nonce
+  // 2. Sign canonical message (off-chain)
+  // 3. POST to /agent-config — backend stores status="awaitingActivation" with 5-min TTL
+  // 4. If on-chain AutoMiner already active+compatible: done (status flips to "enabled" server-side).
+  //    Otherwise: fire writeSetConfig and wait for receipt.
+  const handleActivate = async () => {
     if (!walletAddress || !setConfigArgs) {
       setActivateError('Wallet not connected')
       setActivateStep('error')
       return
     }
     setActivateError(null)
-    postedOnceRef.current = false
-    setActivateStep('sending-tx')
+    setAgentConfigExpiresAt(null)
+
     try {
+      const lower = walletAddress.toLowerCase()
+
+      setActivateStep('fetching-nonce')
+      const cfg = await apiFetch<any>(`/api/user/${lower}/agent-config`)
+      const nonce = cfg?.nextSignableMessageHint?.nextNonce ?? 1
+      const timestamp = Date.now()
+      const params = buildAgentParams()
+      const payload = { agentId, params }
+      const message = [
+        'BEAN AutoMiner Agent Config v1',
+        'Action: set',
+        `Address: ${lower}`,
+        `Nonce: ${nonce}`,
+        `Timestamp: ${timestamp}`,
+        `Payload: ${JSON.stringify(payload)}`,
+      ].join('\n')
+
+      setActivateStep('signing')
+      const signature = await signMessageAsync({ message })
+
+      setActivateStep('posting')
+      const res = await fetch(`${API_BASE}/api/user/${lower}/agent-config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ agentId, params, nonce, timestamp, signature }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        throw new Error(body?.error || `POST failed (${res.status})`)
+      }
+      const result = await res.json().catch(() => null)
+      const status = result?.config?.status as string | undefined
+      setAgentConfigExpiresAt(result?.config?.expiresAt ?? null)
+
+      // If backend already activated (on-chain AutoMiner exists and is compatible)
+      // the on-chain step is unnecessary — config is live for the next round.
+      if (status === 'enabled' || autoMinerActiveCompatible) {
+        setActivateStep('success')
+        return
+      }
+
+      setActivateStep('sending-tx')
       writeSetConfig({
         address: CONTRACTS.AutoMiner.address,
         abi: CONTRACTS.AutoMiner.abi,
@@ -515,7 +679,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         value: parseEther(depositTotal.toFixed(18)),
       } as any)
     } catch (err: any) {
-      setActivateError(err?.message || 'Failed to submit transaction')
+      const msg = err?.message?.split('\n')[0] || 'Failed to set up agent'
+      setActivateError(msg)
       setActivateStep('error')
     }
   }
@@ -533,65 +698,20 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     }
   }, [setConfigReverted, activateStep])
 
-  // After tx confirms, run the signed POST flow (with one retry for RPC propagation)
+  // tx confirmed → success. Backend auto-activates the awaitingActivation record
+  // within ~1 round once it sees the on-chain config.
   useEffect(() => {
-    if (!setConfigConfirmed || activateStep !== 'tx-pending' || postedOnceRef.current || !walletAddress) return
-    postedOnceRef.current = true
-
-    const runPost = async (attempt = 1): Promise<void> => {
-      try {
-        setActivateStep('fetching-nonce')
-        const lower = walletAddress.toLowerCase()
-        const cfg = await apiFetch<any>(`/api/user/${lower}/agent-config`)
-        const nonce = cfg?.nextSignableMessageHint?.nextNonce ?? 1
-        const timestamp = Date.now()
-        const params = buildAgentParams()
-        const payload = { agentId, params }
-        const message = [
-          'BEAN AutoMiner Agent Config v1',
-          'Action: set',
-          `Address: ${lower}`,
-          `Nonce: ${nonce}`,
-          `Timestamp: ${timestamp}`,
-          `Payload: ${JSON.stringify(payload)}`,
-        ].join('\n')
-
-        setActivateStep('signing')
-        const signature = await signMessageAsync({ message })
-
-        setActivateStep('posting')
-        const res = await fetch(`${API_BASE}/api/user/${lower}/agent-config`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agentId, params, nonce, timestamp, signature }),
-        })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          const msg: string = body?.error || `POST failed (${res.status})`
-          // Retry once if backend hasn't seen the on-chain tx yet
-          if (attempt === 1 && msg.toLowerCase().includes('not active on chain')) {
-            await new Promise(r => setTimeout(r, 4000))
-            return runPost(2)
-          }
-          throw new Error(msg)
-        }
-        setActivateStep('success')
-      } catch (err: any) {
-        const msg = err?.message?.split('\n')[0] || 'Failed to save agent config'
-        setActivateError(msg)
-        setActivateStep('error')
-      }
-    }
-
-    runPost()
-  }, [setConfigConfirmed, activateStep, walletAddress, agentId, buildAgentParams, signMessageAsync])
+    if (setConfigConfirmed && activateStep === 'tx-pending') setActivateStep('success')
+  }, [setConfigConfirmed, activateStep])
 
   // Reset state when drawer closes or agent changes
   useEffect(() => {
     if (!isOpen) {
       setActivateStep('idle')
       setActivateError(null)
-      postedOnceRef.current = false
+      setAgentConfigExpiresAt(null)
+      // Re-fetch on-chain state next open in case it changed in the background.
+      setAutoMinerChecked(false)
       resetSetConfig()
     }
   }, [isOpen, resetSetConfig])
@@ -790,6 +910,38 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
               </div>
             )}
 
+            {/* M3: on-chain AutoMiner active but incompatible with selected agent */}
+            {!isThisAgentActive && !isOtherAgentActive && autoMinerActiveIncompatible && (
+              <div style={{
+                padding: '12px 14px',
+                background: 'rgba(255,107,107,0.06)',
+                border: '1px solid rgba(255,107,107,0.3)',
+                borderRadius: 10,
+                fontSize: 11.5,
+                color: 'rgba(255,180,180,0.95)',
+                lineHeight: 1.55,
+                marginBottom: 14,
+              }}>
+                <strong style={{ color: '#fff' }}>You have an active AutoMiner that conflicts with {agentName}.</strong> Stop it from the AutoMiner panel first ({autoMinerState?.numRounds ? `${autoMinerState.numRounds - autoMinerState.roundsExecuted} rounds remaining` : 'unspent rounds will be refunded'}), then come back to set up {agentName}.
+              </div>
+            )}
+
+            {/* M3: on-chain AutoMiner active and compatible — sign-only flow */}
+            {!isThisAgentActive && !isOtherAgentActive && autoMinerActiveCompatible && (
+              <div style={{
+                padding: '12px 14px',
+                background: 'rgba(0,82,255,0.05)',
+                border: '1px solid rgba(0,82,255,0.25)',
+                borderRadius: 10,
+                fontSize: 11.5,
+                color: 'rgba(180,210,255,0.95)',
+                lineHeight: 1.55,
+                marginBottom: 14,
+              }}>
+                <strong style={{ color: '#fff' }}>Your AutoMiner is already running and compatible with {agentName}.</strong> Saving these params will apply them to your existing deposit — no new transaction needed.
+              </div>
+            )}
+
             <SectionHeader>Strategy parameters</SectionHeader>
 
             {/* ── Sniper params ── */}
@@ -898,7 +1050,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
               </ParamRow>
             </>)}
 
-            {/* Deposit */}
+            {/* Deposit — hidden when reusing a compatible existing AutoMiner (no new deposit needed). */}
+            {!autoMinerActiveCompatible && (<>
             <SectionHeader style={{ marginTop: 28 }}>Deposit</SectionHeader>
 
             <ParamRow label="Per block" value={`${perBlock.toFixed(6)} ETH`} help={`ETH deployed to each of the ${numBlocks} blocks every time the agent fires. Minimum ${MIN_PER_BLOCK} ETH per block (AutoMiner contract floor).`}>
@@ -953,6 +1106,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
                 {numBlocks} BLOCKS × {numRounds} ROUNDS · 25 − {excludeLastN} EXCLUDED
               </div>
             )}
+            </>)}
 
             {/* Backtest — Sniper / Anti-Winner only — primary headline */}
             {historicalSample && historicalFiredPct !== null && (<>
@@ -1230,11 +1384,11 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
             alignItems: 'center',
             gap: 8,
           }}>
-            {activateStep === 'sending-tx' && <>WAITING FOR WALLET CONFIRMATION…</>}
-            {activateStep === 'tx-pending' && <>DEPLOYING ON-CHAIN… (TX SUBMITTED)</>}
             {activateStep === 'fetching-nonce' && <>SYNCING WITH BACKEND…</>}
             {activateStep === 'signing' && <>SIGN THE MESSAGE IN YOUR WALLET TO SAVE PARAMS…</>}
             {activateStep === 'posting' && <>SAVING AGENT CONFIG…</>}
+            {activateStep === 'sending-tx' && <>CONFIRM THE DEPOSIT IN YOUR WALLET… {expiryLabel && <span style={{ opacity: 0.6 }}>· EXPIRES IN {expiryLabel}</span>}</>}
+            {activateStep === 'tx-pending' && <>DEPOSIT TX SUBMITTED · WAITING FOR CONFIRMATION… {expiryLabel && <span style={{ opacity: 0.6 }}>· {expiryLabel}</span>}</>}
             {activateStep === 'error' && <>· {activateError}</>}
           </div>
         )}
@@ -1248,7 +1402,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
             fontFamily: "'Space Mono', monospace",
             letterSpacing: '0.04em',
           }}>
-            ✓ AGENT ACTIVE · DEPLOYS WILL FIRE PER YOUR PARAMS
+            ✓ {autoMinerActiveCompatible ? 'AGENT CONFIG SAVED · DEPLOYS WILL FIRE PER YOUR PARAMS' : 'CONFIG SAVED · AGENT ACTIVATES NEXT ROUND'}
           </div>
         )}
 
@@ -1293,9 +1447,34 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
             >
               DONE
             </button>
+          ) : showStopGate ? (
+            <button
+              onClick={handleStopAutoMiner}
+              disabled={!isConnected || isStopping || stopStep === 'done'}
+              style={{
+                flex: 1, padding: '14px 0',
+                border: '1px solid rgba(255,107,107,0.5)',
+                borderRadius: 10,
+                background: stopStep === 'done' ? 'rgba(0,200,131,0.15)' : 'rgba(255,107,107,0.12)',
+                color: '#fff',
+                fontSize: 14, fontWeight: 700,
+                fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                cursor: (!isConnected || isStopping || stopStep === 'done') ? 'not-allowed' : 'pointer',
+                opacity: (!isConnected || isStopping) ? 0.7 : 1,
+                boxShadow: stopStep === 'done' ? 'none' : '0 0 14px rgba(255,107,107,0.18)',
+              }}
+            >
+              {!isConnected ? 'CONNECT WALLET'
+                : stopStep === 'confirming' ? 'CONFIRM IN WALLET…'
+                : stopStep === 'pending' ? 'STOPPING…'
+                : stopStep === 'done' ? '✓ STOPPED · REOPEN TO CONTINUE'
+                : isThisAgentActive ? `STOP ${agentName.toUpperCase()}`
+                : isOtherAgentActive ? `STOP ${otherAgentName?.toUpperCase()}`
+                : 'STOP AUTOMINER'}
+            </button>
           ) : activateStep === 'error' ? (
             <button
-              onClick={() => { setActivateStep('idle'); setActivateError(null); postedOnceRef.current = false; resetSetConfig() }}
+              onClick={() => { setActivateStep('idle'); setActivateError(null); resetSetConfig() }}
               className="acd-activate"
               style={{
                 flex: 1, padding: '14px 0',
@@ -1313,7 +1492,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
           ) : (
             <button
               onClick={handleActivate}
-              disabled={isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive}
+              disabled={isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible}
               className="acd-activate"
               style={{
                 flex: 1,
@@ -1324,17 +1503,19 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
                 color: '#fff',
                 fontSize: 14, fontWeight: 700,
                 fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
-                cursor: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive) ? 'not-allowed' : 'pointer',
+                cursor: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible) ? 'not-allowed' : 'pointer',
                 boxShadow: '0 0 15px rgba(0,82,255,0.2), 0 0 30px rgba(0,82,255,0.1), inset 0 0 15px rgba(0,82,255,0.05)',
                 transition: 'all 0.2s ease',
-                opacity: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive) ? 0.4 : 1,
+                opacity: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible) ? 0.4 : 1,
               }}
             >
               {!isConnected ? 'CONNECT WALLET'
                 : isThisAgentActive ? 'ALREADY ACTIVE'
                 : isOtherAgentActive ? `STOP ${otherAgentName?.toUpperCase()} FIRST`
+                : autoMinerActiveIncompatible ? 'STOP AUTOMINER FIRST'
                 : perBlockBelowMin ? `MIN ${MIN_PER_BLOCK} ETH/BLOCK`
                 : activateStep !== 'idle' ? 'WORKING…'
+                : autoMinerActiveCompatible ? 'SAVE AGENT CONFIG'
                 : 'DEPOSIT'}
             </button>
           )}

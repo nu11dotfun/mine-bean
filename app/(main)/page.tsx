@@ -15,6 +15,8 @@ import { useState, useEffect, useCallback } from 'react'
 import { CONTRACTS, BUILDER_CODE_SUFFIX } from '@/lib/contracts'
 import BeanpotCelebration from '@/components/BeanpotCelebration'
 import CountdownCelebration from '@/components/CountdownCelebration'
+import AgentConfigDrawer from '@/components/AgentConfigDrawer'
+import type { CustomAgent } from '@/lib/customAgents'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
@@ -22,6 +24,33 @@ export default function Home() {
   const [isMobile, setIsMobile] = useState(false)
   const [showMining, setShowMining] = useState(false)
   const [mounted, setMounted] = useState(false)
+
+  // AgentConfigDrawer state — opened via the AGENT tab in Sidebar/Mobile Controls
+  // via a window CustomEvent. Single shared instance for USE / EDIT / CREATE NEW.
+  type AgentDrawerState = {
+    open: boolean
+    preset?: CustomAgent
+    agentId?: CustomAgent['baseAgent']
+  }
+  const [agentDrawer, setAgentDrawer] = useState<AgentDrawerState>({ open: false })
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {}
+      setAgentDrawer({ open: true, preset: detail.preset, agentId: detail.agentId })
+    }
+    window.addEventListener('openAgentDrawer', handler)
+    return () => window.removeEventListener('openAgentDrawer', handler)
+  }, [])
+
+  // Effective agent metadata for the drawer. Uses preset's baseAgent if set,
+  // otherwise the picked agentId.
+  const effectiveAgentId = agentDrawer.preset?.baseAgent ?? agentDrawer.agentId ?? 'sniper'
+  const agentLabelMap: Record<CustomAgent['baseAgent'], { name: string; label: string }> = {
+    'sniper': { name: 'Sniper', label: 'AGENT_001' },
+    'anti-winner': { name: 'Anti-Winner', label: 'AGENT_003' },
+    'beanpot-hunter': { name: 'Beanpot Hunter', label: 'AGENT_002' },
+  }
+  const agentMeta = agentLabelMap[effectiveAgentId]
 
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth <= 768)
@@ -123,6 +152,15 @@ if (!showMining) {
           <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
         <BottomNav currentPage="mine" />
+        <AgentConfigDrawer
+          isOpen={agentDrawer.open}
+          onClose={() => setAgentDrawer({ open: false })}
+          agentId={effectiveAgentId}
+          agentName={agentMeta.name}
+          agentLabel={agentMeta.label}
+          initialPreset={agentDrawer.preset}
+          variant="main"
+        />
       </div>
     )
   }
@@ -142,6 +180,15 @@ if (!showMining) {
           <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
       </div>
+      <AgentConfigDrawer
+        isOpen={agentDrawer.open}
+        onClose={() => setAgentDrawer({ open: false })}
+        agentId={effectiveAgentId}
+        agentName={agentMeta.name}
+        agentLabel={agentMeta.label}
+        initialPreset={agentDrawer.preset}
+        variant="main"
+      />
     </div>
   )
 }

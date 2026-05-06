@@ -8,6 +8,10 @@ import { useSSE } from '@/lib/SSEContext'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS, EXECUTOR_FLAT_FEE } from '@/lib/contracts'
 import { useRoundTimer } from '@/lib/RoundTimerContext'
 import { parseEther } from 'viem'
+import MyAgentsList from './MyAgentsList'
+import NewAgentPicker from './NewAgentPicker'
+import type { CustomAgent } from '@/lib/customAgents'
+import { useAccount } from 'wagmi'
 
 const EthLogo = ({ size = 18 }: { size?: number }) => (
     <img
@@ -71,7 +75,8 @@ export default function SidebarControls({
     onAutoStop,
 }: SidebarControlsProps) {
     const { openConnectModal } = useConnectModal()
-    const [mode, setMode] = useState<"manual" | "auto">("manual")
+    const [mode, setMode] = useState<"manual" | "auto" | "agent">("manual")
+    const [agentPickerOpen, setAgentPickerOpen] = useState(false)
     const [hoveredMode, setHoveredMode] = useState<string | null>(null)
     const [perBlock, setPerBlock] = useState("0")
 
@@ -458,6 +463,22 @@ const handleSelectClick = () => {
                         >
                             Auto
                         </button>
+                        <button
+                            style={{
+                                ...styles.modeBtn,
+                                ...(mode === "agent" ? styles.modeBtnActive : {}),
+                                ...(hoveredMode === "agent" && mode !== "agent" ? styles.modeBtnHover : {}),
+                            }}
+                            onClick={() => {
+                                setMode("agent")
+                                // AGENT mode shouldn't drive the grid like AutoMiner does.
+                                window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: false, strategy: null } }))
+                            }}
+                            onMouseEnter={() => setHoveredMode("agent")}
+                            onMouseLeave={() => setHoveredMode(null)}
+                        >
+                            Agent
+                        </button>
                     </div>
                 )}
 
@@ -538,6 +559,15 @@ const handleSelectClick = () => {
                             </button>
                         ))}
                     </div>
+                )}
+
+                {/* ===== AGENT MODE ===== */}
+                {mode === "agent" && !autoMinerActive && (
+                    <AgentModeBlock
+                        onPickerOpen={() => setAgentPickerOpen(true)}
+                        pickerOpen={agentPickerOpen}
+                        onPickerClose={() => setAgentPickerOpen(false)}
+                    />
                 )}
 
                 {/* ===== MANUAL MODE ===== */}
@@ -876,7 +906,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     modeToggle: {
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: "1fr 1fr 1fr",
         gap: "8px",
         background: "rgba(255, 255, 255, 0.03)",
         borderRadius: "8px",
@@ -1125,4 +1155,43 @@ const styles: { [key: string]: React.CSSProperties } = {
         textAlign: "center",
         marginTop: "-4px",
     },
+}
+
+// ── AGENT MODE BLOCK ──────────────────────────────────────────────────────
+// Compact panel that lives inside the AGENT tab. Renders the saved-agents list
+// + create-new picker. USE / EDIT / CREATE NEW dispatch a window event that
+// app/page.tsx listens for and uses to open AgentConfigDrawer.
+function AgentModeBlock({
+    onPickerOpen,
+    pickerOpen,
+    onPickerClose,
+}: {
+    onPickerOpen: () => void
+    pickerOpen: boolean
+    onPickerClose: () => void
+}) {
+    const { address } = useAccount()
+
+    const dispatch = (preset?: CustomAgent, agentId?: CustomAgent['baseAgent']) => {
+        window.dispatchEvent(new CustomEvent('openAgentDrawer', { detail: { preset, agentId } }))
+    }
+
+    return (
+        <>
+            <MyAgentsList
+                walletAddress={address}
+                onUse={(preset) => dispatch(preset)}
+                onEdit={(preset) => dispatch(preset)}
+                onCreateNew={onPickerOpen}
+            />
+            <NewAgentPicker
+                isOpen={pickerOpen}
+                onClose={onPickerClose}
+                onPick={(baseAgent) => {
+                    onPickerClose()
+                    dispatch(undefined, baseAgent)
+                }}
+            />
+        </>
+    )
 }

@@ -2,11 +2,15 @@
 
 import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
+import { useAccount } from 'wagmi'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS, EXECUTOR_FLAT_FEE } from '@/lib/contracts'
 import { apiFetch } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
 import { useRoundTimer } from '@/lib/RoundTimerContext'
 import { parseEther } from 'viem'
+import MyAgentsList from './MyAgentsList'
+import NewAgentPicker from './NewAgentPicker'
+import type { CustomAgent } from '@/lib/customAgents'
 
 interface AutoMinerState {
     active: boolean
@@ -43,7 +47,8 @@ export default function MobileControls({
     onAutoStop,
 }: MobileControlsProps) {
     const { openConnectModal } = useConnectModal()
-    const [mode, setMode] = useState<"manual" | "auto">("manual")
+    const [mode, setMode] = useState<"manual" | "auto" | "agent">("manual")
+    const [pickerOpen, setPickerOpen] = useState(false)
     const [perBlock, setPerBlock] = useState("0")
     const [selectedBlockCount, setSelectedBlockCount] = useState(0)
     const [selectedBlockIds, setSelectedBlockIds] = useState<number[]>([])
@@ -310,11 +315,20 @@ export default function MobileControls({
                         >
                             Auto
                         </button>
+                        <button
+                            style={{...styles.modeBtn, ...(mode === "agent" ? styles.modeBtnActive : {})}}
+                            onClick={() => {
+                                setMode("agent")
+                                window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: false, strategy: null } }))
+                            }}
+                        >
+                            Agent
+                        </button>
                     </div>
                 )}
 
                 {/* Heat Map toggle — affects grid rendering via window event */}
-                {!autoMinerActive && (
+                {!autoMinerActive && mode !== "agent" && (
                     <div
                         onClick={toggleHeatmap}
                         style={{
@@ -366,7 +380,7 @@ export default function MobileControls({
                 )}
 
                 {/* Heat Map round-count selector — visible only when heatmap is enabled */}
-                {!autoMinerActive && heatmapEnabled && (
+                {!autoMinerActive && mode !== "agent" && heatmapEnabled && (
                     <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
                         {[250, 500, 750, 1000].map((n) => (
                             <button
@@ -458,6 +472,15 @@ export default function MobileControls({
                             </button>
                         )}
                     </>
+                )}
+
+                {/* ===== AGENT MODE ===== */}
+                {mode === "agent" && !autoMinerActive && (
+                    <AgentModeBlock
+                        pickerOpen={pickerOpen}
+                        onPickerOpen={() => setPickerOpen(true)}
+                        onPickerClose={() => setPickerOpen(false)}
+                    />
                 )}
 
                 {/* ===== AUTO MODE — CONFIGURE VIEW ===== */}
@@ -668,7 +691,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     },
     modeToggle: {
         display: "grid",
-        gridTemplateColumns: "1fr 1fr",
+        gridTemplateColumns: "1fr 1fr 1fr",
         gap: "6px",
         background: "rgba(255, 255, 255, 0.03)",
         borderRadius: "8px",
@@ -924,4 +947,43 @@ const styles: { [key: string]: React.CSSProperties } = {
         textAlign: "center",
         marginTop: "-4px",
     },
+}
+
+// ── AGENT MODE BLOCK ──────────────────────────────────────────────────────
+// Mirrors SidebarControls.AgentModeBlock — saved-agents list + picker, with
+// USE / EDIT / CREATE NEW dispatching the openAgentDrawer window event that
+// app/(main)/page.tsx listens for.
+function AgentModeBlock({
+    onPickerOpen,
+    pickerOpen,
+    onPickerClose,
+}: {
+    onPickerOpen: () => void
+    pickerOpen: boolean
+    onPickerClose: () => void
+}) {
+    const { address } = useAccount()
+
+    const dispatch = (preset?: CustomAgent, agentId?: CustomAgent['baseAgent']) => {
+        window.dispatchEvent(new CustomEvent('openAgentDrawer', { detail: { preset, agentId } }))
+    }
+
+    return (
+        <>
+            <MyAgentsList
+                walletAddress={address}
+                onUse={(preset) => dispatch(preset)}
+                onEdit={(preset) => dispatch(preset)}
+                onCreateNew={onPickerOpen}
+            />
+            <NewAgentPicker
+                isOpen={pickerOpen}
+                onClose={onPickerClose}
+                onPick={(agentId) => {
+                    onPickerClose()
+                    dispatch(undefined, agentId)
+                }}
+            />
+        </>
+    )
 }

@@ -1,11 +1,18 @@
 'use client'
 
 import React, { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi'
 import { parseEther } from 'viem'
 import { apiFetch, API_BASE } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
 import { CONTRACTS } from '@/lib/contracts'
+import {
+  saveCustomAgent,
+  type CustomAgent,
+  type SaveResult,
+  MAX_NAME_LENGTH,
+} from '@/lib/customAgents'
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
@@ -17,6 +24,15 @@ interface AgentConfigDrawerProps {
   agentId: string
   agentName: string
   agentLabel: string  // e.g. "AGENT_003"
+  // When set, drawer pre-fills from this preset and skips both server-driven
+  // prefill paths (existing-config GET and apiDefaults). Per plan.md v4 note 1.
+  // The preset's baseAgent overrides the agentId prop defensively if both are
+  // passed (the picker should pass them in agreement, but we don't trust that).
+  initialPreset?: CustomAgent
+  // 'agent' (default): full-screen drawer for /agents/[id] page.
+  // 'main': centered modal via portal for the main mining page. Also hides
+  // the Live Projection section to keep the modal compact.
+  variant?: 'agent' | 'main'
 }
 
 interface RoundFeed {
@@ -64,7 +80,11 @@ const roundsToBean = (rounds: number) => rounds * BEAN_PER_ROUND
 
 // ── Component ────────────────────────────────────────────────────────────
 
-export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName, agentLabel }: AgentConfigDrawerProps) {
+export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentId, agentName, agentLabel, initialPreset, variant = 'agent' }: AgentConfigDrawerProps) {
+  const isModalVariant = variant === 'main'
+  // Effective agent id: preset.baseAgent wins if both are passed (defensive).
+  // All downstream logic uses this `agentId` and stays unchanged.
+  const agentId = initialPreset?.baseAgent ?? propAgentId
   const [isMobile, setIsMobile] = useState(false)
   const { subscribeGlobal, subscribeUser } = useSSE()
 
@@ -121,6 +141,22 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   const [existingConfig, setExistingConfig] = useState<ExistingConfig>(null)
   const [existingConfigChecked, setExistingConfigChecked] = useState(false)
   const prefillAppliedRef = useRef(false)
+  // Preset prefill (M2): runs once when drawer opens with initialPreset.
+  // Mutually exclusive with the server prefill paths.
+  const presetAppliedRef = useRef(false)
+
+  // M3/M4/M5: SAVE AS AGENT — inline name input + post-deposit prompt.
+  // saveMode controls the inline UI band that appears above the footer.
+  // 'naming' shows the name input; 'saved' / 'error' show a transient banner.
+  type SaveMode = 'idle' | 'naming' | 'saved' | 'error'
+  const [saveMode, setSaveMode] = useState<SaveMode>('idle')
+  const [saveName, setSaveName] = useState('')
+  const [saveError, setSaveError] = useState<string | null>(null)
+  // M5: post-DEPOSIT prompt only — separate state so it doesn't collide with
+  // the regular SAVE AS AGENT band that lives above the footer.
+  const [postSaveMode, setPostSaveMode] = useState<SaveMode>('idle')
+  const [postSaveName, setPostSaveName] = useState('')
+  const [postSaveError, setPostSaveError] = useState<string | null>(null)
 
   // API-provided defaults (override hardcoded if present)
   type ApiStrategies = Record<string, Record<string, number>>
@@ -348,9 +384,12 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     return () => clearTimeout(timeout)
   }, [isOpen, isUnsupported, backtestRounds])
 
-  // Fetch API defaults from /api/agent-strategies (once, on first open)
+  // Fetch API defaults from /api/agent-strategies (once, on first open).
+  // Skipped when a preset is supplied — the preset is the source of truth and
+  // we don't want a late-arriving defaults payload to overwrite it (plan v4 note 1).
   useEffect(() => {
     if (!isOpen || isUnsupported || apiDefaultsAppliedRef.current) return
+    if (initialPreset) { apiDefaultsAppliedRef.current = true; return }
     apiDefaultsAppliedRef.current = true
     apiFetch<{ strategies: Array<{ agentId: string; defaultParams: Record<string, number> }> }>('/api/agent-strategies')
       .then(res => {
@@ -359,7 +398,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         setApiDefaults(map)
       })
       .catch(() => { /* fall back to hardcoded */ })
-  }, [isOpen, isUnsupported])
+  }, [isOpen, isUnsupported, initialPreset])
 
   // Apply API defaults for the current agent, but only on initial render (don't clobber user edits)
   useEffect(() => {
@@ -391,7 +430,11 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     if (existingConfigChecked && autoMinerChecked) return
 
     const lower = walletAddress.toLowerCase()
-    if (!existingConfigChecked) {
+    // When a preset is supplied, skip the agent-config GET entirely. The preset
+    // is the source of truth and a stale GET could silently overwrite it
+    // (plan v4 note 1). We still check AutoMiner state below for the STOP gate
+    // since that's on-chain reality, not server prefill.
+    if (!existingConfigChecked && !initialPreset) {
       apiFetch<any>(`/api/user/${lower}/agent-config`)
         .then(res => {
           const cfg = res?.config
@@ -408,6 +451,11 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         })
         .catch(() => setExistingConfig(null))
         .finally(() => setExistingConfigChecked(true))
+    } else if (!existingConfigChecked && initialPreset) {
+      // Mark checked synchronously so downstream gates (apiDefaults application,
+      // existingConfig prefill effect) see the same "we've handled prefill" state
+      // they would after a fetch completes.
+      setExistingConfigChecked(true)
     }
     if (!autoMinerChecked) {
       apiFetch<any>(`/api/automine/${lower}`)
@@ -428,7 +476,28 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         .catch(() => setAutoMinerState(null))
         .finally(() => setAutoMinerChecked(true))
     }
-  }, [isOpen, isUnsupported, walletAddress, existingConfigChecked, autoMinerChecked])
+  }, [isOpen, isUnsupported, walletAddress, existingConfigChecked, autoMinerChecked, initialPreset])
+
+  // M2: apply preset values once when drawer opens with initialPreset.
+  // Pre-fills strategy params + deposit fields directly from the preset.
+  useEffect(() => {
+    if (!isOpen || !initialPreset || presetAppliedRef.current) return
+    presetAppliedRef.current = true
+    const p = initialPreset.params || {}
+    if (initialPreset.baseAgent === 'sniper') {
+      if (typeof p.timingOffsetSec === 'number') setTimingOffsetSec(p.timingOffsetSec)
+      if (typeof p.minRoiPct === 'number') setSniperMinRoiPct(p.minRoiPct)
+    } else if (initialPreset.baseAgent === 'anti-winner') {
+      if (typeof p.gridFillWaitSec === 'number') setAwGridFillWaitSec(p.gridFillWaitSec)
+      if (typeof p.excludeLastN === 'number') setExcludeLastN(p.excludeLastN)
+      if (typeof p.minRoiPct === 'number') setAwMinRoiPct(p.minRoiPct)
+    } else if (initialPreset.baseAgent === 'beanpot-hunter') {
+      if (typeof p.gridFillWaitSec === 'number') setHunterGridFillWaitSec(p.gridFillWaitSec)
+      if (typeof p.beanpotThreshold === 'number') setBeanpotThreshold(p.beanpotThreshold)
+    }
+    setPerBlockInput(String(initialPreset.perBlock))
+    setNumRoundsInput(String(initialPreset.numRounds))
+  }, [isOpen, initialPreset])
 
   // Re-fetch existing config after a successful activate so we move to "Active" state
   useEffect(() => {
@@ -462,12 +531,19 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     }
   }, [isOpen, existingConfig, existingConfigChecked, agentId, isSniper, isAntiWinner, isHunter])
 
-  // Reset checked flags when drawer closes
+  // Reset checked flags AND server-fetched state when drawer closes. Clearing
+  // existingConfig + autoMinerState here prevents stale data from a previous
+  // open from leaking into a subsequent preset open (where we deliberately
+  // skip the GET, so nothing would otherwise overwrite the stale value).
   useEffect(() => {
     if (!isOpen) {
+      setExistingConfig(null)
       setExistingConfigChecked(false)
+      setAutoMinerState(null)
+      setAutoMinerChecked(false)
       prefillAppliedRef.current = false
       apiDefaultsAppliedRef.current = false
+      presetAppliedRef.current = false
       setLastFire(null)
     }
   }, [isOpen])
@@ -602,6 +678,25 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
   const depositTotal = X * numRounds * 1.01
 
   const handleReset = () => {
+    // When opened from a preset, RESET reverts to the preset values rather
+    // than global defaults (plan v4 §1).
+    if (initialPreset) {
+      const p = initialPreset.params || {}
+      if (isSniper) {
+        setTimingOffsetSec(typeof p.timingOffsetSec === 'number' ? p.timingOffsetSec : SNIPER_DEFAULTS.timingOffsetSec)
+        setSniperMinRoiPct(typeof p.minRoiPct === 'number' ? p.minRoiPct : SNIPER_DEFAULTS.minRoiPct)
+      } else if (isAntiWinner) {
+        setAwGridFillWaitSec(typeof p.gridFillWaitSec === 'number' ? p.gridFillWaitSec : ANTI_WINNER_DEFAULTS.gridFillWaitSec)
+        setExcludeLastN(typeof p.excludeLastN === 'number' ? p.excludeLastN : ANTI_WINNER_DEFAULTS.excludeLastN)
+        setAwMinRoiPct(typeof p.minRoiPct === 'number' ? p.minRoiPct : ANTI_WINNER_DEFAULTS.minRoiPct)
+      } else if (isHunter) {
+        setHunterGridFillWaitSec(typeof p.gridFillWaitSec === 'number' ? p.gridFillWaitSec : HUNTER_DEFAULTS.gridFillWaitSec)
+        setBeanpotThreshold(typeof p.beanpotThreshold === 'number' ? p.beanpotThreshold : HUNTER_DEFAULTS.beanpotThreshold)
+      }
+      setPerBlockInput(String(initialPreset.perBlock))
+      setNumRoundsInput(String(initialPreset.numRounds))
+      return
+    }
     if (isSniper) {
       setTimingOffsetSec(SNIPER_DEFAULTS.timingOffsetSec)
       setSniperMinRoiPct(SNIPER_DEFAULTS.minRoiPct)
@@ -616,6 +711,93 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
     setPerBlockInput('0.00001')
     setNumRoundsInput('100')
   }
+
+  // M3/M4: build a CustomAgent from the current drawer state.
+  // When initialPreset is set, reuse its id and createdAt (EDIT path).
+  // Otherwise mint a fresh id (CREATE path).
+  const buildCustomAgentFromState = useCallback((name: string): CustomAgent => {
+    const isUpdate = !!initialPreset
+    const params: Record<string, number> = {}
+    if (isSniper) {
+      params.timingOffsetSec = timingOffsetSec
+      params.minRoiPct = sniperMinRoiPct
+    } else if (isAntiWinner) {
+      params.gridFillWaitSec = awGridFillWaitSec
+      params.excludeLastN = excludeLastN
+      params.minRoiPct = awMinRoiPct
+    } else if (isHunter) {
+      params.gridFillWaitSec = hunterGridFillWaitSec
+      params.beanpotThreshold = beanpotThreshold
+    }
+    return {
+      v: 1,
+      id: isUpdate ? initialPreset!.id : (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+      name,
+      baseAgent: agentId as CustomAgent['baseAgent'],
+      params,
+      perBlock,
+      numRounds,
+      createdAt: isUpdate ? initialPreset!.createdAt : new Date().toISOString(),
+      lastUsedAt: isUpdate ? initialPreset!.lastUsedAt : undefined,
+    }
+  }, [initialPreset, isSniper, isAntiWinner, isHunter, agentId, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold, perBlock, numRounds])
+
+  // M3: shared submit handler — translates SaveResult to UI state.
+  const submitSave = useCallback((rawName: string, opts: {
+    onMode: (mode: SaveMode) => void
+    onError: (err: string | null) => void
+  }): boolean => {
+    if (!walletAddress) { opts.onError('Connect wallet to save'); opts.onMode('error'); return false }
+    const trimmed = rawName.trim()
+    if (trimmed.length === 0) { opts.onError('Name required'); opts.onMode('error'); return false }
+    if (trimmed.length > MAX_NAME_LENGTH) { opts.onError(`Name max ${MAX_NAME_LENGTH} chars`); opts.onMode('error'); return false }
+    const agent = buildCustomAgentFromState(trimmed)
+    const result: SaveResult = saveCustomAgent(walletAddress, agent)
+    if (result.ok) {
+      opts.onError(null)
+      opts.onMode('saved')
+      // Notify any mounted MyAgentsList instances to refresh.
+      if (typeof window !== 'undefined') window.dispatchEvent(new Event('bean_custom_agents_changed'))
+      return true
+    }
+    if (result.reason === 'limit_reached') opts.onError('Limit reached (10 max). Delete one first.')
+    else if (result.reason === 'name_collision') opts.onError('Name already used')
+    else opts.onError('Invalid name')
+    opts.onMode('error')
+    return false
+  }, [walletAddress, buildCustomAgentFromState])
+
+  const handleSaveAsAgent = () => {
+    const ok = submitSave(saveName, { onMode: setSaveMode, onError: setSaveError })
+    // Once the user has explicitly saved this session, suppress the post-DEPOSIT
+    // "save these params for next time?" prompt — they already said yes.
+    if (ok) setPostSaveMode('saved')
+  }
+  const handlePostDepositSave = () => {
+    submitSave(postSaveName, { onMode: setPostSaveMode, onError: setPostSaveError })
+  }
+
+  // M3: auto-clear save banners after a short delay so the UI doesn't get stuck.
+  useEffect(() => {
+    if (saveMode !== 'saved' && saveMode !== 'error') return
+    const id = setTimeout(() => {
+      if (saveMode === 'saved') { setSaveMode('idle'); setSaveName(''); setSaveError(null) }
+      // For 'error' state, leave the input open so the user can fix and retry.
+    }, saveMode === 'saved' ? 1800 : 0)
+    return () => clearTimeout(id)
+  }, [saveMode])
+  // M5: once the post-DEPOSIT prompt is dismissed or saved, leave it alone for
+  // the rest of the drawer session. Auto-resetting it to 'idle' caused the
+  // prompt to reappear and overwrite the saved/dismissed state.
+  // No effect needed — postSaveMode stays at 'saved' until drawer close.
+
+  // Reset save UI on close.
+  useEffect(() => {
+    if (!isOpen) {
+      setSaveMode('idle'); setSaveName(''); setSaveError(null)
+      setPostSaveMode('idle'); setPostSaveName(''); setPostSaveError(null)
+    }
+  }, [isOpen])
 
   // Build the agent params object for POST + signature
   const buildAgentParams = useCallback((): Record<string, number> => {
@@ -738,7 +920,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
 
   if (!isOpen) return null
 
-  return (
+  const content = (
     <>
       <style>{`
         @keyframes acd-fade-in { from { opacity: 0 } to { opacity: 1 } }
@@ -791,6 +973,32 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
             0 2px 8px rgba(0,82,255,0.5),
             0 0 18px rgba(0,82,255,0.35);
         }
+        /* Modal variant: glassmorphism slider thumb to match the surrounding
+           translucent / frosted modal language instead of the blue gradient. */
+        .acd-modal .acd-slider::-webkit-slider-thumb {
+          background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%);
+          backdrop-filter: blur(6px);
+          -webkit-backdrop-filter: blur(6px);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.9),
+            inset 0 -1px 0 rgba(0,0,0,0.15),
+            0 0 0 1px rgba(255,255,255,0.18),
+            0 2px 8px rgba(0,0,0,0.45);
+        }
+        .acd-modal .acd-slider::-webkit-slider-thumb:hover {
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.95),
+            inset 0 -1px 0 rgba(0,0,0,0.15),
+            0 0 0 1px rgba(255,255,255,0.28),
+            0 2px 12px rgba(0,0,0,0.55);
+        }
+        .acd-modal .acd-slider::-moz-range-thumb {
+          background: linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.55) 100%);
+          box-shadow:
+            inset 0 1px 0 rgba(255,255,255,0.9),
+            0 0 0 1px rgba(255,255,255,0.18),
+            0 2px 8px rgba(0,0,0,0.45);
+        }
         .acd-input:focus {
           border-color: rgba(0,82,255,0.5) !important;
           background: rgba(0,82,255,0.04) !important;
@@ -809,8 +1017,9 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         onClick={onClose}
         style={{
           position: 'fixed', inset: 0,
-          background: 'rgba(0,0,0,0.6)',
-          backdropFilter: 'blur(6px)',
+          background: isModalVariant ? 'rgba(8, 10, 18, 0.72)' : 'rgba(0,0,0,0.6)',
+          backdropFilter: isModalVariant ? 'blur(14px) saturate(140%)' : 'blur(6px)',
+          WebkitBackdropFilter: isModalVariant ? 'blur(14px) saturate(140%)' : undefined,
           zIndex: 9998,
           animation: 'acd-fade-in 0.2s ease',
         }}
@@ -819,24 +1028,54 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
       <div
         style={{
           position: 'fixed',
-          ...(isMobile
-            ? { left: 0, right: 0, bottom: 0, top: 0, animation: 'acd-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }
-            : { top: 0, right: 0, bottom: 0, width: 460, animation: 'acd-slide-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }
+          ...(isModalVariant
+            ? {
+                // Centered modal for main mining page. Wider than the agent
+                // subdomain drawer (460px) to give params room to breathe.
+                // maxHeight bounded to viewport so modal never overflows the
+                // top/bottom of the screen. Body scrolls only if content
+                // exceeds this on smaller laptops.
+                top: '50%', left: '50%',
+                transform: 'translate(-50%, -50%)',
+                width: 'min(720px, calc(100vw - 32px))',
+                maxHeight: 'calc(100vh - 32px)',
+                borderRadius: 16,
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow:
+                  '0 24px 48px rgba(0, 0, 0, 0.55),' +
+                  ' 0 0 0 1px rgba(255, 255, 255, 0.03) inset',
+                animation: 'acd-fade-in 0.2s ease',
+              }
+            : isMobile
+              ? { left: 0, right: 0, bottom: 0, top: 0, animation: 'acd-slide-up 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }
+              : { top: 0, right: 0, bottom: 0, width: 460, animation: 'acd-slide-right 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }
           ),
-          background: 'linear-gradient(180deg, #0d111c 0%, #08090f 100%)',
-          borderLeft: isMobile ? 'none' : '1px solid rgba(0,82,255,0.18)',
+          // Modal variant: solid dark base matching the main site's #0a0a0a
+          // panels. Removes the gradient banding between header and body.
+          background: isModalVariant
+            ? '#0d111c'
+            : 'linear-gradient(180deg, #0d111c 0%, #08090f 100%)',
+          backdropFilter: isModalVariant ? 'blur(8px)' : undefined,
+          WebkitBackdropFilter: isModalVariant ? 'blur(8px)' : undefined,
+          borderLeft: !isModalVariant && !isMobile ? '1px solid rgba(0,82,255,0.18)' : undefined,
           zIndex: 9999,
           display: 'flex', flexDirection: 'column',
           fontFamily: "'Inter', -apple-system, sans-serif",
           color: '#fff',
+          overflow: 'hidden',
         }}
+        className={isModalVariant ? 'acd-modal' : undefined}
       >
         {/* Header */}
         <div style={{
           padding: '18px 22px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          background: 'rgba(10,12,20,0.75)', backdropFilter: 'blur(8px)',
+          // In modal variant the body is solid #0d111c — make the header match
+          // so there's no visible band between the two. Drawer variant keeps
+          // its slight tint for blurred-glass feel.
+          background: isModalVariant ? 'transparent' : 'rgba(10,12,20,0.75)',
+          backdropFilter: isModalVariant ? undefined : 'blur(8px)',
         }}>
           <div>
             <div style={{ fontSize: 10, color: 'rgba(0,82,255,0.7)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -876,7 +1115,13 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
         </div>
 
         {/* Body */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '22px' }}>
+        <div style={{
+          flex: 1,
+          // Both variants scroll their body when content exceeds the modal/drawer
+          // height. Modal is height-capped to viewport so this rarely triggers.
+          overflowY: 'auto',
+          padding: isModalVariant ? '12px 22px 14px' : '22px',
+        }}>
 
           {isUnsupported && (
             <div style={{
@@ -962,7 +1207,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
               </div>
             )}
 
-            <SectionHeader>Strategy parameters</SectionHeader>
+            <SectionHeader style={isModalVariant ? { marginBottom: 8 } : undefined}>Strategy parameters</SectionHeader>
 
             {/* ── Sniper params ── */}
             {isSniper && (<>
@@ -1072,7 +1317,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
 
             {/* Deposit — hidden when reusing a compatible existing AutoMiner (no new deposit needed). */}
             {!autoMinerActiveCompatible && (<>
-            <SectionHeader style={{ marginTop: 28 }}>Deposit</SectionHeader>
+            <SectionHeader style={{ marginTop: isModalVariant ? 14 : 28, ...(isModalVariant ? { marginBottom: 8 } : {}) }}>Deposit</SectionHeader>
 
             <ParamRow label="Per block" value={`${perBlock.toFixed(6)} ETH`} help={`ETH deployed to each of the ${numBlocks} blocks every time the agent fires. Minimum ${MIN_PER_BLOCK} ETH per block (AutoMiner contract floor).`}>
               <input
@@ -1130,7 +1375,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
 
             {/* Backtest — Sniper / Anti-Winner only — primary headline */}
             {historicalSample && historicalFiredPct !== null && (<>
-              <SectionHeader style={{ marginTop: 28, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <SectionHeader style={{ marginTop: isModalVariant ? 14 : 28, marginBottom: isModalVariant ? 8 : 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                   Backtest
                   <span style={{ fontSize: 9, color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono', monospace", fontWeight: 400, letterSpacing: '0.06em' }}>
@@ -1243,7 +1488,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
               </div>
             </>)}
 
-            {/* Live projection — collapsible, click to expand */}
+            {/* Live projection — collapsible, click to expand. Hidden in modal variant per plan note (less screen real estate). */}
+            {!isModalVariant && (<>
             <button
               type="button"
               onClick={() => setShowLiveProjection(v => !v)}
@@ -1373,6 +1619,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
                 </div>
               </div>
             )}
+            </>)}
+            {/* End of !isModalVariant Live Projection wrapper */}
 
             {numBlocksConstraintBroken && (
               <div style={{
@@ -1421,8 +1669,152 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
             color: 'rgba(150,240,200,0.95)',
             fontFamily: "'Space Mono', monospace",
             letterSpacing: '0.04em',
+            display: 'flex', flexDirection: 'column', gap: 10,
           }}>
-            ✓ {autoMinerActiveCompatible ? 'AGENT CONFIG SAVED · DEPLOYS WILL FIRE PER YOUR PARAMS' : 'CONFIG SAVED · AGENT ACTIVATES NEXT ROUND'}
+            <div>✓ {autoMinerActiveCompatible ? 'AGENT CONFIG SAVED · DEPLOYS WILL FIRE PER YOUR PARAMS' : 'CONFIG SAVED · AGENT ACTIVATES NEXT ROUND'}</div>
+            {/* M5: post-DEPOSIT prompt — only when NOT opened from a preset
+                (already saved) and the user hasn't dismissed or completed the prompt. */}
+            {!initialPreset && postSaveMode !== 'saved' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, letterSpacing: '0.06em' }}>
+                  SAVE THESE PARAMS FOR NEXT TIME?
+                </span>
+                <input
+                  type="text"
+                  placeholder="Agent name"
+                  maxLength={MAX_NAME_LENGTH}
+                  value={postSaveName}
+                  onChange={(e) => { setPostSaveName(e.target.value); if (postSaveMode === 'error') setPostSaveMode('idle') }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') handlePostDepositSave() }}
+                  style={{
+                    flex: '1 1 160px', minWidth: 120,
+                    padding: '6px 10px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 6,
+                    color: '#fff',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 11, letterSpacing: '0.04em',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handlePostDepositSave}
+                  disabled={!postSaveName.trim()}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(0,82,255,0.18)',
+                    border: '1px solid rgba(0,82,255,0.4)',
+                    borderRadius: 6,
+                    color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace",
+                    letterSpacing: '0.06em',
+                    cursor: postSaveName.trim() ? 'pointer' : 'not-allowed',
+                    opacity: postSaveName.trim() ? 1 : 0.4,
+                  }}
+                >SAVE</button>
+                <button
+                  onClick={() => { setPostSaveMode('idle'); setPostSaveName(''); setPostSaveError(null); /* dismiss = mark as saved so prompt hides */ setPostSaveMode('saved') }}
+                  style={{
+                    padding: '6px 8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: 10,
+                    fontFamily: "'Space Mono', monospace",
+                    letterSpacing: '0.06em',
+                    cursor: 'pointer',
+                  }}
+                >DISMISS</button>
+                {postSaveMode === 'error' && postSaveError && (
+                  <span style={{ flexBasis: '100%', color: 'rgba(255,107,107,0.9)', fontSize: 10, letterSpacing: '0.04em' }}>
+                    {postSaveError}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* M3: SAVE AS AGENT inline band — appears above footer when actively naming or showing a result. */}
+        {saveMode !== 'idle' && activateStep === 'idle' && (
+          <div style={{
+            padding: '12px 22px',
+            background: saveMode === 'error' ? 'rgba(255,107,107,0.06)' : saveMode === 'saved' ? 'rgba(0,200,131,0.08)' : 'rgba(0,82,255,0.06)',
+            borderTop: `1px solid ${saveMode === 'error' ? 'rgba(255,107,107,0.25)' : saveMode === 'saved' ? 'rgba(0,200,131,0.25)' : 'rgba(0,82,255,0.2)'}`,
+            display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
+            fontFamily: "'Space Mono', monospace",
+          }}>
+            {saveMode === 'saved' && (
+              <span style={{ color: 'rgba(150,240,200,0.95)', fontSize: 11, letterSpacing: '0.04em' }}>
+                ✓ {initialPreset ? 'AGENT UPDATED' : 'AGENT SAVED'}
+              </span>
+            )}
+            {(saveMode === 'naming' || saveMode === 'error') && (
+              <>
+                <span style={{ color: 'rgba(255,255,255,0.55)', fontSize: 10, letterSpacing: '0.06em' }}>
+                  {initialPreset ? 'UPDATE NAME' : 'NAME YOUR AGENT'}
+                </span>
+                <input
+                  type="text"
+                  autoFocus
+                  placeholder="My Aggressive Sniper"
+                  maxLength={MAX_NAME_LENGTH}
+                  value={saveName}
+                  onChange={(e) => { setSaveName(e.target.value); if (saveMode === 'error') { setSaveMode('naming'); setSaveError(null) } }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') handleSaveAsAgent()
+                    if (e.key === 'Escape') { setSaveMode('idle'); setSaveName(''); setSaveError(null) }
+                  }}
+                  style={{
+                    flex: '1 1 160px', minWidth: 140,
+                    padding: '6px 10px',
+                    background: 'rgba(0,0,0,0.3)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                    borderRadius: 6,
+                    color: '#fff',
+                    fontFamily: "'Space Mono', monospace",
+                    fontSize: 11, letterSpacing: '0.04em',
+                    outline: 'none',
+                  }}
+                />
+                <button
+                  onClick={handleSaveAsAgent}
+                  disabled={!saveName.trim()}
+                  style={{
+                    padding: '6px 12px',
+                    background: 'rgba(0,82,255,0.18)',
+                    border: '1px solid rgba(0,82,255,0.4)',
+                    borderRadius: 6,
+                    color: '#fff',
+                    fontSize: 10, fontWeight: 700,
+                    fontFamily: "'Space Mono', monospace",
+                    letterSpacing: '0.06em',
+                    cursor: saveName.trim() ? 'pointer' : 'not-allowed',
+                    opacity: saveName.trim() ? 1 : 0.4,
+                  }}
+                >{initialPreset ? 'UPDATE' : 'SAVE'}</button>
+                <button
+                  onClick={() => { setSaveMode('idle'); setSaveName(''); setSaveError(null) }}
+                  style={{
+                    padding: '6px 8px',
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'rgba(255,255,255,0.4)',
+                    fontSize: 10,
+                    fontFamily: "'Space Mono', monospace",
+                    letterSpacing: '0.06em',
+                    cursor: 'pointer',
+                  }}
+                >CANCEL</button>
+                {saveMode === 'error' && saveError && (
+                  <span style={{ flexBasis: '100%', color: 'rgba(255,107,107,0.9)', fontSize: 10, letterSpacing: '0.04em' }}>
+                    {saveError}
+                  </span>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -1431,7 +1823,10 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
           padding: '14px 22px',
           borderTop: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', gap: 12, alignItems: 'center',
-          background: 'rgba(10,12,20,0.85)', backdropFilter: 'blur(8px)',
+          // Modal variant: lift the footer slightly (+5%) above the body so it
+          // reads as a distinct action zone without going darker than the body.
+          background: isModalVariant ? 'rgba(255,255,255,0.025)' : 'rgba(10,12,20,0.85)',
+          backdropFilter: isModalVariant ? undefined : 'blur(8px)',
         }}>
           <button
             onClick={handleReset}
@@ -1449,6 +1844,24 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
           >
             RESET
           </button>
+          {/* M3: SAVE AS AGENT — visible whenever wallet connected and activate is idle.
+              Stays visible during STOP gate (saving is FE-only, decoupled from on-chain state). */}
+          {isConnected && activateStep === 'idle' && saveMode === 'idle' && (
+            <button
+              onClick={() => { setSaveName(initialPreset?.name ?? ''); setSaveMode('naming') }}
+              className="acd-secondary"
+              style={{
+                background: 'transparent', border: 'none',
+                color: 'rgba(255,255,255,0.55)',
+                fontSize: 11, fontWeight: 700,
+                fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                cursor: 'pointer',
+                padding: '10px 4px', transition: 'color 0.2s ease',
+              }}
+            >
+              {initialPreset ? 'UPDATE AGENT' : 'SAVE AS AGENT'}
+            </button>
+          )}
           {activateStep === 'success' ? (
             <button
               onClick={onClose}
@@ -1517,14 +1930,17 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
               style={{
                 flex: 1,
                 padding: '14px 0',
-                border: '1px solid rgba(0,82,255,0.5)',
+                // Modal variant uses solid #0052FF to match the main-site DEPLOY button.
+                // Drawer variant keeps the translucent blue look for /agents.
+                border: isModalVariant ? '1px solid #0052FF' : '1px solid rgba(0,82,255,0.5)',
                 borderRadius: 10,
-                background: 'rgba(0,82,255,0.15)',
+                background: isModalVariant ? '#0052FF' : 'rgba(0,82,255,0.15)',
                 color: '#fff',
                 fontSize: 14, fontWeight: 700,
                 fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
                 cursor: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible) ? 'not-allowed' : 'pointer',
-                boxShadow: '0 0 15px rgba(0,82,255,0.2), 0 0 30px rgba(0,82,255,0.1), inset 0 0 15px rgba(0,82,255,0.05)',
+                // Modal variant uses no glow to match the flat main-site DEPLOY button.
+                boxShadow: isModalVariant ? 'none' : '0 0 15px rgba(0,82,255,0.2), 0 0 30px rgba(0,82,255,0.1), inset 0 0 15px rgba(0,82,255,0.05)',
                 transition: 'all 0.2s ease',
                 opacity: (isUnsupported || numBlocksConstraintBroken || perBlockBelowMin || activateStep !== 'idle' || !isConnected || isThisAgentActive || isOtherAgentActive || autoMinerActiveIncompatible) ? 0.4 : 1,
               }}
@@ -1534,6 +1950,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
                 : isOtherAgentActive ? `STOP ${otherAgentName?.toUpperCase()} FIRST`
                 : autoMinerActiveIncompatible ? 'STOP AUTOMINER FIRST'
                 : perBlockBelowMin ? `MIN ${MIN_PER_BLOCK} ETH/BLOCK`
+                : (activateStep === 'fetching-nonce' || activateStep === 'signing' || activateStep === 'posting') ? 'SIGNING…'
+                : (activateStep === 'sending-tx' || activateStep === 'tx-pending') ? 'DEPOSITING…'
                 : activateStep !== 'idle' ? 'WORKING…'
                 : autoMinerActiveCompatible ? 'SAVE AGENT CONFIG'
                 : 'DEPOSIT'}
@@ -1543,6 +1961,12 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId, agentName,
       </div>
     </>
   )
+
+  // Modal variant renders via portal to escape parent stacking contexts
+  // (cards with transforms, position-relative siblings, etc.) on the main page.
+  return isModalVariant && typeof document !== 'undefined'
+    ? createPortal(content, document.body)
+    : content
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────

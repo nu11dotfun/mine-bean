@@ -24,7 +24,7 @@ export type SaveResult =
   | { ok: true; agent: CustomAgent }
   | { ok: false; reason: 'limit_reached' | 'name_collision' | 'invalid_name' }
 
-const VALID_BASE_AGENTS: ReadonlySet<BaseAgentId> = new Set([
+const VALID_BASE_AGENTS: ReadonlySet<BaseAgentId> = new Set<BaseAgentId>([
   'sniper',
   'anti-winner',
   'beanpot-hunter',

@@ -61,6 +61,7 @@ export const AGENTS: AgentMeta[] = [
     strategyDetail: 'Deploys to 24 out of 25 blocks, skipping the coldest block over the last 100 rounds. Calculates deployment amount and only deploys when EV is positive, otherwise skips the round entirely.',
     walletAddress: '0xCfed0969a7D638cBe23Ff01C2C795d2D39C60887',
     vaultAddress: '0xA5e8275B132686BfD0Fc60094aE4a02635716f05',
+    oldVaultAddress: '0xCfed0969a7D638cBe23Ff01C2C795d2D39C60887',
     status: 'active',
   },
   {
@@ -71,6 +72,7 @@ export const AGENTS: AgentMeta[] = [
     strategyDetail: 'Predicts how much ETH will be deployed on the grid based on recent round history, then deploys an optimal amount at the start of a round across all 25 blocks. Guaranteed to win every round it plays. Skips rounds where the predicted grid conditions aren\'t profitable. Deploys early so it never misses a round due to late timing or transaction delays.',
     walletAddress: '0xF95a18e24247377Ed48082E201d38fBE893A3fef',
     vaultAddress: '0x1098f65b0529E7E78cE8749621e3F0427b2a37f6',
+    oldVaultAddress: '0xF95a18e24247377Ed48082E201d38fBE893A3fef',
     status: 'active',
   },
 ]

@@ -22,6 +22,8 @@ const OPTIONS: Array<{ id: CustomAgent['baseAgent']; name: string; tagline: stri
   { id: 'sniper',         name: 'Sniper',         tagline: 'Fires late in the round when ROI is above your target.' },
   { id: 'anti-winner',    name: 'Anti-Winner',    tagline: 'Skips recent winning blocks, deploys after grid develops.' },
   { id: 'beanpot-hunter', name: 'Beanpot Hunter', tagline: 'Only fires when the beanpot has built up past your threshold.' },
+  { id: 'anti-loser',     name: 'Anti-Loser',     tagline: 'Skips the coldest blocks late in the round; gates on EV.' },
+  { id: 'nostradamus',    name: 'Nostradamus',    tagline: 'Predicts grid fill and deploys early on all 25 blocks.' },
 ]
 
 export default function NewAgentPicker({ isOpen, onClose, onPick }: NewAgentPickerProps) {

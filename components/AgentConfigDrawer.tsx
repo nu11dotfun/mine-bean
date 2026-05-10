@@ -16,7 +16,7 @@ import {
 
 // ── Types ─────────────────────────────────────────────────────────────────
 
-export type AgentId = 'sniper' | 'anti-winner' | 'beanpot-hunter'
+export type AgentId = 'sniper' | 'anti-winner' | 'beanpot-hunter' | 'anti-loser' | 'nostradamus'
 
 interface AgentConfigDrawerProps {
   isOpen: boolean
@@ -60,15 +60,21 @@ const SUPPORTED: Record<AgentId, true> = {
   'sniper': true,
   'anti-winner': true,
   'beanpot-hunter': true,
+  'anti-loser': true,
+  'nostradamus': true,
 }
 
 const SNIPER_DEFAULTS = { timingOffsetSec: 5, minRoiPct: 0 }
 const ANTI_WINNER_DEFAULTS = { gridFillWaitSec: 35, excludeLastN: 1, minRoiPct: 0 }
 const HUNTER_DEFAULTS = { gridFillWaitSec: 35, beanpotThreshold: 62.2 }
+const ANTI_LOSER_DEFAULTS = { timingOffsetSec: 15, historyLookbackRounds: 100, excludeColdN: 1, minRoiPct: 0 }
+const NOSTRADAMUS_DEFAULTS = { gridFillWaitSec: 0, predictionLookbackRounds: 3, minRoiPct: 0 }
 
 // BEAN coefficient B in EV formula
 const SNIPER_B = 1.0
 const ANTI_WINNER_B = 1.1
+const ANTI_LOSER_B = 1.0
+const NOSTRADAMUS_B = 1.0
 
 // Hunter rounds-since-last-hit ⇄ BEAN threshold conversion.
 // Beanpot hits roughly every 1/777 rounds on average. Default fires at
@@ -99,6 +105,17 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // Beanpot Hunter
   const [hunterGridFillWaitSec, setHunterGridFillWaitSec] = useState(HUNTER_DEFAULTS.gridFillWaitSec)
   const [beanpotThreshold, setBeanpotThreshold] = useState(HUNTER_DEFAULTS.beanpotThreshold)
+  // Anti-Loser
+  const [alTimingOffsetSec, setAlTimingOffsetSec] = useState(ANTI_LOSER_DEFAULTS.timingOffsetSec)
+  const [alHistoryLookbackRounds, setAlHistoryLookbackRounds] = useState(ANTI_LOSER_DEFAULTS.historyLookbackRounds)
+  const [excludeColdN, setExcludeColdN] = useState(ANTI_LOSER_DEFAULTS.excludeColdN)
+  const [alMinRoiPct, setAlMinRoiPct] = useState(ANTI_LOSER_DEFAULTS.minRoiPct)
+  // Nostradamus
+  const [nostraGridFillWaitSec, setNostraGridFillWaitSec] = useState(NOSTRADAMUS_DEFAULTS.gridFillWaitSec)
+  const [predictionLookbackRounds, setPredictionLookbackRounds] = useState(NOSTRADAMUS_DEFAULTS.predictionLookbackRounds)
+  const [nostraMinRoiPct, setNostraMinRoiPct] = useState(NOSTRADAMUS_DEFAULTS.minRoiPct)
+  // Predicted T (avg totalDeployed across last N settled rounds) — used by Nostradamus
+  const [predictedT, setPredictedT] = useState<number>(0)
   // String buffer for the Hunter rounds input — same free-typing pattern as deposit/backtest.
   const [hunterRoundsInput, setHunterRoundsInput] = useState(String(beanToRounds(HUNTER_DEFAULTS.beanpotThreshold)))
   // Sync buffer when threshold changes externally (defaults load, preset, reset, slider).
@@ -289,6 +306,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   const isSniper = agentId === 'sniper'
   const isAntiWinner = agentId === 'anti-winner'
   const isHunter = agentId === 'beanpot-hunter'
+  const isAntiLoser = agentId === 'anti-loser'
+  const isNostradamus = agentId === 'nostradamus'
 
   // Resize
   useEffect(() => {
@@ -384,6 +403,25 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     return () => clearTimeout(timeout)
   }, [isOpen, isUnsupported, backtestRounds])
 
+  // Nostradamus predicted T = avg totalDeployed across last N settled rounds.
+  // Drives the EV gate display when isNostradamus. Re-fetched on round changes
+  // so the prediction stays current without polling.
+  useEffect(() => {
+    if (!isOpen || isUnsupported || !isNostradamus) return
+    const target = Math.max(1, Math.min(50, predictionLookbackRounds))
+    let cancelled = false
+    apiFetch<{ rounds: any[] }>(`/api/rounds?settled=true&limit=${target}`)
+      .then(res => {
+        if (cancelled) return
+        const rounds = res?.rounds ?? []
+        if (rounds.length === 0) { setPredictedT(0); return }
+        const sum = rounds.reduce((acc: number, r: any) => acc + (parseFloat(r.totalDeployed ?? '0') / 1e18 || 0), 0)
+        setPredictedT(sum / rounds.length)
+      })
+      .catch(() => { if (!cancelled) setPredictedT(0) })
+    return () => { cancelled = true }
+  }, [isOpen, isUnsupported, isNostradamus, predictionLookbackRounds, feed?.fetchedAt])
+
   // Fetch API defaults from /api/agent-strategies (once, on first open).
   // Skipped when a preset is supplied — the preset is the source of truth and
   // we don't want a late-arriving defaults payload to overwrite it (plan v4 note 1).
@@ -415,8 +453,17 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     } else if (isHunter) {
       if (typeof d.gridFillWaitSec === 'number') setHunterGridFillWaitSec(d.gridFillWaitSec)
       if (typeof d.beanpotThreshold === 'number') setBeanpotThreshold(d.beanpotThreshold)
+    } else if (isAntiLoser) {
+      if (typeof d.timingOffsetSec === 'number') setAlTimingOffsetSec(d.timingOffsetSec)
+      if (typeof d.historyLookbackRounds === 'number') setAlHistoryLookbackRounds(d.historyLookbackRounds)
+      if (typeof d.excludeColdN === 'number') setExcludeColdN(d.excludeColdN)
+      if (typeof d.minRoiPct === 'number') setAlMinRoiPct(d.minRoiPct)
+    } else if (isNostradamus) {
+      if (typeof d.gridFillWaitSec === 'number') setNostraGridFillWaitSec(d.gridFillWaitSec)
+      if (typeof d.predictionLookbackRounds === 'number') setPredictionLookbackRounds(d.predictionLookbackRounds)
+      if (typeof d.minRoiPct === 'number') setNostraMinRoiPct(d.minRoiPct)
     }
-  }, [isOpen, apiDefaults, agentId, existingConfigChecked, isSniper, isAntiWinner, isHunter])
+  }, [isOpen, apiDefaults, agentId, existingConfigChecked, isSniper, isAntiWinner, isHunter, isAntiLoser, isNostradamus])
 
   // Fetch the user's existing agent-config + on-chain AutoMiner state on open.
   useEffect(() => {
@@ -494,6 +541,15 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     } else if (initialPreset.baseAgent === 'beanpot-hunter') {
       if (typeof p.gridFillWaitSec === 'number') setHunterGridFillWaitSec(p.gridFillWaitSec)
       if (typeof p.beanpotThreshold === 'number') setBeanpotThreshold(p.beanpotThreshold)
+    } else if (initialPreset.baseAgent === 'anti-loser') {
+      if (typeof p.timingOffsetSec === 'number') setAlTimingOffsetSec(p.timingOffsetSec)
+      if (typeof p.historyLookbackRounds === 'number') setAlHistoryLookbackRounds(p.historyLookbackRounds)
+      if (typeof p.excludeColdN === 'number') setExcludeColdN(p.excludeColdN)
+      if (typeof p.minRoiPct === 'number') setAlMinRoiPct(p.minRoiPct)
+    } else if (initialPreset.baseAgent === 'nostradamus') {
+      if (typeof p.gridFillWaitSec === 'number') setNostraGridFillWaitSec(p.gridFillWaitSec)
+      if (typeof p.predictionLookbackRounds === 'number') setPredictionLookbackRounds(p.predictionLookbackRounds)
+      if (typeof p.minRoiPct === 'number') setNostraMinRoiPct(p.minRoiPct)
     }
     setPerBlockInput(String(initialPreset.perBlock))
     setNumRoundsInput(String(initialPreset.numRounds))
@@ -528,8 +584,17 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     } else if (isHunter) {
       if (typeof p.gridFillWaitSec === 'number') setHunterGridFillWaitSec(p.gridFillWaitSec)
       if (typeof p.beanpotThreshold === 'number') setBeanpotThreshold(p.beanpotThreshold)
+    } else if (isAntiLoser) {
+      if (typeof p.timingOffsetSec === 'number') setAlTimingOffsetSec(p.timingOffsetSec)
+      if (typeof p.historyLookbackRounds === 'number') setAlHistoryLookbackRounds(p.historyLookbackRounds)
+      if (typeof p.excludeColdN === 'number') setExcludeColdN(p.excludeColdN)
+      if (typeof p.minRoiPct === 'number') setAlMinRoiPct(p.minRoiPct)
+    } else if (isNostradamus) {
+      if (typeof p.gridFillWaitSec === 'number') setNostraGridFillWaitSec(p.gridFillWaitSec)
+      if (typeof p.predictionLookbackRounds === 'number') setPredictionLookbackRounds(p.predictionLookbackRounds)
+      if (typeof p.minRoiPct === 'number') setNostraMinRoiPct(p.minRoiPct)
     }
-  }, [isOpen, existingConfig, existingConfigChecked, agentId, isSniper, isAntiWinner, isHunter])
+  }, [isOpen, existingConfig, existingConfigChecked, agentId, isSniper, isAntiWinner, isHunter, isAntiLoser, isNostradamus])
 
   // Reset checked flags AND server-fetched state when drawer closes. Clearing
   // existingConfig + autoMinerState here prevents stale data from a previous
@@ -564,7 +629,11 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   }, [isOpen, isUnsupported, walletAddress, subscribeUser])
 
   // ── Derived: deposit math ──
-  const numBlocks = isAntiWinner ? Math.max(1, 25 - excludeLastN) : 25
+  const numBlocks = isAntiWinner
+    ? Math.max(1, 25 - excludeLastN)
+    : isAntiLoser
+      ? Math.max(1, 25 - excludeColdN)
+      : 25
   const X = perBlock * numBlocks
   const T = feed?.totalDeployedEth ?? 0
   const P = feed?.beanPriceEth ?? 0
@@ -582,6 +651,18 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
       projection = { kind: 'roi', value: roi, willFire: roi >= awMinRoiPct }
     } else if (isHunter) {
       projection = { kind: 'beanpot', potNow: beanpotNow, threshold: beanpotThreshold, willFire: beanpotNow >= beanpotThreshold }
+    } else if (isAntiLoser) {
+      const roi = X > 0 ? (((X / (X + T)) * ANTI_LOSER_B * P) - PROTOCOL_VAULT_FEE * X) / X * 100 : 0
+      projection = { kind: 'roi', value: roi, willFire: roi >= alMinRoiPct }
+    } else if (isNostradamus) {
+      // Nostradamus uses predicted T (historical avg) instead of live grid.
+      // Cold-start: predictedT === 0 → always fires (per AGENT_CONFIG_API §Nostradamus).
+      const useT = predictedT
+      const roi = X > 0 && useT > 0
+        ? (((X / (X + useT)) * NOSTRADAMUS_B * P) - PROTOCOL_VAULT_FEE * X) / X * 100
+        : 0
+      const willFire = useT === 0 ? true : roi >= nostraMinRoiPct
+      projection = { kind: 'roi', value: roi, willFire }
     }
   }
 
@@ -635,12 +716,53 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
         if (r.beanpotWon) roundsSinceLastHit = 0
       }
       historicalSample = { fired, total: historical.length, sumPnl, potWins }
+    } else if (isAntiLoser) {
+      // Anti-Loser: same EV shape as sniper (B = 1.0). The cold-block exclusion
+      // is already baked into the on-chain numBlocks (X uses correct block count),
+      // so the EV math is identical against the historical totalDeployed.
+      let fired = 0
+      let sumPnl = 0
+      for (const r of historical) {
+        const tEth = r.totalDeployedEth
+        const ev = ((X / (X + tEth)) * ANTI_LOSER_B * P) - PROTOCOL_VAULT_FEE * X
+        const roi = ev / X * 100
+        if (roi >= alMinRoiPct) {
+          fired++
+          sumPnl += ev
+        }
+      }
+      historicalSample = { fired, total: historical.length, sumPnl }
+    } else if (isNostradamus) {
+      // Nostradamus: replay using predicted T = avg totalDeployed across the
+      // preceding `predictionLookbackRounds`. Iterate oldest → newest so each
+      // round can look back into earlier history. Cold-start (no lookback yet)
+      // always fires per spec.
+      const lookback = Math.max(1, predictionLookbackRounds)
+      const oldestFirst = [...historical].reverse()
+      let fired = 0
+      let sumPnl = 0
+      for (let i = 0; i < oldestFirst.length; i++) {
+        const r = oldestFirst[i]
+        const startIdx = Math.max(0, i - lookback)
+        const window = oldestFirst.slice(startIdx, i)
+        const predT = window.length > 0
+          ? window.reduce((acc, w) => acc + w.totalDeployedEth, 0) / window.length
+          : 0
+        const willFire = predT === 0 ? true :
+          (((X / (X + predT)) * NOSTRADAMUS_B * P) - PROTOCOL_VAULT_FEE * X) / X * 100 >= nostraMinRoiPct
+        if (!willFire) continue
+        fired++
+        // PnL is realized against the actual round, not the prediction.
+        const ev = ((X / (X + r.totalDeployedEth)) * NOSTRADAMUS_B * P) - PROTOCOL_VAULT_FEE * X
+        sumPnl += ev
+      }
+      historicalSample = { fired, total: historical.length, sumPnl }
     }
   }
   const historicalFiredPct = historicalSample ? (historicalSample.fired / historicalSample.total) * 100 : null
 
   // Validation (Anti-Winner has constraint)
-  const numBlocksConstraintBroken = isAntiWinner && excludeLastN > 24
+  const numBlocksConstraintBroken = (isAntiWinner && excludeLastN > 24) || (isAntiLoser && excludeColdN > 24)
   // Per-block must meet on-chain AutoMiner minimum or setConfig will revert.
   const perBlockBelowMin = perBlock < MIN_PER_BLOCK
 
@@ -650,9 +772,13 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // false = active but conflicts (block setup, prompt user to stop).
   const onChainCompat: null | true | false = (() => {
     if (!autoMinerState || !autoMinerState.active) return null
-    if (isSniper || isHunter) return autoMinerState.strategyId === 1
+    if (isSniper || isHunter || isNostradamus) return autoMinerState.strategyId === 1
     if (isAntiWinner) {
       const expected = Math.max(1, 25 - excludeLastN)
+      return autoMinerState.strategyId === 0 && autoMinerState.numBlocks === expected
+    }
+    if (isAntiLoser) {
+      const expected = Math.max(1, 25 - excludeColdN)
       return autoMinerState.strategyId === 0 && autoMinerState.numBlocks === expected
     }
     return false
@@ -668,6 +794,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     ? ((existingConfig?.agentId === 'sniper' && 'Sniper') ||
        (existingConfig?.agentId === 'anti-winner' && 'Anti-Winner') ||
        (existingConfig?.agentId === 'beanpot-hunter' && 'Beanpot Hunter') ||
+       (existingConfig?.agentId === 'anti-loser' && 'Anti-Loser') ||
+       (existingConfig?.agentId === 'nostradamus' && 'Nostradamus') ||
        existingConfig?.agentId)
     : null
 
@@ -692,6 +820,15 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
       } else if (isHunter) {
         setHunterGridFillWaitSec(typeof p.gridFillWaitSec === 'number' ? p.gridFillWaitSec : HUNTER_DEFAULTS.gridFillWaitSec)
         setBeanpotThreshold(typeof p.beanpotThreshold === 'number' ? p.beanpotThreshold : HUNTER_DEFAULTS.beanpotThreshold)
+      } else if (isAntiLoser) {
+        setAlTimingOffsetSec(typeof p.timingOffsetSec === 'number' ? p.timingOffsetSec : ANTI_LOSER_DEFAULTS.timingOffsetSec)
+        setAlHistoryLookbackRounds(typeof p.historyLookbackRounds === 'number' ? p.historyLookbackRounds : ANTI_LOSER_DEFAULTS.historyLookbackRounds)
+        setExcludeColdN(typeof p.excludeColdN === 'number' ? p.excludeColdN : ANTI_LOSER_DEFAULTS.excludeColdN)
+        setAlMinRoiPct(typeof p.minRoiPct === 'number' ? p.minRoiPct : ANTI_LOSER_DEFAULTS.minRoiPct)
+      } else if (isNostradamus) {
+        setNostraGridFillWaitSec(typeof p.gridFillWaitSec === 'number' ? p.gridFillWaitSec : NOSTRADAMUS_DEFAULTS.gridFillWaitSec)
+        setPredictionLookbackRounds(typeof p.predictionLookbackRounds === 'number' ? p.predictionLookbackRounds : NOSTRADAMUS_DEFAULTS.predictionLookbackRounds)
+        setNostraMinRoiPct(typeof p.minRoiPct === 'number' ? p.minRoiPct : NOSTRADAMUS_DEFAULTS.minRoiPct)
       }
       setPerBlockInput(String(initialPreset.perBlock))
       setNumRoundsInput(String(initialPreset.numRounds))
@@ -707,6 +844,15 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     } else if (isHunter) {
       setHunterGridFillWaitSec(HUNTER_DEFAULTS.gridFillWaitSec)
       setBeanpotThreshold(HUNTER_DEFAULTS.beanpotThreshold)
+    } else if (isAntiLoser) {
+      setAlTimingOffsetSec(ANTI_LOSER_DEFAULTS.timingOffsetSec)
+      setAlHistoryLookbackRounds(ANTI_LOSER_DEFAULTS.historyLookbackRounds)
+      setExcludeColdN(ANTI_LOSER_DEFAULTS.excludeColdN)
+      setAlMinRoiPct(ANTI_LOSER_DEFAULTS.minRoiPct)
+    } else if (isNostradamus) {
+      setNostraGridFillWaitSec(NOSTRADAMUS_DEFAULTS.gridFillWaitSec)
+      setPredictionLookbackRounds(NOSTRADAMUS_DEFAULTS.predictionLookbackRounds)
+      setNostraMinRoiPct(NOSTRADAMUS_DEFAULTS.minRoiPct)
     }
     setPerBlockInput('0.00001')
     setNumRoundsInput('100')
@@ -728,6 +874,15 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     } else if (isHunter) {
       params.gridFillWaitSec = hunterGridFillWaitSec
       params.beanpotThreshold = beanpotThreshold
+    } else if (isAntiLoser) {
+      params.timingOffsetSec = alTimingOffsetSec
+      params.historyLookbackRounds = alHistoryLookbackRounds
+      params.excludeColdN = excludeColdN
+      params.minRoiPct = alMinRoiPct
+    } else if (isNostradamus) {
+      params.gridFillWaitSec = nostraGridFillWaitSec
+      params.predictionLookbackRounds = predictionLookbackRounds
+      params.minRoiPct = nostraMinRoiPct
     }
     return {
       v: 1,
@@ -740,7 +895,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
       createdAt: isUpdate ? initialPreset!.createdAt : new Date().toISOString(),
       lastUsedAt: isUpdate ? initialPreset!.lastUsedAt : undefined,
     }
-  }, [initialPreset, isSniper, isAntiWinner, isHunter, agentId, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold, perBlock, numRounds])
+  }, [initialPreset, isSniper, isAntiWinner, isHunter, isAntiLoser, isNostradamus, agentId, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold, alTimingOffsetSec, alHistoryLookbackRounds, excludeColdN, alMinRoiPct, nostraGridFillWaitSec, predictionLookbackRounds, nostraMinRoiPct, perBlock, numRounds])
 
   // M3: shared submit handler — translates SaveResult to UI state.
   const submitSave = useCallback((rawName: string, opts: {
@@ -804,14 +959,18 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     if (isSniper) return { timingOffsetSec, minRoiPct: sniperMinRoiPct }
     if (isAntiWinner) return { gridFillWaitSec: awGridFillWaitSec, excludeLastN, minRoiPct: awMinRoiPct }
     if (isHunter) return { gridFillWaitSec: hunterGridFillWaitSec, beanpotThreshold }
+    if (isAntiLoser) return { timingOffsetSec: alTimingOffsetSec, historyLookbackRounds: alHistoryLookbackRounds, excludeColdN, minRoiPct: alMinRoiPct }
+    if (isNostradamus) return { gridFillWaitSec: nostraGridFillWaitSec, predictionLookbackRounds, minRoiPct: nostraMinRoiPct }
     return {}
-  }, [isSniper, isAntiWinner, isHunter, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold])
+  }, [isSniper, isAntiWinner, isHunter, isAntiLoser, isNostradamus, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold, alTimingOffsetSec, alHistoryLookbackRounds, excludeColdN, alMinRoiPct, nostraGridFillWaitSec, predictionLookbackRounds, nostraMinRoiPct])
 
   // On-chain setConfig args per agent (per AGENT_CONFIG_API.md)
   const setConfigArgs = (() => {
     if (isSniper) return { strategyId: 1, numBlocksOnChain: 0, blockMask: 0 }            // All
     if (isAntiWinner) return { strategyId: 0, numBlocksOnChain: numBlocks, blockMask: 0 } // Random
     if (isHunter) return { strategyId: 1, numBlocksOnChain: 0, blockMask: 0 }             // All
+    if (isAntiLoser) return { strategyId: 0, numBlocksOnChain: numBlocks, blockMask: 0 }  // Random
+    if (isNostradamus) return { strategyId: 1, numBlocksOnChain: 0, blockMask: 0 }        // All
     return null
   })()
 
@@ -1315,6 +1474,69 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               </ParamRow>
             </>)}
 
+            {/* ── Anti-Loser params ── */}
+            {isAntiLoser && (<>
+              <ParamRow
+                label="Timing offset"
+                value={`${alTimingOffsetSec}s before round end`}
+                help="How many seconds before round end the agent fires. Higher = fires earlier (lower tx risk, less grid info). Lower = fires later (more grid info for the EV call). Below ~3s risks missing the round."
+              >
+                <input type="range" className="acd-slider" min={1} max={50} step={1}
+                  value={alTimingOffsetSec} onChange={(e) => setAlTimingOffsetSec(Number(e.target.value))} />
+                <Ticks left="1s" mid="25s" right="50s" />
+              </ParamRow>
+              <ParamRow
+                label="History lookback"
+                value={`${alHistoryLookbackRounds} rounds`}
+                help="How many recent settled rounds to count winning-block hits over. Larger = more stable cold ranking but slower to adapt to changing patterns."
+              >
+                <input type="range" className="acd-slider" min={10} max={500} step={10}
+                  value={alHistoryLookbackRounds} onChange={(e) => setAlHistoryLookbackRounds(Number(e.target.value))} />
+                <Ticks left="10" mid="250" right="500" />
+              </ParamRow>
+              <ParamRow
+                label="Exclude N coldest"
+                value={`Skip ${excludeColdN} block${excludeColdN === 1 ? '' : 's'}`}
+                help="How many of the coldest blocks (least wins over the lookback window) to exclude. Default of 1 = skip the single coldest block."
+              >
+                <input type="range" className="acd-slider" min={1} max={10} step={1}
+                  value={excludeColdN} onChange={(e) => setExcludeColdN(Number(e.target.value))} />
+                <Ticks left="1" mid="5" right="10" />
+              </ParamRow>
+              <RoiSlider
+                value={alMinRoiPct}
+                onChange={setAlMinRoiPct}
+                help="Skip the round unless predicted ROI is at least this percentage. 0% fires on any positive EV. Higher = more conservative."
+              />
+            </>)}
+
+            {/* ── Nostradamus params ── */}
+            {isNostradamus && (<>
+              <ParamRow
+                label="Grid fill wait"
+                value={`${nostraGridFillWaitSec}s after round start`}
+                help="How many seconds after round start the agent fires. Default 0 = fire immediately at round start (lets you predict before others act). Bumping up lets the live grid blend in but defeats the predict-early thesis."
+              >
+                <input type="range" className="acd-slider" min={0} max={55} step={1}
+                  value={nostraGridFillWaitSec} onChange={(e) => setNostraGridFillWaitSec(Number(e.target.value))} />
+                <Ticks left="0s" mid="27s" right="55s" />
+              </ParamRow>
+              <ParamRow
+                label="Prediction lookback"
+                value={`${predictionLookbackRounds} rounds`}
+                help="How many recent settled rounds to average for predicted total deployed. Lower = more responsive to short-term swings; higher = smoother prediction."
+              >
+                <input type="range" className="acd-slider" min={1} max={50} step={1}
+                  value={predictionLookbackRounds} onChange={(e) => setPredictionLookbackRounds(Number(e.target.value))} />
+                <Ticks left="1" mid="25" right="50" />
+              </ParamRow>
+              <RoiSlider
+                value={nostraMinRoiPct}
+                onChange={setNostraMinRoiPct}
+                help="Skip the round unless predicted ROI is at least this percentage. Cold-start (no history yet) always fires regardless."
+              />
+            </>)}
+
             {/* Deposit — hidden when reusing a compatible existing AutoMiner (no new deposit needed). */}
             {!autoMinerActiveCompatible && (<>
             <SectionHeader style={{ marginTop: isModalVariant ? 14 : 28, ...(isModalVariant ? { marginBottom: 8 } : {}) }}>Deposit</SectionHeader>
@@ -1369,6 +1591,11 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
             {isAntiWinner && (
               <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono', monospace", textAlign: 'right' as const, letterSpacing: '0.04em' }}>
                 {numBlocks} BLOCKS × {numRounds} ROUNDS · 25 − {excludeLastN} EXCLUDED
+              </div>
+            )}
+            {isAntiLoser && (
+              <div style={{ marginTop: 6, fontSize: 9, color: 'rgba(255,255,255,0.35)', fontFamily: "'Space Mono', monospace", textAlign: 'right' as const, letterSpacing: '0.04em' }}>
+                {numBlocks} BLOCKS × {numRounds} ROUNDS · 25 − {excludeColdN} COLD
               </div>
             )}
             </>)}
@@ -1616,6 +1843,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
                   {isSniper && `Updates every 8s. Fires at ${timingOffsetSec}s before round end.`}
                   {isAntiWinner && `Updates every 8s. Fires at ${awGridFillWaitSec}s after round start, skipping the last ${excludeLastN} winning block${excludeLastN === 1 ? '' : 's'}.`}
                   {isHunter && `Updates every 8s. Fires at ${hunterGridFillWaitSec}s after round start, only when the pool is at or above your threshold.`}
+                  {isAntiLoser && `Updates every 8s. Fires at ${alTimingOffsetSec}s before round end, skipping the ${excludeColdN} coldest block${excludeColdN === 1 ? '' : 's'} over the last ${alHistoryLookbackRounds} rounds.`}
+                  {isNostradamus && `Updates every 8s. Fires at ${nostraGridFillWaitSec}s after round start, gating on predicted grid fill from the last ${predictionLookbackRounds} round${predictionLookbackRounds === 1 ? '' : 's'}.`}
                 </div>
               </div>
             )}

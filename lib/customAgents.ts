@@ -6,7 +6,7 @@ export const MAX_CUSTOM_AGENTS_PER_WALLET = 10
 export const MAX_NAME_LENGTH = 32
 
 // Must mirror the AgentId type at AgentConfigDrawer.tsx:12 exactly.
-export type BaseAgentId = 'sniper' | 'anti-winner' | 'beanpot-hunter'
+export type BaseAgentId = 'sniper' | 'anti-winner' | 'beanpot-hunter' | 'anti-loser' | 'nostradamus'
 
 export type CustomAgent = {
   v: 1
@@ -28,6 +28,8 @@ const VALID_BASE_AGENTS: ReadonlySet<BaseAgentId> = new Set<BaseAgentId>([
   'sniper',
   'anti-winner',
   'beanpot-hunter',
+  'anti-loser',
+  'nostradamus',
 ])
 
 function storageKey(walletAddr: string): string {

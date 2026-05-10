@@ -49,6 +49,8 @@ export default function Home() {
     'sniper': { name: 'Sniper', label: 'AGENT_001' },
     'anti-winner': { name: 'Anti-Winner', label: 'AGENT_003' },
     'beanpot-hunter': { name: 'Beanpot Hunter', label: 'AGENT_002' },
+    'anti-loser': { name: 'Anti-Loser', label: 'AGENT_004' },
+    'nostradamus': { name: 'Nostradamus', label: 'AGENT_005' },
   }
   const agentMeta = agentLabelMap[effectiveAgentId]
 

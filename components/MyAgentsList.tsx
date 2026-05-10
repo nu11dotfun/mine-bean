@@ -307,6 +307,8 @@ function baseAgentLabel(id: CustomAgent['baseAgent']): string {
   if (id === 'sniper') return 'Sniper'
   if (id === 'anti-winner') return 'Anti-Winner'
   if (id === 'beanpot-hunter') return 'Beanpot Hunter'
+  if (id === 'anti-loser') return 'Anti-Loser'
+  if (id === 'nostradamus') return 'Nostradamus'
   return id
 }
 
@@ -326,6 +328,19 @@ function paramSummary(agent: CustomAgent): string {
   if (agent.baseAgent === 'beanpot-hunter') {
     const rounds = typeof p.beanpotThreshold === 'number' ? `fire after ${Math.round(p.beanpotThreshold / 0.1)} rounds` : ''
     return rounds
+  }
+  if (agent.baseAgent === 'anti-loser') {
+    const offset = numOrDash(p.timingOffsetSec, 's offset')
+    const lookback = numOrDash(p.historyLookbackRounds, 'r lookback')
+    const cold = typeof p.excludeColdN === 'number' ? `skip ${p.excludeColdN} cold` : ''
+    const roi = numOrDash(p.minRoiPct, '% min ROI')
+    return [offset, lookback, cold, roi].filter(Boolean).join(' · ')
+  }
+  if (agent.baseAgent === 'nostradamus') {
+    const wait = numOrDash(p.gridFillWaitSec, 's wait')
+    const lookback = numOrDash(p.predictionLookbackRounds, 'r lookback')
+    const roi = numOrDash(p.minRoiPct, '% min ROI')
+    return [wait, lookback, roi].filter(Boolean).join(' · ')
   }
   return ''
 }

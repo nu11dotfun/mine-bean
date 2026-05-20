@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 import { MIN_DEPLOY_PER_BLOCK, EXECUTOR_FEE_BPS, EXECUTOR_FLAT_FEE } from '@/lib/contracts'
 import { apiFetch } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
@@ -47,6 +48,7 @@ export default function MobileControls({
     onAutoStop,
 }: MobileControlsProps) {
     const { openConnectModal } = useConnectModal()
+    const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
     const [mode, setMode] = useState<"manual" | "auto" | "agent">("manual")
     const [pickerOpen, setPickerOpen] = useState(false)
     const [perBlock, setPerBlock] = useState("0")
@@ -458,17 +460,25 @@ export default function MobileControls({
                             <span style={styles.totalValue}>Ξ {manualTotal.toFixed(5)}</span>
                         </div>
 
-                        {isConnected ? (
+                        {!isConnected ? (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        ) : !isOnBase ? (
+                            <button
+                                style={{ ...styles.deployBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
                             <button
                                 style={{...styles.deployBtn, ...(canDeploy ? styles.deployBtnActive : styles.deployBtnDisabled)}}
                                 onClick={() => onDeploy?.(manualTotal, selectedBlockIds)}
                                 disabled={!canDeploy}
                             >
                                 {hasDeployed ? "✓ Deployed" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
-                            </button>
-                        ) : (
-                            <button style={styles.connectBtn} onClick={openConnectModal}>
-                                Connect Wallet
                             </button>
                         )}
                     </>
@@ -611,17 +621,25 @@ export default function MobileControls({
                             <span style={styles.totalValue}>Ξ {autoTotalDeposit.toFixed(5)}</span>
                         </div>
 
-                        {isConnected ? (
+                        {!isConnected ? (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        ) : !isOnBase ? (
+                            <button
+                                style={{ ...styles.deployBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
                             <button
                                 style={{...styles.deployBtn, ...(canActivate ? styles.deployBtnActive : styles.deployBtnDisabled)}}
                                 onClick={handleAutoActivateClick}
                                 disabled={!canActivate}
                             >
                                 Activate AutoMiner
-                            </button>
-                        ) : (
-                            <button style={styles.connectBtn} onClick={openConnectModal}>
-                                Connect Wallet
                             </button>
                         )}
                     </>
@@ -664,12 +682,22 @@ export default function MobileControls({
                             <span style={styles.totalValue}>Ξ {parseFloat(autoMinerState.amountPerBlockFormatted).toFixed(5)}</span>
                         </div>
 
-                        <button
-                            style={styles.stopBtn}
-                            onClick={() => onAutoStop?.()}
-                        >
-                            Stop AutoMiner
-                        </button>
+                        {!isOnBase ? (
+                            <button
+                                style={{ ...styles.stopBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
+                            <button
+                                style={styles.stopBtn}
+                                onClick={() => onAutoStop?.()}
+                            >
+                                Stop AutoMiner
+                            </button>
+                        )}
                         <div style={styles.stopHint}>Cancel and refund remaining ETH</div>
                     </>
                 )}
@@ -892,6 +920,11 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: "rgba(255, 255, 255, 0.03)",
         color: "#666",
         cursor: "not-allowed",
+    },
+    switchChainBtn: {
+        background: "#ff4d4d",
+        color: "#fff",
+        cursor: "pointer",
     },
     connectBtn: {
         width: "100%",

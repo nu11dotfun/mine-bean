@@ -12,6 +12,7 @@ import MyAgentsList from './MyAgentsList'
 import NewAgentPicker from './NewAgentPicker'
 import type { CustomAgent } from '@/lib/customAgents'
 import { useAccount } from 'wagmi'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 
 const EthLogo = ({ size = 18 }: { size?: number }) => (
     <img
@@ -75,6 +76,7 @@ export default function SidebarControls({
     onAutoStop,
 }: SidebarControlsProps) {
     const { openConnectModal } = useConnectModal()
+    const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
     const [mode, setMode] = useState<"manual" | "auto" | "agent">("manual")
     const [agentPickerOpen, setAgentPickerOpen] = useState(false)
     const [hoveredMode, setHoveredMode] = useState<string | null>(null)
@@ -637,7 +639,19 @@ const handleSelectClick = () => {
                             <span style={styles.totalValue}>Ξ {manualTotal.toFixed(5)}</span>
                         </div>
 
-                        {isConnected ? (
+                        {!isConnected ? (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        ) : !isOnBase ? (
+                            <button
+                                style={{ ...styles.deployBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
                             <button
                                 style={{
                                     ...styles.deployBtn,
@@ -647,10 +661,6 @@ const handleSelectClick = () => {
                                 disabled={!canDeploy}
                             >
                                 {hasDeployed ? "✓ Deployed" : exceedsBalance ? "Insufficient Funds" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
-                            </button>
-                        ) : (
-                            <button style={styles.connectBtn} onClick={openConnectModal}>
-                                Connect Wallet
                             </button>
                         )}
                     </>
@@ -776,7 +786,19 @@ const handleSelectClick = () => {
                             <span style={styles.totalValue}>Ξ {autoTotalDeposit.toFixed(5)}</span>
                         </div>
 
-                        {isConnected ? (
+                        {!isConnected ? (
+                            <button style={styles.connectBtn} onClick={openConnectModal}>
+                                Connect Wallet
+                            </button>
+                        ) : !isOnBase ? (
+                            <button
+                                style={{ ...styles.deployBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
                             <button
                                 style={{
                                     ...styles.deployBtn,
@@ -786,10 +808,6 @@ const handleSelectClick = () => {
                                 disabled={!canActivate}
                             >
                                 Activate AutoMiner
-                            </button>
-                        ) : (
-                            <button style={styles.connectBtn} onClick={openConnectModal}>
-                                Connect Wallet
                             </button>
                         )}
                     </>
@@ -832,12 +850,22 @@ const handleSelectClick = () => {
                             <span style={styles.totalValue}>Ξ {parseFloat(autoMinerState.amountPerBlockFormatted).toFixed(5)}</span>
                         </div>
 
-                        <button
-                            style={styles.stopBtn}
-                            onClick={() => onAutoStop?.()}
-                        >
-                            Stop AutoMiner
-                        </button>
+                        {!isOnBase ? (
+                            <button
+                                style={{ ...styles.stopBtn, ...styles.switchChainBtn }}
+                                onClick={switchToBase}
+                                disabled={isSwitching}
+                            >
+                                {isSwitching ? "Switching…" : "Switch to Base"}
+                            </button>
+                        ) : (
+                            <button
+                                style={styles.stopBtn}
+                                onClick={() => onAutoStop?.()}
+                            >
+                                Stop AutoMiner
+                            </button>
+                        )}
                         <div style={styles.stopHint}>Cancel and refund remaining ETH</div>
                     </>
                 )}
@@ -1099,6 +1127,11 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: "rgba(255, 255, 255, 0.03)",
         color: "#666",
         cursor: "not-allowed",
+    },
+    switchChainBtn: {
+        background: "#ff4d4d",
+        color: "#fff",
+        cursor: "pointer",
     },
     connectBtn: {
         width: "100%",

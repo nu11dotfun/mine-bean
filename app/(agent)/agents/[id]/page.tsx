@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { base } from 'wagmi/chains'
 import { useQueryClient } from '@tanstack/react-query'
 import { parseEther, formatEther } from 'viem'
 import AgentHeader from '@/components/AgentHeader'
@@ -12,6 +13,7 @@ import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
 import { AgentStats, RoundData, fetchAgentRounds, relativeTime } from '@/lib/agentData'
 import { apiFetch } from '@/lib/api'
 import { CONTRACTS } from '@/lib/contracts'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 import InvestModal, { DepositStep } from '@/components/InvestModal'
 import VaultStatsModal from '@/components/VaultStatsModal'
 import AgentConfigDrawer from '@/components/AgentConfigDrawer'
@@ -185,6 +187,9 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     beanEarned: userBEANInVault,
   }
 
+  // Layer 2 wrong-network gate — every tx handler diverts to switchToBase() when wallet is off-chain.
+  const { isOnBase, switchToBase } = useIsOnBase()
+
   // ── Write contracts ──
   const { writeContract: writeApprove, data: approveTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
   const { writeContract: writeLock, data: lockTxHash } = useWriteContract({ mutation: { onError: () => setDepositStep('idle') } })
@@ -278,8 +283,10 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   const handleApproveBEAN = () => {
     if (!vaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setDepositStep('approving')
     writeApprove({
+      chainId: base.id,
       address: CONTRACTS.Bean.address,
       abi: CONTRACTS.Bean.abi,
       functionName: 'approve',
@@ -289,21 +296,24 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   const handleLockBEAN = () => {
     if (!vaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setDepositStep('locking')
-    writeLock({ address: vaultAddress, abi: vaultAbi, functionName: 'lockBEAN' })
+    writeLock({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'lockBEAN' })
   }
 
   const handleDepositETH = (amount: string) => {
     if (!vaultAddress || !hasLockedBEAN) return
+    if (!isOnBase) { switchToBase(); return }
     setDepositStep('depositing')
-    writeDeposit({ address: vaultAddress, abi: vaultAbi, functionName: 'deposit', value: parseEther(amount) })
+    writeDeposit({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'deposit', value: parseEther(amount) })
   }
 
   const handleWithdrawETH = async () => {
     if (!vaultAddress || userShares === BigInt(0)) return
+    if (!isOnBase) { switchToBase(); return }
     setWithdrawPending(true)
     try {
-      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH' })
+      await writeWithdrawETHAsync({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'withdrawETH' })
       setTimeout(() => { setWithdrawPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setWithdrawPending(false) }
   }
@@ -311,25 +321,28 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const handleWithdrawBEAN = async () => {
     // unlockBEAN returns locked BEAN after withdrawing ETH
     if (!vaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setWithdrawPending(true)
     try {
-      await writeWithdrawETHAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'unlockBEAN' })
+      await writeWithdrawETHAsync({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'unlockBEAN' })
       setTimeout(() => { setWithdrawPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setWithdrawPending(false) }
   }
 
   const handleClaimBEAN = async () => {
     if (!vaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setClaimBeanPending(true)
     try {
-      await writeClaimBEANAsync({ address: vaultAddress, abi: vaultAbi, functionName: 'claimBEAN' })
+      await writeClaimBEANAsync({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'claimBEAN' })
       setTimeout(() => { setClaimBeanPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setClaimBeanPending(false) }
   }
 
   const handleClaimPendingETH = () => {
     if (!vaultAddress) return
-    writeClaimPending({ address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
+    if (!isOnBase) { switchToBase(); return }
+    writeClaimPending({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
   }
 
   // ── Old vault handlers ──
@@ -337,27 +350,30 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
 
   const handleOldVaultWithdraw = async () => {
     if (!oldVaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setOldVaultPending(true)
     try {
-      await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'unlockBEAN' })
+      await writeWithdrawETHAsync({ chainId: base.id, address: oldVaultAddress, abi: oldVaultAbi, functionName: 'unlockBEAN' })
       setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
 
   const handleOldVaultClaimBEAN = async () => {
     if (!oldVaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setOldVaultPending(true)
     try {
-      await writeClaimBEANAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimBEAN' })
+      await writeClaimBEANAsync({ chainId: base.id, address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimBEAN' })
       setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
 
   const handleOldVaultClaimPending = async () => {
     if (!oldVaultAddress) return
+    if (!isOnBase) { switchToBase(); return }
     setOldVaultPending(true)
     try {
-      await writeWithdrawETHAsync({ address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimPendingWithdrawal' })
+      await writeWithdrawETHAsync({ chainId: base.id, address: oldVaultAddress, abi: oldVaultAbi, functionName: 'claimPendingWithdrawal' })
       setTimeout(() => { setOldVaultPending(false); queryClient.invalidateQueries() }, 3000)
     } catch { setOldVaultPending(false) }
   }
@@ -657,11 +673,11 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                           <span style={{ fontSize: 14, fontWeight: 700, color: '#fff', fontFamily: "'Space Mono', monospace" }}>{parseFloat(pendingETHAmount).toFixed(6)} ETH</span>
                         </div>
                         <button
-                          onClick={handleClaimPendingETH}
+                          onClick={isOnBase ? handleClaimPendingETH : switchToBase}
                           style={{
                             padding: '6px 14px',
-                            background: 'rgba(0,82,255,0.15)',
-                            border: '1px solid rgba(0,82,255,0.3)',
+                            background: isOnBase ? 'rgba(0,82,255,0.15)' : 'rgba(255,77,77,0.18)',
+                            border: `1px solid ${isOnBase ? 'rgba(0,82,255,0.3)' : 'rgba(255,77,77,0.5)'}`,
                             borderRadius: 8,
                             color: '#fff',
                             fontSize: 11,
@@ -671,7 +687,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                             transition: 'all 0.2s ease',
                           }}
                         >
-                          CLAIM ETH
+                          {isOnBase ? 'CLAIM ETH' : 'SWITCH TO BASE'}
                         </button>
                       </div>
                     )}
@@ -707,6 +723,21 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                           </div>
                         )}
                         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                          {!isOnBase ? (
+                            <button
+                              onClick={switchToBase}
+                              style={{
+                                flex: 1, padding: '8px 0',
+                                background: 'rgba(255,77,77,0.18)',
+                                border: '1px solid rgba(255,77,77,0.5)',
+                                borderRadius: 8, color: '#fff', fontSize: 11, fontWeight: 700,
+                                fontFamily: "'Space Mono', monospace", cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                              }}
+                            >
+                              SWITCH TO BASE
+                            </button>
+                          ) : (<>
                           {(oldUserETH > 0 || oldHasLockedBEAN) && (
                             <button
                               onClick={handleOldVaultWithdraw}
@@ -755,6 +786,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                               {oldVaultPending ? 'PROCESSING...' : 'CLAIM ETH'}
                             </button>
                           )}
+                          </>)}
                         </div>
                       </div>
                     )}

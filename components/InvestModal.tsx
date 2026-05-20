@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useState } from 'react'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 
 // ── Types ──
 
@@ -205,6 +206,24 @@ function DepositTab({
 }) {
   const lockAmt = parseFloat(beanLockAmount)
   const hasEnoughBean = userBeanBalance >= lockAmt
+  // Wrong-chain gate — replaces the staged action button with "Switch to Base"
+  // when connected but on the wrong network.
+  const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
+  const wrongChain = isConnected && !isOnBase
+  const switchBtn = (
+    <button
+      onClick={switchToBase}
+      disabled={isSwitching}
+      style={{
+        ...s.actionBtn,
+        background: '#ff4d4d',
+        opacity: isSwitching ? 0.6 : 1,
+        cursor: isSwitching ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {isSwitching ? 'SWITCHING…' : 'SWITCH TO BASE'}
+    </button>
+  )
 
   // Step 1: Need to approve BEAN
   if (!hasLockedBEAN && !beanAllowanceSufficient) {
@@ -221,17 +240,19 @@ function DepositTab({
             </span>
           </div>
         </div>
-        <button
-          onClick={onApproveBEAN}
-          disabled={!isConnected || !hasEnoughBean || depositStep === 'approving'}
-          style={{
-            ...s.actionBtn,
-            opacity: (!isConnected || !hasEnoughBean || depositStep === 'approving') ? 0.4 : 1,
-            cursor: (!isConnected || !hasEnoughBean || depositStep === 'approving') ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {depositStep === 'approving' ? 'APPROVING...' : 'APPROVE BEAN'}
-        </button>
+        {wrongChain ? switchBtn : (
+          <button
+            onClick={onApproveBEAN}
+            disabled={!isConnected || !hasEnoughBean || depositStep === 'approving'}
+            style={{
+              ...s.actionBtn,
+              opacity: (!isConnected || !hasEnoughBean || depositStep === 'approving') ? 0.4 : 1,
+              cursor: (!isConnected || !hasEnoughBean || depositStep === 'approving') ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {depositStep === 'approving' ? 'APPROVING...' : 'APPROVE BEAN'}
+          </button>
+        )}
       </div>
     )
   }
@@ -248,17 +269,19 @@ function DepositTab({
             </span>
           </div>
         </div>
-        <button
-          onClick={onLockBEAN}
-          disabled={!isConnected || depositStep === 'locking'}
-          style={{
-            ...s.actionBtn,
-            opacity: (!isConnected || depositStep === 'locking') ? 0.4 : 1,
-            cursor: (!isConnected || depositStep === 'locking') ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {depositStep === 'locking' ? 'LOCKING BEAN...' : `LOCK ${beanLockAmount} BEAN`}
-        </button>
+        {wrongChain ? switchBtn : (
+          <button
+            onClick={onLockBEAN}
+            disabled={!isConnected || depositStep === 'locking'}
+            style={{
+              ...s.actionBtn,
+              opacity: (!isConnected || depositStep === 'locking') ? 0.4 : 1,
+              cursor: (!isConnected || depositStep === 'locking') ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {depositStep === 'locking' ? 'LOCKING BEAN...' : `LOCK ${beanLockAmount} BEAN`}
+          </button>
+        )}
       </div>
     )
   }
@@ -299,17 +322,19 @@ function DepositTab({
       )}
 
       {/* Deposit button */}
-      <button
-        onClick={onDeposit}
-        disabled={!canDeposit && isConnected}
-        style={{
-          ...s.actionBtn,
-          opacity: (!canDeposit && isConnected) ? 0.4 : 1,
-          cursor: (!canDeposit && isConnected) ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {buttonText}
-      </button>
+      {wrongChain ? switchBtn : (
+        <button
+          onClick={onDeposit}
+          disabled={!canDeposit && isConnected}
+          style={{
+            ...s.actionBtn,
+            opacity: (!canDeposit && isConnected) ? 0.4 : 1,
+            cursor: (!canDeposit && isConnected) ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {buttonText}
+        </button>
+      )}
     </div>
   )
 }
@@ -325,6 +350,26 @@ function WithdrawTab({
   claimBeanChecked: boolean; setClaimBeanChecked: (v: boolean) => void
   claimBeanPending: boolean; withdrawPending: boolean; isConnected: boolean; beanLockAmount: string
 }) {
+  // Wrong-chain gate — replaces any action button with "Switch to Base" when
+  // connected but on the wrong network. Position info still renders so the user
+  // can see what they own; they just can't act on it until they switch.
+  const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
+  const wrongChain = isConnected && !isOnBase
+  const switchBtn = (
+    <button
+      onClick={switchToBase}
+      disabled={isSwitching}
+      style={{
+        ...s.actionBtn,
+        background: '#ff4d4d',
+        opacity: isSwitching ? 0.6 : 1,
+        cursor: isSwitching ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {isSwitching ? 'SWITCHING…' : 'SWITCH TO BASE'}
+    </button>
+  )
+
   if (!hasPosition) {
     return (
       <div style={{ textAlign: 'center', padding: '32px 0', color: 'rgba(255,255,255,0.3)', fontFamily: "'Space Mono', monospace", fontSize: 13 }}>
@@ -368,17 +413,19 @@ function WithdrawTab({
 
       {/* Withdraw button - calls unlockBEAN() which returns ETH + locked BEAN in one tx */}
       {(hasETHDeposited || hasLockedBEAN) && !hasPendingWithdrawal && (
-        <button
-          onClick={onWithdrawBEAN}
-          disabled={withdrawPending || !isConnected}
-          style={{
-            ...s.actionBtn,
-            opacity: withdrawPending ? 0.4 : 1,
-            cursor: withdrawPending ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {withdrawPending ? 'WITHDRAWING...' : 'WITHDRAW'}
-        </button>
+        wrongChain ? switchBtn : (
+          <button
+            onClick={onWithdrawBEAN}
+            disabled={withdrawPending || !isConnected}
+            style={{
+              ...s.actionBtn,
+              opacity: withdrawPending ? 0.4 : 1,
+              cursor: withdrawPending ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {withdrawPending ? 'WITHDRAWING...' : 'WITHDRAW'}
+          </button>
+        )
       )}
 
       {/* Pending withdrawal from mid-round exit */}
@@ -391,17 +438,19 @@ function WithdrawTab({
             </div>
           </div>
           {pendingWithdrawalResolved ? (
-            <button
-              onClick={onClaimPendingWithdrawal}
-              disabled={withdrawPending || !isConnected}
-              style={{
-                ...s.actionBtn,
-                opacity: withdrawPending ? 0.4 : 1,
-                cursor: withdrawPending ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {withdrawPending ? 'CLAIMING...' : 'CLAIM ETH'}
-            </button>
+            wrongChain ? switchBtn : (
+              <button
+                onClick={onClaimPendingWithdrawal}
+                disabled={withdrawPending || !isConnected}
+                style={{
+                  ...s.actionBtn,
+                  opacity: withdrawPending ? 0.4 : 1,
+                  cursor: withdrawPending ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {withdrawPending ? 'CLAIMING...' : 'CLAIM ETH'}
+              </button>
+            )
           ) : (
             <div style={s.infoBanner}>
               <div>
@@ -437,18 +486,22 @@ function WithdrawTab({
         </>
       )}
 
-      <button
-        onClick={onClaimBEAN}
-        disabled={!claimBeanChecked || withdrawPending || claimBeanPending || !isConnected}
-        style={{
-          ...s.claimBeanBtn,
-          display: (hasETHDeposited || hasLockedBEAN || parseFloat(stats.beanEarned) > 0) ? undefined : 'none',
-          opacity: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 0.3 : 1,
-          cursor: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {claimBeanPending ? 'CLAIMING...' : `CLAIM ${parseFloat(stats.beanEarned).toFixed(4)} BEAN`}
-      </button>
+      {wrongChain && (hasETHDeposited || hasLockedBEAN || parseFloat(stats.beanEarned) > 0) ? (
+        <div style={{ display: 'flex' }}>{switchBtn}</div>
+      ) : (
+        <button
+          onClick={onClaimBEAN}
+          disabled={!claimBeanChecked || withdrawPending || claimBeanPending || !isConnected}
+          style={{
+            ...s.claimBeanBtn,
+            display: (hasETHDeposited || hasLockedBEAN || parseFloat(stats.beanEarned) > 0) ? undefined : 'none',
+            opacity: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 0.3 : 1,
+            cursor: (!claimBeanChecked || withdrawPending || claimBeanPending) ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {claimBeanPending ? 'CLAIMING...' : `CLAIM ${parseFloat(stats.beanEarned).toFixed(4)} BEAN`}
+        </button>
+      )}
     </div>
   )
 }

@@ -3,6 +3,7 @@ import BeanLogo from './BeanLogo'
 
 import React from "react"
 import { useUserData } from '@/lib/UserDataContext'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 
 interface ClaimRewardsProps {
   userAddress?: string
@@ -22,6 +23,7 @@ const EthLogo = ({ size = 16 }: { size?: number }) => (
 export default function ClaimRewards({ userAddress, onClaimETH, onClaimBEAN }: ClaimRewardsProps) {
   // Shared rewards data from context (no local fetching)
   const { rewards } = useUserData()
+  const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
 
   if (!userAddress || !rewards) return null
 
@@ -69,20 +71,32 @@ export default function ClaimRewards({ userAddress, onClaimETH, onClaimBEAN }: C
       </div>
 
       <div style={styles.buttons}>
-        <button
-          style={hasBEAN ? styles.btnActive : styles.btnDisabled}
-          disabled={!hasBEAN}
-          onClick={onClaimBEAN}
-        >
-          Claim BEAN
-        </button>
-        <button
-          style={hasETH ? styles.btnActive : styles.btnDisabled}
-          disabled={!hasETH}
-          onClick={onClaimETH}
-        >
-          Claim ETH
-        </button>
+        {!isOnBase ? (
+          <button
+            style={{ ...styles.btnActive, ...styles.btnSwitchChain, gridColumn: '1 / span 2' }}
+            onClick={switchToBase}
+            disabled={isSwitching}
+          >
+            {isSwitching ? "Switching…" : "Switch to Base to Claim"}
+          </button>
+        ) : (
+          <>
+            <button
+              style={hasBEAN ? styles.btnActive : styles.btnDisabled}
+              disabled={!hasBEAN}
+              onClick={onClaimBEAN}
+            >
+              Claim BEAN
+            </button>
+            <button
+              style={hasETH ? styles.btnActive : styles.btnDisabled}
+              disabled={!hasETH}
+              onClick={onClaimETH}
+            >
+              Claim ETH
+            </button>
+          </>
+        )}
       </div>
     </div>
   )
@@ -139,6 +153,9 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: 13,
     fontWeight: 700,
     cursor: "pointer",
+  },
+  btnSwitchChain: {
+    background: "#ff4d4d",
   },
   btnDisabled: {
     flex: 1,

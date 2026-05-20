@@ -3,7 +3,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react'
 import { createPortal } from 'react-dom'
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useSignMessage } from 'wagmi'
+import { base } from 'wagmi/chains'
 import { parseEther } from 'viem'
+import { useIsOnBase } from '@/lib/useIsOnBase'
 import { apiFetch, API_BASE } from '@/lib/api'
 import { useSSE } from '@/lib/SSEContext'
 import { CONTRACTS } from '@/lib/contracts'
@@ -228,6 +230,8 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
 
   // Wagmi hooks
   const { address: walletAddress, isConnected } = useAccount()
+  // Layer 2 wrong-network gate — primary CTA flips to "Switch to Base" when wallet is off-chain.
+  const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
   const { writeContract: writeSetConfig, data: setConfigTxHash, reset: resetSetConfig } = useWriteContract({
     mutation: {
       onError: (err) => {
@@ -288,6 +292,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     setStopStep('confirming')
     try {
       writeStop({
+        chainId: base.id,
         address: CONTRACTS.AutoMiner.address,
         abi: CONTRACTS.AutoMiner.abi,
         functionName: 'stop',
@@ -1033,6 +1038,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
 
       setActivateStep('sending-tx')
       writeSetConfig({
+        chainId: base.id,
         address: CONTRACTS.AutoMiner.address,
         abi: CONTRACTS.AutoMiner.abi,
         functionName: 'setConfig',
@@ -2108,6 +2114,28 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               }}
             >
               DONE
+            </button>
+          ) : isConnected && !isOnBase ? (
+            // Wrong-chain gate — replaces every other CTA so the user cannot reach a
+            // tx submission path while on the wrong chain.
+            <button
+              onClick={switchToBase}
+              disabled={isSwitching}
+              className="acd-activate"
+              style={{
+                flex: 1, padding: '14px 0',
+                border: '1px solid rgba(255,107,107,0.6)',
+                borderRadius: 10,
+                background: 'rgba(255,107,107,0.18)',
+                color: '#fff',
+                fontSize: 14, fontWeight: 700,
+                fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
+                cursor: isSwitching ? 'not-allowed' : 'pointer',
+                boxShadow: '0 0 14px rgba(255,107,107,0.2)',
+                opacity: isSwitching ? 0.7 : 1,
+              }}
+            >
+              {isSwitching ? 'SWITCHING…' : 'SWITCH TO BASE'}
             </button>
           ) : showStopGate ? (
             <button

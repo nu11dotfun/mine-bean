@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback, useRef } from "react"
 import { useConnectModal } from '@rainbow-me/rainbowkit'
 import { parseEther } from 'viem'
+import { useIsOnBase } from '../lib/useIsOnBase'
 import BeanLogo from './BeanLogo'
 import { apiFetch } from '../lib/api'
 import { useSSE } from '../lib/SSEContext'
@@ -40,6 +41,7 @@ export default function StakePage({
     onRefetchBalance,
 }: StakePageProps) {
     const { openConnectModal } = useConnectModal()
+    const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
     const { subscribeGlobal, subscribeUser } = useSSE()
 
     const [activeTab, setActiveTab] = useState<"deposit" | "withdraw">("deposit")
@@ -405,7 +407,28 @@ export default function StakePage({
                         </div>
                     )}
 
-                    {isConnected ? (
+                    {!isConnected ? (
+                        <button
+                            style={{
+                                ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
+                                ...styles.actionBtnEnabled,
+                            }}
+                            onClick={openConnectModal}
+                        >
+                            Connect Wallet
+                        </button>
+                    ) : !isOnBase ? (
+                        <button
+                            style={{
+                                ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
+                                ...styles.actionBtnSwitchChain,
+                            }}
+                            onClick={switchToBase}
+                            disabled={isSwitching}
+                        >
+                            {isSwitching ? "Switching…" : "Switch to Base"}
+                        </button>
+                    ) : (
                         <button
                             style={{
                                 ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
@@ -415,16 +438,6 @@ export default function StakePage({
                             disabled={!canAction}
                         >
                             {activeTab === "deposit" ? "Deposit" : "Withdraw"}
-                        </button>
-                    ) : (
-                        <button
-                            style={{
-                                ...(isMobile ? styles.actionBtnMobile : styles.actionBtn),
-                                ...styles.actionBtnEnabled,
-                            }}
-                            onClick={openConnectModal}
-                        >
-                            Connect Wallet
                         </button>
                     )}
                 </div>
@@ -472,8 +485,13 @@ export default function StakePage({
 
                                 <div style={styles.rewardButtons}>
                                     <button
-                                        style={isMobile ? styles.rewardBtnMobile : styles.rewardBtn}
+                                        style={{
+                                            ...(isMobile ? styles.rewardBtnMobile : styles.rewardBtn),
+                                            ...(isOnBase ? {} : { opacity: 0.5, cursor: 'not-allowed' }),
+                                        }}
                                         onClick={onClaimYield}
+                                        disabled={!isOnBase}
+                                        title={!isOnBase ? 'Switch to Base network first' : undefined}
                                     >
                                         Claim
                                     </button>
@@ -481,8 +499,11 @@ export default function StakePage({
                                         style={{
                                             ...(isMobile ? styles.rewardBtnMobile : styles.rewardBtn),
                                             ...styles.rewardBtnPrimary,
+                                            ...(isOnBase ? {} : { opacity: 0.5, cursor: 'not-allowed' }),
                                         }}
                                         onClick={onCompound}
+                                        disabled={!isOnBase}
+                                        title={!isOnBase ? 'Switch to Base network first' : undefined}
                                     >
                                         Claim & Deposit
                                     </button>
@@ -998,6 +1019,12 @@ const styles: { [key: string]: React.CSSProperties } = {
         background: "rgba(255, 255, 255, 0.03)",
         color: "#666",
         cursor: "not-allowed",
+    },
+    actionBtnSwitchChain: {
+        background: "#ff4d4d",
+        color: "#fff",
+        fontWeight: 600,
+        cursor: "pointer",
     },
     // Position card
     positionRow: {

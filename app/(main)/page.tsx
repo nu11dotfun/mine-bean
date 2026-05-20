@@ -10,6 +10,7 @@ import BottomNav from '@/components/BottomNav'
 import LandingPage from '@/components/LandingPage'
 import ClaimRewards from '@/components/ClaimRewards'
 import { useAccount, useBalance, useWriteContract } from 'wagmi'
+import { base } from 'wagmi/chains'
 import { parseEther } from 'viem'
 import { useState, useEffect, useCallback } from 'react'
 import { CONTRACTS, BUILDER_CODE_SUFFIX } from '@/lib/contracts'
@@ -70,6 +71,7 @@ useEffect(() => {
   const handleDeploy = useCallback((amount: number, blockIds: number[]) => {
     if (!isConnected || blockIds.length === 0 || amount <= 0) return
     writeContract({
+      chainId: base.id,
       address: CONTRACTS.GridMining.address,
       abi: CONTRACTS.GridMining.abi,
       functionName: 'deploy',
@@ -88,6 +90,7 @@ useEffect(() => {
   const handleClaimETH = useCallback(() => {
     if (!isConnected) return
     writeContract({
+      chainId: base.id,
       address: CONTRACTS.GridMining.address,
       abi: CONTRACTS.GridMining.abi,
       functionName: 'claimETH',
@@ -99,6 +102,7 @@ useEffect(() => {
   const handleClaimBEAN = useCallback(() => {
     if (!isConnected) return
     writeContract({
+      chainId: base.id,
       address: CONTRACTS.GridMining.address,
       abi: CONTRACTS.GridMining.abi,
       functionName: 'claimBEAN',
@@ -110,6 +114,7 @@ useEffect(() => {
   const handleAutoActivate = useCallback((strategyId: number, numRounds: number, numBlocks: number, depositAmount: bigint, blockMask: number) => {
     if (!isConnected) return
     writeContract({
+      chainId: base.id,
       address: CONTRACTS.AutoMiner.address,
       abi: CONTRACTS.AutoMiner.abi,
       functionName: 'setConfig',
@@ -126,6 +131,7 @@ useEffect(() => {
   const handleAutoStop = useCallback(() => {
     if (!isConnected) return
     writeContract({
+      chainId: base.id,
       address: CONTRACTS.AutoMiner.address,
       abi: CONTRACTS.AutoMiner.abi,
       functionName: 'stop',

@@ -4,6 +4,7 @@ import Header from '@/components/Header'
 import BottomNav from '@/components/BottomNav'
 import StakePage from '@/components/StakePage'
 import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { base } from 'wagmi/chains'
 import { useState, useEffect, useCallback } from 'react'
 import { maxUint256 } from 'viem'
 import { CONTRACTS, BUILDER_CODE_SUFFIX } from '@/lib/contracts'
@@ -40,6 +41,7 @@ export default function Stake() {
   useEffect(() => {
     if (approvalConfirmed && pendingApprovalAmount !== undefined) {
       writeContract2({
+        chainId: base.id,
         address: CONTRACTS.Staking.address,
         abi: CONTRACTS.Staking.abi,
         functionName: 'deposit',
@@ -62,6 +64,7 @@ export default function Stake() {
     if (currentAllowance >= amount) {
       // Allowance sufficient — deposit directly
       writeContract2({
+        chainId: base.id,
         address: CONTRACTS.Staking.address,
         abi: CONTRACTS.Staking.abi,
         functionName: 'deposit',
@@ -74,6 +77,7 @@ export default function Stake() {
       setPendingApprovalAmount(amount)
       setPendingCompoundFee(compoundFeeBnb)
       writeContract({
+        chainId: base.id,
         address: CONTRACTS.Bean.address,
         abi: CONTRACTS.Bean.abi,
         functionName: 'approve',
@@ -86,6 +90,7 @@ export default function Stake() {
   const handleWithdraw = useCallback((amount: bigint) => {
     if (!isConnected) return
     writeContract2({
+      chainId: base.id,
       address: CONTRACTS.Staking.address,
       abi: CONTRACTS.Staking.abi,
       functionName: 'withdraw',
@@ -97,6 +102,7 @@ export default function Stake() {
   const handleClaimYield = useCallback(() => {
     if (!isConnected) return
     writeContract2({
+      chainId: base.id,
       address: CONTRACTS.Staking.address,
       abi: CONTRACTS.Staking.abi,
       functionName: 'claimYield',
@@ -108,6 +114,7 @@ export default function Stake() {
   const handleCompound = useCallback(() => {
     if (!isConnected) return
     writeContract2({
+      chainId: base.id,
       address: CONTRACTS.Staking.address,
       abi: CONTRACTS.Staking.abi,
       functionName: 'compound',

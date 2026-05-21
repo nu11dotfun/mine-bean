@@ -1,6 +1,6 @@
 ---
 name: mine-bean
-version: 0.2.0
+version: 0.3.0
 description: Mine $BEAN on Base from inside Hermes Agent. Round-based on-chain deployment, five strategy presets, autonomous cron mode, signed Gitlawb audit log.
 author: MineBean
 license: MIT
@@ -46,7 +46,7 @@ MINEBEAN_MAX_DEPLOYS_PER_DAY=100
 MINEBEAN_PER_BLOCK_WEI=2500000000000
 
 # Optional RPC override
-BASE_RPC_URL=https://mainnet.base.org
+# BASE_RPC_URL=https://mainnet.base.org
 ```
 
 For read-only inspection (no broadcasting):
@@ -66,18 +66,23 @@ MINEBEAN_MINER_ADDRESS=0x...the_address_you_want_to_observe...
 | `minebean_claim` | Claim pending winnings (dry-run default) |
 | `minebean_autostart` | Install autonomous mining cron job |
 | `minebean_autostop` | Remove the cron job |
+| `minebean_inference_status` | Active inference provider + Venice configuration state |
 
 Slash command: `/minebean <subcommand>`. Try `/minebean status` first.
 
 ## Strategy presets
 
-| Preset | Behaviour |
-|---|---|
-| sniper | Picks the single highest-EV block based on current grid state |
-| anti-winner | Deploys to 24 blocks excluding the previous round's winning block (96% win probability) |
-| beanpot-hunter | Deploys to all 25 blocks, scales amount with beanpot accumulation |
-| anti-loser | Deploys to 24 blocks, skips the historically coldest block |
-| nostradamus | Predicts grid deployment, deploys all 25 blocks at positive EV |
+All five use the closed-form EV optimum `X* = sqrt(K × P × T) − T` where P is BEAN price in ETH, T is the deployment total (strategy-specific), and K = B / 0.105.
+
+| Preset | Blocks | T source | K | At T ≥ threshold |
+|---|---|---|---|---|
+| anti-winner | 24 (excl. prev winner) | current grid | 10.476 (B=1.1) | Deploy minimum (beanpot eligibility) |
+| nostradamus | All 25 | avg of last 3 rounds | 9.524 (B=1.0) | Skip |
+| anti-loser | 24 (excl. coldest 100-rd) | max(grid, avg last 3) | 9.524 | Skip |
+| sniper | All 25 | live grid at deploy | 9.524 | Skip |
+| beanpot-hunter | All 25 | current grid | dynamic (B=1+pot/777) | Skip if pot < 62.16 BEAN |
+
+Beanpot-hunter additionally scales size linearly from 0.5% of wallet at 62.16 BEAN to max at 700 BEAN. Sniper uses adaptive 2-10s timing offsets at broadcast.
 
 ## Autonomous mode
 
@@ -89,13 +94,15 @@ Or use the built-in autostart: `/minebean autostart every 60s`.
 
 The cron entry enforces `MINEBEAN_MAX_DEPLOYS_PER_DAY` and exits cleanly on ceiling hit (cron doesn't error-spam).
 
-## Privacy mode
+## Inference provider
 
-Configure your Hermes runtime to route LLM inference through Venice for end-to-end no-log privacy. The skill itself runs entirely on-chain reads + writes, so privacy mode is about your conversational layer with the agent, not the mining loop.
+The plugin defaults `HERMES_INFERENCE_PROVIDER=venice` on enable, so any Hermes agent running mine-bean routes LLM calls through Venice out of the box. Set `HERMES_VENICE_API_KEY` in `~/.hermes/.env`. Set `HERMES_VENICE_NO_LOG=1` for log-free inference.
+
+The bootstrap is non-destructive: if you have already pinned `HERMES_INFERENCE_PROVIDER` to `openai`, `anthropic`, `openrouter`, `ollama`, or `lmstudio`, the plugin respects your choice. Inspect at runtime via `minebean_inference_status`.
 
 ## Safety
 
-- `dry_run=true` is the hard default on every deploy and claim call until the dev key-handling review completes
+- `dry_run=true` is the hard default on every deploy and claim call. Live broadcast requires `MINEBEAN_LIVE_BROADCAST_UNLOCKED=1`.
 - Daily deploy ceiling enforced via env var
 - Already-deployed-this-round guard prevents accidental double-deploys
 - Readonly mode (just `MINEBEAN_MINER_ADDRESS`, no key) lets users inspect any address without exposing keys

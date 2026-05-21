@@ -9,7 +9,7 @@
     {
       "name": "mine-bean",
       "description": "Mine $BEAN on Base from inside Hermes Agent. Round-based deployment, five strategy presets, autonomous cron mode, on-chain audit log via Gitlawb.",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "homepage": "https://minebean.com",
       "files": [
         "SKILL.md",

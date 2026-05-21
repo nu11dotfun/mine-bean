@@ -1,0 +1,20 @@
+{
+  "$schema": "https://hermes-agent.nousresearch.com/schemas/well-known-skills/v1.json",
+  "owner": {
+    "name": "MineBean",
+    "homepage": "https://minebean.com",
+    "repository": "https://github.com/damo-nu11/hermes-mine-bean"
+  },
+  "skills": [
+    {
+      "name": "mine-bean",
+      "description": "Mine $BEAN on Base from inside Hermes Agent. Round-based deployment, five strategy presets, autonomous cron mode, on-chain audit log via Gitlawb.",
+      "version": "0.2.0",
+      "homepage": "https://minebean.com",
+      "files": [
+        "SKILL.md",
+        "scripts/minebean_client.py"
+      ]
+    }
+  ]
+}

@@ -17,6 +17,7 @@ const nextConfig = {
           { key: 'Access-Control-Allow-Origin', value: '*' },
           { key: 'Access-Control-Allow-Methods', value: 'GET, OPTIONS' },
           { key: 'Cache-Control', value: 'public, max-age=300' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
         ],
       },
       {

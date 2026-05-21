@@ -35,7 +35,7 @@ def _rpc(method: str, params: list, *, timeout: int = 30) -> dict:
         data=body,
         headers={
             "Content-Type": "application/json",
-            "User-Agent": "minebean-client/0.2.0",
+            "User-Agent": "minebean-client/0.3.0",
         },
         method="POST",
     )

@@ -1,7 +1,7 @@
 ---
 name: mine-bean
-version: 0.3.0
-description: Mine $BEAN on Base from inside Hermes Agent. Round-based on-chain deployment, five strategy presets, autonomous cron mode, signed Gitlawb audit log.
+version: 0.4.1
+description: Mine $BEAN on Base from inside Hermes Agent. Round-based on-chain deployment, five strategy presets, autonomous cron mode, agent-callable Venice inference, multi-provider hook across six providers, VVV staking awareness, signed Gitlawb audit log.
 author: MineBean
 license: MIT
 homepage: https://minebean.com
@@ -14,13 +14,15 @@ audit_log: gitlawb://did:key:z6MkwVfgaAnuypajisEkJLkVbWPiPEBwceMkGutfXpEEYHKi/mi
 
 MineBean ($BEAN) is a round-based mining game on Base. New round every 60 seconds. Pick a strategy, deploy ETH into blocks on a 5x5 grid, earn $BEAN rewards on each round close. Occasional beanpot jackpots hit ~1-in-777 rounds.
 
-This skill gives any Hermes agent access to the live game through seven tools and a `/minebean` slash command. Run interactively from a chat, or schedule headless mining via the bundled `hermes-minebean-deploy` console script.
+This skill gives any Hermes agent access to the live game through ten tools and a `/minebean` slash command. Run interactively from a chat, or schedule headless mining via the bundled `hermes-minebean-deploy` console script.
 
 ## Install
 
 ```bash
-pip install hermes-mine-bean
-hermes plugins enable minebean
+python3 -m venv ~/hermes-mine-bean-env
+source ~/hermes-mine-bean-env/bin/activate
+pip install hermes-agent hermes-mine-bean
+hermes plugins install damo-nu11/hermes-mine-bean --enable
 ```
 
 Or with MCP support for Claude Desktop / Cursor:
@@ -37,9 +39,9 @@ Add to `~/.hermes/.env`:
 # Required for autonomous mining (broadcasting)
 MINEBEAN_DEPLOYER_KEY=0x...your_dedicated_test_wallet_private_key...
 
-# Or for Bankr-managed signing
-# BANKR_API_KEY=bk_ptr_...
-# MINEBEAN_MINER_ADDRESS=0x...
+# Optional: route LLM inference through Venice (the plugin defaults to Venice
+# but Venice itself only fires when a key is set)
+VENICE_API_KEY=...
 
 # Optional safety guards
 MINEBEAN_MAX_DEPLOYS_PER_DAY=100
@@ -55,6 +57,8 @@ For read-only inspection (no broadcasting):
 MINEBEAN_MINER_ADDRESS=0x...the_address_you_want_to_observe...
 ```
 
+> Bankr-managed signing is documented as a v0.5 feature. v0.4 ships local EOA signing only.
+
 ## Tools
 
 | Tool | What it does |
@@ -66,7 +70,9 @@ MINEBEAN_MINER_ADDRESS=0x...the_address_you_want_to_observe...
 | `minebean_claim` | Claim pending winnings (dry-run default) |
 | `minebean_autostart` | Install autonomous mining cron job |
 | `minebean_autostop` | Remove the cron job |
-| `minebean_inference_status` | Active inference provider + Venice configuration state |
+| `minebean_inference_status` | Active inference provider, base URL, default model, per-provider configured map |
+| `minebean_chat` | Send a prompt to the configured LLM provider (Venice by default), multi-provider hook |
+| `minebean_vvv_status` | Read VVV + sVVV balances on Base for an address (Venice staking awareness) |
 
 Slash command: `/minebean <subcommand>`. Try `/minebean status` first.
 
@@ -96,9 +102,17 @@ The cron entry enforces `MINEBEAN_MAX_DEPLOYS_PER_DAY` and exits cleanly on ceil
 
 ## Inference provider
 
-The plugin defaults `HERMES_INFERENCE_PROVIDER=venice` on enable, so any Hermes agent running mine-bean routes LLM calls through Venice out of the box. Set `HERMES_VENICE_API_KEY` in `~/.hermes/.env`. Set `HERMES_VENICE_NO_LOG=1` for log-free inference.
+The plugin defaults `HERMES_INFERENCE_PROVIDER=venice` on enable, so any Hermes agent running mine-bean routes LLM calls through Venice out of the box. Set `VENICE_API_KEY` in `~/.hermes/.env`.
 
-The bootstrap is non-destructive: if you have already pinned `HERMES_INFERENCE_PROVIDER` to `openai`, `anthropic`, `openrouter`, `ollama`, or `lmstudio`, the plugin respects your choice. Inspect at runtime via `minebean_inference_status`.
+> v0.3 users: `HERMES_VENICE_API_KEY` is still recognised. The plugin bridges the legacy name to the canonical `VENICE_API_KEY` automatically at startup so existing configs keep working.
+
+Venice's no-log mode is platform-default at the API layer (prompts and responses are never persisted).
+
+The bootstrap is non-destructive: if you have already pinned `HERMES_INFERENCE_PROVIDER` to `openai`, `anthropic`, `openrouter`, `ollama`, or `lmstudio`, the plugin respects your choice. v0.4 ships the real OpenAI-compatible client adapter, so calls actually route through your chosen provider, not just env-default. Inspect at runtime via `minebean_inference_status`.
+
+`minebean_chat` lets the agent send a prompt to the active provider mid-session. Useful for ad-hoc reasoning, a second opinion, or routing a specific call through Venice without leaving the Hermes session.
+
+`minebean_vvv_status` reads VVV (`0xacfE6019Ed1A7Dc6f7B508C02d1b04ec88cC21bf`) and sVVV (`0x321b7ff75154472B18EDb199033fF4D116F340Ff`) balances on Base. Useful when the agent wants to know whether the user qualifies for free Venice inference allowance via staking. Read-only.
 
 ## Safety
 
@@ -106,6 +120,8 @@ The bootstrap is non-destructive: if you have already pinned `HERMES_INFERENCE_P
 - Daily deploy ceiling enforced via env var
 - Already-deployed-this-round guard prevents accidental double-deploys
 - Readonly mode (just `MINEBEAN_MINER_ADDRESS`, no key) lets users inspect any address without exposing keys
+- `minebean_chat` server-side caps prompt at 100k chars, system message at 20k chars
+- VVV staking module ships with a read-only ERC-20 ABI; module is structurally incapable of issuing on-chain writes
 
 ## Verifiability
 

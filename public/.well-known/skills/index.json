@@ -8,8 +8,8 @@
   "skills": [
     {
       "name": "mine-bean",
-      "description": "Mine $BEAN on Base from inside Hermes Agent. Round-based deployment, five strategy presets, autonomous cron mode, on-chain audit log via Gitlawb.",
-      "version": "0.3.0",
+      "description": "Mine $BEAN on Base from inside Hermes Agent. Round-based deployment, five strategy presets, autonomous cron mode, agent-callable Venice inference, multi-provider hook across six providers, VVV staking awareness, on-chain audit log via Gitlawb.",
+      "version": "0.4.1",
       "homepage": "https://minebean.com",
       "files": [
         "SKILL.md",

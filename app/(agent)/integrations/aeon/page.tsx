@@ -60,16 +60,20 @@ export default function AeonIntegrationPage() {
   })
 
   const historyQuery = useQuery({
-    queryKey: ['integrations-aeon-history', lowerAddress],
-    queryFn: () => apiFetch<{ pagination?: { total?: number } }>(`/api/user/${lowerAddress}/history?type=deploy&limit=1`),
+    queryKey: ['integrations-aeon-rounds-count', lowerAddress],
+    queryFn: async () => {
+      const res = await fetch(`/api/user/${lowerAddress}/rounds-count`, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`rounds count: ${res.status}`)
+      return await res.json() as { roundsPlayed?: number }
+    },
     enabled: !!lowerAddress,
     refetchInterval: 60_000,
     staleTime: 45_000,
-    retry: 1,
+    retry: 2,
   })
 
   const pendingBean = rewardsQuery.data?.pendingBEAN?.netFormatted ? parseFloat(rewardsQuery.data.pendingBEAN.netFormatted) : 0
-  const roundsPlayed = historyQuery.data?.pagination?.total ?? 0
+  const roundsPlayed = historyQuery.data?.roundsPlayed ?? 0
   const pendingLoading = rewardsQuery.isPending && !rewardsQuery.isError
   const roundsLoading = historyQuery.isPending && !historyQuery.isError
 

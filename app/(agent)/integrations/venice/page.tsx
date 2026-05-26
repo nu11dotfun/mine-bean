@@ -105,21 +105,18 @@ export default function VeniceIntegrationPage() {
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 
-  // Rounds mined — call the SAME-ORIGIN Next.js API route at
-  // /api/user/[address]/rounds (which the app already ships). It runs
-  // server-side on agent.minebean.com, lowercases the address itself, and
-  // hits the backend with the correct `https://api.minebean.com` default,
-  // bypassing every client-side issue (CORS, env-var, NEXT_PUBLIC_API_URL
-  // localhost fallback, browser-IP rate limits). The response is an array
-  // of settled rounds the user participated in — length === rounds mined.
+  // Rounds mined — same-origin proxy at /api/user/[address]/rounds-count.
+  // Reads canonical totals.roundsPlayed from the backend (same source as
+  // the main-site ProfilePage). Single backend call, no per-round loops,
+  // no 100-round cap, no settlement filter — true lifetime count.
   const lowerAddress = address?.toLowerCase()
   const roundsRouteQuery = useQuery({
-    queryKey: ['integrations-venice-rounds-route', lowerAddress],
+    queryKey: ['integrations-venice-rounds-count', lowerAddress],
     queryFn: async () => {
-      const res = await fetch(`/api/user/${lowerAddress}/rounds`, { cache: 'no-store' })
-      if (!res.ok) throw new Error(`rounds route: ${res.status}`)
-      const data = await res.json()
-      return Array.isArray(data) ? data.length : 0
+      const res = await fetch(`/api/user/${lowerAddress}/rounds-count`, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`rounds count: ${res.status}`)
+      const data = await res.json() as { roundsPlayed?: number }
+      return data.roundsPlayed ?? 0
     },
     enabled: !!lowerAddress,
     refetchInterval: 60_000,

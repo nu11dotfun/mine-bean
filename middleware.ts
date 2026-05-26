@@ -5,7 +5,7 @@ const AGENT_HOST = 'agent.minebean.com'
 const MAIN_HOST = 'www.minebean.com'
 
 // Paths that belong on the agent subdomain
-const AGENT_PATHS = ['/agents', '/beanbook']
+const AGENT_PATHS = ['/agents', '/beanbook', '/integrations']
 
 // Paths that should pass through on any domain (API, assets, etc.)
 const PASSTHROUGH_PREFIXES = ['/api/', '/_next/', '/favicon', '/images/', '/.well-known/']

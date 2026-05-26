@@ -47,6 +47,7 @@ export default function AgentHeader({
   const tabs = [
     { id: 'agents', label: 'Agents', href: '/agents' },
     { id: 'beanbook', label: 'Beanbook', href: '/beanbook' },
+    { id: 'integrations', label: 'Integrations', href: '/integrations' },
   ]
 
   if (isMobile) {

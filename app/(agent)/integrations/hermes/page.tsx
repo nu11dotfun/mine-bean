@@ -71,19 +71,16 @@ export default function HermesIntegrationPage() {
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 
-  // Rounds mined — use the same-origin Next.js API route /api/user/[address]/rounds.
-  // Runs server-side on agent.minebean.com, uses the correct backend URL by
-  // default (https://api.minebean.com), bypassing CORS, env-var, and rate-limit
-  // issues that affect direct client-side calls. Response is an array — length
-  // is the rounds-mined count.
+  // Rounds mined — same-origin proxy at /api/user/[address]/rounds-count.
+  // Reads canonical totals.roundsPlayed (matches main-site profile page).
   const lowerAddress = address?.toLowerCase()
   const roundsRouteQuery = useQuery({
-    queryKey: ['integrations-hermes-rounds-route', lowerAddress],
+    queryKey: ['integrations-hermes-rounds-count', lowerAddress],
     queryFn: async () => {
-      const res = await fetch(`/api/user/${lowerAddress}/rounds`, { cache: 'no-store' })
-      if (!res.ok) throw new Error(`rounds route: ${res.status}`)
-      const data = await res.json()
-      return Array.isArray(data) ? data.length : 0
+      const res = await fetch(`/api/user/${lowerAddress}/rounds-count`, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`rounds count: ${res.status}`)
+      const data = await res.json() as { roundsPlayed?: number }
+      return data.roundsPlayed ?? 0
     },
     enabled: !!lowerAddress,
     refetchInterval: 60_000,

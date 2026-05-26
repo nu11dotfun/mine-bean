@@ -66,8 +66,8 @@ export default function HermesIntegrationPage() {
   })
 
   const rewardsTuple = pendingRewardsRead.data as readonly [bigint, bigint, bigint, bigint] | undefined
-  const unroastedBeanRaw = rewardsTuple?.[1] ?? 0n
-  const roastedBeanRaw = rewardsTuple?.[2] ?? 0n
+  const unroastedBeanRaw = rewardsTuple?.[1] ?? BigInt(0)
+  const roastedBeanRaw = rewardsTuple?.[2] ?? BigInt(0)
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 

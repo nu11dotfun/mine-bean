@@ -32,7 +32,7 @@ function formatTokenAmount(value: bigint | undefined, decimals = 18, displayDeci
 }
 
 function formatUsd(tokenAmount: bigint | undefined, priceUsd: number | null, decimals = 18): string | null {
-  if (!tokenAmount || tokenAmount === 0n || !priceUsd) return null
+  if (!tokenAmount || tokenAmount === BigInt(0) || !priceUsd) return null
   const tokens = parseFloat(formatUnits(tokenAmount, decimals))
   const usd = tokens * priceUsd
   if (usd < 0.01) return '<0.01'
@@ -100,8 +100,8 @@ export default function VeniceIntegrationPage() {
 
   // Returns: (pendingETH, pendingUnroastedBEAN, pendingRoastedBEAN, uncheckpointedRound)
   const rewardsTuple = pendingRewardsRead.data as readonly [bigint, bigint, bigint, bigint] | undefined
-  const unroastedBeanRaw = rewardsTuple?.[1] ?? 0n
-  const roastedBeanRaw = rewardsTuple?.[2] ?? 0n
+  const unroastedBeanRaw = rewardsTuple?.[1] ?? BigInt(0)
+  const roastedBeanRaw = rewardsTuple?.[2] ?? BigInt(0)
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 
@@ -164,9 +164,9 @@ export default function VeniceIntegrationPage() {
   const diemValue = diemBal.data?.value
   const beanValue = beanBal.data?.value
 
-  const totalVvvHeld = (vvvValue ?? 0n) + (svvvValue ?? 0n)
+  const totalVvvHeld = (vvvValue ?? BigInt(0)) + (svvvValue ?? BigInt(0))
   const totalUsd = formatUsd(totalVvvHeld, vvvPriceUsd)
-  const diemDailyUsd = diemValue && diemValue > 0n
+  const diemDailyUsd = diemValue && diemValue > BigInt(0)
     ? parseFloat(formatUnits(diemValue, 18))
     : 0
   const beanInWallet = beanValue ? parseFloat(formatUnits(beanValue, 18)) : 0

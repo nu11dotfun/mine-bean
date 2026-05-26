@@ -63,7 +63,7 @@ export default function LitcoinIntegrationPage() {
       const res = await fetch(`/api/litcoin/balance/${NOSTRADAMUS_WALLET.toLowerCase()}`, { cache: 'no-store' })
       if (!res.ok) throw new Error(`litcoin claims status: ${res.status}`)
       const data = await res.json() as { claimable?: string }
-      return data.claimable ? BigInt(data.claimable) : 0n
+      return data.claimable ? BigInt(data.claimable) : BigInt(0)
     },
     refetchInterval: 30_000,
     staleTime: 30_000,

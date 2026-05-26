@@ -168,7 +168,20 @@ export default function VeniceIntegrationPage() {
     : 0
   const beanInWallet = beanValue ? parseFloat(formatUnits(beanValue, 18)) : 0
   // Total earned = wallet balance + everything pending in the contract (unroasted + roasted)
-  const totalBeanMined = beanInWallet + unroastedBean + roastedBean
+  const totalBeanMinedRaw = beanInWallet + unroastedBean + roastedBean
+
+  // Gate the BEAN cards by whether this wallet has actually used Venice infrastructure.
+  // sVVV staked or DIEM minted are the on-chain signals that the wallet is part of
+  // the Venice mining loop. Without either, we don't claim the wallet's BEAN was
+  // "earned through Venice" — we just show zeros. Proper provider-tracking is on
+  // tomorrow's roadmap (Hermes plugin reports LLM provider on each deploy).
+  const isVeniceActive =
+    !!(svvvValue && svvvValue > BigInt(0)) ||
+    !!(diemValue && diemValue > BigInt(0))
+
+  const totalBeanMined = isVeniceActive ? totalBeanMinedRaw : 0
+  const unroastedBeanGated = isVeniceActive ? unroastedBean : 0
+  const roundsPlayedGated = isVeniceActive ? roundsPlayed : 0
 
   return (
     <div style={s.page}>
@@ -303,18 +316,18 @@ export default function VeniceIntegrationPage() {
                 <Card
                   label="UNROASTED BEAN"
                   value={
-                    unroastedBean > 0
-                      ? unroastedBean.toLocaleString('en-US', { maximumFractionDigits: 4 })
+                    unroastedBeanGated > 0
+                      ? unroastedBeanGated.toLocaleString('en-US', { maximumFractionDigits: 4 })
                       : '0'
                   }
-                  usd={beanPriceUsd && unroastedBean > 0 ? (unroastedBean * beanPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null}
+                  usd={beanPriceUsd && unroastedBeanGated > 0 ? (unroastedBeanGated * beanPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null}
                   sub="Pending in rewards contract"
                   loading={pendingLoading}
-                  accent={unroastedBean > 0}
+                  accent={unroastedBeanGated > 0}
                 />
                 <Card
                   label="ROUNDS MINED"
-                  value={roundsPlayed.toLocaleString('en-US')}
+                  value={roundsPlayedGated.toLocaleString('en-US')}
                   sub="Lifetime deploys by this wallet"
                   loading={roundsLoading}
                 />

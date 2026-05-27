@@ -250,7 +250,13 @@ export async function GET(_req: Request, { params }: { params: { wallet: string 
         }
       : { roundsPlayed: 0, wins: 0, totalDeployedEth: '0', totalEarnedEth: '0' },
     allowance: {
-      beanForStaking: formatUnits(allowanceBean, 18),
+      // Detect "max approve" (typically MaxUint256). Anything above 2^128
+      // is way larger than BEAN's 3M total supply, so it's effectively unlimited.
+      // Return the literal string "max" instead of a ~78-digit decimal that
+      // would render as a glitch in agent UIs.
+      beanForStaking: allowanceBean > (BigInt(1) << BigInt(128))
+        ? 'max'
+        : formatUnits(allowanceBean, 18),
     },
   }
 

@@ -196,8 +196,8 @@ export default function NookIntegrationPage() {
             <Stat
               label="TREASURY"
               value={stakedDisplay}
-              sub={multiplierDisplay}
-              tooltip="NOOK staked in the MiningStake contract to activate the supply-side bonus. Tier and multiplier read live from the gateway."
+              sub="Total NOOK held by MineBean ecosystem"
+              tooltip={`NOOK staked in the MiningStake contract to activate the supply-side bonus. Currently ${tierLabel} at ${multiplierDisplay}.`}
             />
           </div>
         </section>

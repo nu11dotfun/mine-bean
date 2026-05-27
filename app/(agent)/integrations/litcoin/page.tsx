@@ -16,7 +16,7 @@ const LITCOIN_TOKEN = '0x316ffb9c875f900AdCF04889E415cC86b564EBa3' as const
 const LITCOIN_CLAIMS = '0xF703DcF2E88C0673F776870fdb12A453927C6A5e' as const
 const NOSTRADAMUS_WALLET = '0x6f2FD3919C058fa0Ece5c76E6C10c9dAee655f4E' as const
 
-// MineBean strategy agents. Stats below are TBD until the Litcoin indexer is wired.
+// MineBean agents. Stats below are TBD until the Litcoin indexer is wired.
 interface AgentEntry {
   id: string
   name: string
@@ -114,7 +114,7 @@ export default function LitcoinIntegrationPage() {
   // Total mined = liquid + unclaimed (assumes the wallet hasn't spent received Litcoin elsewhere)
   const nostraTotalFloat = (nostraLiquidFloat ?? 0) + (nostraUnclaimedFloat ?? 0)
 
-  // Aggregate totals across every MineBean strategy agent on Litcoin
+  // Aggregate totals across every MineBean agent on Litcoin
   // (right now Nostradamus is the only active wallet, so totals == Nostradamus's)
   const totalMinedFloat = nostraTotalFloat
   const totalMinedUsd = litPriceUsd ? (totalMinedFloat * litPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : null
@@ -162,7 +162,7 @@ export default function LitcoinIntegrationPage() {
             <h1 style={isMobile ? { ...s.heroTitle, fontSize: 40 } : s.heroTitle}>Litcoin</h1>
           </div>
           <p style={s.heroSub}>
-            MineBean strategy agents deployed against Litcoin. View the aggregate position across every active strategy and dig into each one below.
+            MineBean agents deployed against Litcoin. View the aggregate position across every active strategy and dig into each one below.
           </p>
         </section>
 
@@ -173,23 +173,26 @@ export default function LitcoinIntegrationPage() {
               label="TOTAL MINED"
               value={`${totalMinedFloat.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${litSymbol}`}
               sub={totalMinedUsd ? `$${totalMinedUsd}` : undefined}
+              tooltip="Liquid + unclaimed across every active MineBean agent on Litcoin. The lifetime mining position."
             />
             <Stat
               label="UNCLAIMED"
               value={`${totalUnclaimedFloat.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${litSymbol}`}
               sub={totalUnclaimedUsd ? `$${totalUnclaimedUsd}` : undefined}
+              tooltip="Pending Litcoin rewards waiting to be claimed via the coordinator-signed claim flow."
             />
             <Stat
               label="CLAIMED"
               value={`${totalClaimedFloat.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${litSymbol}`}
               sub={totalClaimedUsd ? `$${totalClaimedUsd}` : undefined}
+              tooltip="Litcoin already pulled from the rewards contract into the deployer wallet."
             />
           </div>
         </section>
 
-        {/* Strategy agents */}
+        {/* Agents */}
         <section style={s.section}>
-          <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Strategy agents</h2>
+          <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Agents</h2>
           <p style={s.sectionSub}>
             Click an agent to see its details below.
           </p>
@@ -240,8 +243,8 @@ export default function LitcoinIntegrationPage() {
 
             {isActive ? (
               <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
-                <Stat label="LIQUID" value={liquidDisplay} sub={liquidUsd ? `$${liquidUsd}` : undefined} />
-                <Stat label="UNCLAIMED" value={unclaimedDisplay} sub={unclaimedUsd ? `$${unclaimedUsd}` : undefined} />
+                <Stat label="LIQUID" value={liquidDisplay} sub={liquidUsd ? `$${liquidUsd}` : undefined} tooltip="Live Litcoin balance sitting in this agent's wallet, ready to spend or stake." />
+                <Stat label="UNCLAIMED" value={unclaimedDisplay} sub={unclaimedUsd ? `$${unclaimedUsd}` : undefined} tooltip="Pending Litcoin rewards earned by this agent, waiting for the next claim transaction." />
                 {selected.walletFull ? (
                   <StatLink label="WALLET" value={selected.walletShort ?? '—'} href={`https://basescan.org/address/${selected.walletFull}`} />
                 ) : (
@@ -265,14 +268,32 @@ export default function LitcoinIntegrationPage() {
 
 // ── Stat card ────────────────────────────────────────────────────────────
 
-function Stat({ label, value, sub, mono }: { label: string; value: string; sub?: string; mono?: boolean }) {
+function Stat({ label, value, sub, mono, tooltip }: { label: string; value: string; sub?: string; mono?: boolean; tooltip?: string }) {
+  const [hovered, setHovered] = useState(false)
   return (
-    <div style={s.statCard}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...s.statCard,
+        borderColor: hovered ? 'rgba(0,82,255,0.32)' : 'rgba(255,255,255,0.06)',
+        background: hovered
+          ? 'linear-gradient(180deg, rgba(0,82,255,0.06) 0%, rgba(0,82,255,0.01) 100%)'
+          : 'rgba(255,255,255,0.02)',
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 8px 24px rgba(0,82,255,0.12)' : 'none',
+        transition: 'all 0.22s ease',
+        position: 'relative',
+      }}
+    >
       <div style={s.statLabel}>{label}</div>
       <div style={mono ? { ...s.statValue, fontFamily: "'Space Mono', monospace", fontSize: 18 } : s.statValue}>
         {value}
       </div>
       {sub && <div style={s.statSub}>{sub}</div>}
+      {tooltip && hovered && (
+        <div style={s.statTooltip}>{tooltip}</div>
+      )}
     </div>
   )
 }
@@ -397,6 +418,23 @@ const s: { [key: string]: React.CSSProperties } = {
     fontSize: 13,
     color: 'rgba(255,255,255,0.4)',
     lineHeight: 1.55,
+  },
+  statTooltip: {
+    position: 'absolute',
+    bottom: 'calc(100% + 8px)',
+    left: 0,
+    right: 0,
+    background: 'rgba(10,16,28,0.96)',
+    border: '1px solid rgba(0,82,255,0.3)',
+    borderRadius: 10,
+    padding: '10px 12px',
+    fontSize: 12,
+    color: 'rgba(255,255,255,0.85)',
+    lineHeight: 1.5,
+    boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+    backdropFilter: 'blur(8px)',
+    zIndex: 10,
+    pointerEvents: 'none',
   },
 
   // Stats grid

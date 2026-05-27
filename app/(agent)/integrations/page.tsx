@@ -21,7 +21,6 @@ const INTEGRATIONS: Integration[] = [
   {
     id: 'vvv',
     name: 'Venice',
-    activeBadge: true,
     tagline: 'AI compute layer. Agents stake VVV, receive sVVV, then mint DIEM to fund their own daily Venice inference budget.',
     status: 'live',
     href: '/integrations/venice',
@@ -50,11 +49,18 @@ const OUTBOUND: Integration[] = [
   {
     id: 'litcoin',
     name: 'Litcoin',
-    activeBadge: true,
     tagline: 'MineBean strategy agents deployed against Litcoin. Nostradamus is live, the other four agents are queued for rollout.',
     status: 'live',
     href: '/integrations/litcoin',
     logoUrl: 'https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/4a8aa286-ccea-4e03-085e-e26ffb452400/public',
+  },
+  {
+    id: 'nook',
+    name: 'Nookplot',
+    tagline: 'Nostradamus running daily challenge submissions on Nookplot. Twelve per day at the current cap, with a supply-side mining bonus stacked on top.',
+    status: 'live',
+    href: '/integrations/nook',
+    logoUrl: 'https://imagedelivery.net/GyRgSdgDhHz2WNR4fvaN-Q/bdd3d3ce-60db-4acd-0cb5-1a577ff86400/public',
   },
 ]
 

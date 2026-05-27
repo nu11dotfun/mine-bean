@@ -117,9 +117,12 @@ export default function NookIntegrationPage() {
 
   // Stats-derived display values (all live from the agent stats endpoint).
   const stakedNook = statsQuery.data?.stakedNook ?? 0
-  const stakedDisplay = statsQuery.isPending
+  // Treasury total = staked NOOK (locked in MiningStake) + liquid wallet balance.
+  // Reflects every NOOK the MineBean ecosystem currently holds.
+  const treasuryTotalNook = stakedNook + nookBalanceFloat
+  const treasuryDisplay = (statsQuery.isPending || nookBal.isPending)
     ? 'Loading…'
-    : `${stakedNook.toLocaleString('en-US')} ${nookSymbol}`
+    : `${Math.round(treasuryTotalNook).toLocaleString('en-US')} ${nookSymbol}`
 
   // pendingRewards from the gateway isn't denominated in NOOK (likely a scoring metric),
   // so we don't surface it. Actual NOOK ticks over into totalEarned at the daily 2am UTC epoch.
@@ -195,9 +198,9 @@ export default function NookIntegrationPage() {
             />
             <Stat
               label="TREASURY"
-              value={stakedDisplay}
+              value={treasuryDisplay}
               sub="Total NOOK held by MineBean ecosystem"
-              tooltip={`NOOK staked in the MiningStake contract to activate the supply-side bonus. Currently ${tierLabel} at ${multiplierDisplay}.`}
+              tooltip={`Staked + liquid NOOK across the MineBean ecosystem. ${stakedNook.toLocaleString('en-US')} staked in MiningStake for the supply-side bonus (${tierLabel} at ${multiplierDisplay}), the rest sitting liquid.`}
             />
           </div>
         </section>

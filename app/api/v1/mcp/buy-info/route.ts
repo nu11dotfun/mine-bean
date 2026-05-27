@@ -22,14 +22,10 @@ export async function GET(req: Request) {
     {
       venues: [
         {
-          name: 'Aerodrome',
-          url: `https://aerodrome.finance/swap?from=eth&to=${beanAddress}`,
-          kind: 'dex',
-        },
-        {
           name: 'Uniswap',
           url: `https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=${beanAddress}&chain=base`,
           kind: 'dex',
+          note: 'BEAN/ETH liquidity lives on Uniswap V4. The swap UI auto-routes to V4.',
         },
         {
           name: 'DexScreener',
@@ -45,7 +41,7 @@ export async function GET(req: Request) {
       onramp: {
         url: onrampUrl,
         kind: 'fiat-to-eth',
-        note: 'User onramps ETH first, then swaps to BEAN via Aerodrome or Uniswap.',
+        note: 'User onramps ETH first, then swaps to BEAN via Uniswap.',
       },
       note: 'Direct swap calldata (prepare/buy-bean) is on the v0.2 roadmap. For now, hand the user a venue URL.',
     },

@@ -288,13 +288,12 @@ Returns the canonical BEAN buy paths:
 ```json
 {
   "venues": [
-    { "name": "Aerodrome", "url": "https://aerodrome.finance/swap?from=eth&to=0x5c72...A5A5D", "kind": "dex" },
-    { "name": "Uniswap", "url": "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x5c72...A5A5D&chain=base", "kind": "dex" }
+    { "name": "Uniswap", "url": "https://app.uniswap.org/swap?inputCurrency=ETH&outputCurrency=0x5c72...A5A5D&chain=base", "kind": "dex", "note": "BEAN/ETH liquidity lives on Uniswap V4. The swap UI auto-routes to V4." }
   ],
   "onramp": {
     "url": "https://pay.coinbase.com/buy/select-asset?...&defaultAsset=ETH",
     "kind": "fiat-to-eth",
-    "note": "User onramps ETH first, then swaps to BEAN via Aerodrome or Uniswap."
+    "note": "User onramps ETH first, then swaps to BEAN via Uniswap (V4)."
   }
 }
 ```

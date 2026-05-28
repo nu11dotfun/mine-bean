@@ -117,12 +117,6 @@ export default function NookIntegrationPage() {
 
   // Stats-derived display values (all live from the agent stats endpoint).
   const stakedNook = statsQuery.data?.stakedNook ?? 0
-  // Treasury total = staked NOOK (locked in MiningStake) + liquid wallet balance.
-  // Reflects every NOOK the MineBean ecosystem currently holds.
-  const treasuryTotalNook = stakedNook + nookBalanceFloat
-  const treasuryDisplay = (statsQuery.isPending || nookBal.isPending)
-    ? 'Loading…'
-    : `${Math.round(treasuryTotalNook).toLocaleString('en-US')} ${nookSymbol}`
 
   // pendingRewards from the gateway isn't denominated in NOOK (likely a scoring metric),
   // so we don't surface it. Actual NOOK ticks over into totalEarned at the daily 2am UTC epoch.
@@ -130,6 +124,13 @@ export default function NookIntegrationPage() {
   const totalEarnedDisplay = statsQuery.isPending
     ? 'Loading…'
     : `${totalEarnedNook.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${nookSymbol}`
+
+  // Treasury total = staked NOOK (locked in MiningStake) + liquid wallet balance + lifetime mined.
+  // Reflects every NOOK the MineBean ecosystem currently holds across all surfaces.
+  const treasuryTotalNook = stakedNook + nookBalanceFloat + totalEarnedNook
+  const treasuryDisplay = (statsQuery.isPending || nookBal.isPending)
+    ? 'Loading…'
+    : `${Math.round(treasuryTotalNook).toLocaleString('en-US')} ${nookSymbol}`
 
   const tierLabel = statsQuery.data?.tier ? statsQuery.data.tier.toUpperCase() : '—'
   const multiplierDisplay = statsQuery.data?.multiplier
@@ -200,7 +201,7 @@ export default function NookIntegrationPage() {
               label="TREASURY"
               value={treasuryDisplay}
               sub="Total NOOK held by MineBean ecosystem"
-              tooltip={`Staked + liquid NOOK across the MineBean ecosystem. ${stakedNook.toLocaleString('en-US')} staked in MiningStake for the supply-side bonus (${tierLabel} at ${multiplierDisplay}), the rest sitting liquid.`}
+              tooltip={`Staked + liquid + lifetime mined NOOK across the MineBean ecosystem. ${stakedNook.toLocaleString('en-US')} staked in MiningStake for the supply-side bonus (${tierLabel} at ${multiplierDisplay}), plus liquid wallet balance, plus everything earned through mining since launch.`}
             />
           </div>
         </section>

@@ -5,7 +5,7 @@ import { successEnvelope, badRequest, upstreamError } from '@/lib/mcp/envelope'
 
 // Base MCP prepare endpoint: ERC20 approve BEAN for a spender (default STAKING).
 // Encodes Bean.approve(spender, amount). amount=max for MaxUint256.
-// No validation failures — approve is always callable, even with 0 balance.
+// No validation failures - approve is always callable, even with 0 balance.
 
 export async function GET(req: Request) {
   const url = new URL(req.url)

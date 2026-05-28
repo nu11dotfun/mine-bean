@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 // domain, so each subdomain needs its own accountAssociation. Serve the right one based
 // on the Host header of the incoming request.
 //
-// www.minebean.com   — main mining interface
-// agent.minebean.com — agent subdomain (agents carousel / profiles / beanbook)
+// www.minebean.com   - main mining interface
+// agent.minebean.com - agent subdomain (agents carousel / profiles / beanbook)
 
 const WWW_ORIGIN = 'https://www.minebean.com'
 const AGENT_ORIGIN = 'https://agent.minebean.com'
@@ -25,7 +25,7 @@ const baseAppConfig = {
   noindex: false,
 }
 
-// Images stay on the main origin — no need to duplicate assets per subdomain.
+// Images stay on the main origin - no need to duplicate assets per subdomain.
 const sharedAssets = {
   iconUrl: `${WWW_ORIGIN}/favicon.png`,
   splashImageUrl: `${WWW_ORIGIN}/favicon.png`,

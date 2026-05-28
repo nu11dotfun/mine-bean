@@ -117,7 +117,7 @@ export default function AeonIntegrationPage() {
           All integrations
         </Link>
 
-        {/* Hero — logo + title centered as a group, subtitle centered below */}
+        {/* Hero - logo + title centered as a group, subtitle centered below */}
         <section style={s.hero}>
           <div style={s.heroTitleRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -190,7 +190,7 @@ export default function AeonIntegrationPage() {
             <Step
               number={1}
               title="Fork the AEON framework"
-              description="Start from the AEON template. Same fork you'd use for any AEON deployment — the skill plugs in alongside whatever else you run."
+              description="Start from the AEON template. Same fork you'd use for any AEON deployment - the skill plugs in alongside whatever else you run."
             />
             <Step
               number={2}

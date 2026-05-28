@@ -75,7 +75,7 @@ export default function InvestModal({
   const hasBeanToClaim = parseFloat(stats.beanEarned) > 0
   const hasPosition = parseFloat(stats.userDeposited) > 0 || hasLockedBEAN || hasPendingWithdrawal || hasBeanToClaim
 
-  // Deposit button logic — no chaining, separate steps
+  // Deposit button logic - no chaining, separate steps
   const isDepositBusy = ['approving', 'locking', 'depositing'].includes(depositStep)
   const ethVal = parseFloat(ethAmount) || 0
   const canDeposit = isConnected && hasLockedBEAN && ethVal > 0 && ethVal <= userEthBalance && !isDepositBusy
@@ -206,7 +206,7 @@ function DepositTab({
 }) {
   const lockAmt = parseFloat(beanLockAmount)
   const hasEnoughBean = userBeanBalance >= lockAmt
-  // Wrong-chain gate — replaces the staged action button with "Switch to Base"
+  // Wrong-chain gate - replaces the staged action button with "Switch to Base"
   // when connected but on the wrong network.
   const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
   const wrongChain = isConnected && !isOnBase
@@ -286,7 +286,7 @@ function DepositTab({
     )
   }
 
-  // Step 3: BEAN is locked — show ETH deposit
+  // Step 3: BEAN is locked - show ETH deposit
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* ETH input */}
@@ -350,7 +350,7 @@ function WithdrawTab({
   claimBeanChecked: boolean; setClaimBeanChecked: (v: boolean) => void
   claimBeanPending: boolean; withdrawPending: boolean; isConnected: boolean; beanLockAmount: string
 }) {
-  // Wrong-chain gate — replaces any action button with "Switch to Base" when
+  // Wrong-chain gate - replaces any action button with "Switch to Base" when
   // connected but on the wrong network. Position info still renders so the user
   // can see what they own; they just can't act on it until they switch.
   const { isOnBase, isSwitching, switchToBase } = useIsOnBase()

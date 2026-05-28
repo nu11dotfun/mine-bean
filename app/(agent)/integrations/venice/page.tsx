@@ -82,7 +82,7 @@ export default function VeniceIntegrationPage() {
   })
 
   // Read pending rewards STRAIGHT from the GridMining contract via wagmi.
-  // This is the same source `/api/user/:address/rewards` reads on the backend —
+  // This is the same source `/api/user/:address/rewards` reads on the backend  - 
   // skipping the backend entirely sidesteps any CORS, subdomain, env-var, or
   // rate-limit issue between agent.minebean.com and api.minebean.com.
   const pendingRewardsRead = useReadContract({
@@ -105,10 +105,10 @@ export default function VeniceIntegrationPage() {
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 
-  // Rounds mined — same-origin proxy at /api/user/[address]/rounds-count.
+  // Rounds mined - same-origin proxy at /api/user/[address]/rounds-count.
   // Reads canonical totals.roundsPlayed from the backend (same source as
   // the main-site ProfilePage). Single backend call, no per-round loops,
-  // no 100-round cap, no settlement filter — true lifetime count.
+  // no 100-round cap, no settlement filter - true lifetime count.
   const lowerAddress = address?.toLowerCase()
   const roundsRouteQuery = useQuery({
     queryKey: ['integrations-venice-rounds-count', lowerAddress],
@@ -173,7 +173,7 @@ export default function VeniceIntegrationPage() {
   // Gate the BEAN cards by whether this wallet has actually used Venice infrastructure.
   // sVVV staked or DIEM minted are the on-chain signals that the wallet is part of
   // the Venice mining loop. Without either, we don't claim the wallet's BEAN was
-  // "earned through Venice" — we just show zeros. Proper provider-tracking is on
+  // "earned through Venice" - we just show zeros. Proper provider-tracking is on
   // tomorrow's roadmap (Hermes plugin reports LLM provider on each deploy).
   const isVeniceActive =
     !!(svvvValue && svvvValue > BigInt(0)) ||
@@ -207,7 +207,7 @@ export default function VeniceIntegrationPage() {
           All integrations
         </Link>
 
-        {/* Hero — logo + title centered as a group, subtitle centered below */}
+        {/* Hero - logo + title centered as a group, subtitle centered below */}
         <section style={s.hero}>
           <div style={s.heroTitleRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -547,7 +547,7 @@ const s: { [key: string]: React.CSSProperties } = {
     width: 'fit-content',
   },
 
-  // Hero — logo + title row centered as a group, subtitle centered below
+  // Hero - logo + title row centered as a group, subtitle centered below
   hero: {
     display: 'flex',
     flexDirection: 'column',

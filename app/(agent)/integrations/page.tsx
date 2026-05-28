@@ -219,7 +219,7 @@ export default function IntegrationsPage() {
           </div>
         </section>
 
-        {/* Premium divider — bean centerpiece */}
+        {/* Premium divider - bean centerpiece */}
         <div style={s.dividerWrap} aria-hidden="true">
           <div style={s.dividerGlow} />
           <div style={s.dividerLineLeft} />

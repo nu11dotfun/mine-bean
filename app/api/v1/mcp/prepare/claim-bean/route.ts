@@ -5,7 +5,7 @@ import { successEnvelope, badRequest, validationError, upstreamError } from '@/l
 import { fmtForDescription } from '@/lib/mcp/format'
 
 // Base MCP prepare endpoint: claim mining BEAN rewards.
-// Encodes GridMining.claimBEAN() — no args, non-payable.
+// Encodes GridMining.claimBEAN() - no args, non-payable.
 // Pre-flights via getTotalPendingRewards to compute gross / fee / net BEAN.
 // Returns NOTHING_TO_CLAIM when pendingBeanGross is 0.
 
@@ -28,7 +28,7 @@ const getTotalPendingRewardsAbi = [
   },
 ] as const
 
-const BEAN_FEE_BPS = 1000 // 10% fee on unroasted only — matches backend logic
+const BEAN_FEE_BPS = 1000 // 10% fee on unroasted only - matches backend logic
 
 export async function GET(req: Request) {
   const url = new URL(req.url)

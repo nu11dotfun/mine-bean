@@ -69,7 +69,7 @@ export default function HelpButton() {
 
             {/* Skill URL */}
             <div style={{ marginTop: 20, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Give your agent this URL — it contains everything it needs to start mining:</div>
+              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginBottom: 8 }}>Give your agent this URL - it contains everything it needs to start mining:</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '10px 14px', fontFamily: 'monospace', fontSize: 13, color: 'rgba(255,255,255,0.7)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {skillUrl}
@@ -88,12 +88,12 @@ export default function HelpButton() {
               <div style={{ fontSize: 13, fontWeight: 600, color: '#fff', marginBottom: 12 }}>Once deployed, your agent can:</div>
               {[
                 'Pick blocks and deploy ETH every round without you lifting a finger',
-                'Run any strategy — conservative, degen, spread across blocks, and more',
+                'Run any strategy - conservative, degen, spread across blocks, and more',
                 'React to round outcomes and refine its approach over time',
                 'Accumulate ETH winnings and BEAN rewards autonomously',
               ].map((item, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < 3 ? 8 : 0 }}>
-                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13, flexShrink: 0 }}>—</span>
+                  <span style={{ color: 'rgba(255,255,255,0.2)', fontSize: 13, flexShrink: 0 }}> - </span>
                   <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.5 }}>{item}</span>
                 </div>
               ))}

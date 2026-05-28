@@ -60,7 +60,7 @@ function readCache<T>(key: string): T | null {
 function writeCache<T>(key: string, data: T): void {
     try {
         sessionStorage.setItem(key, JSON.stringify(data))
-    } catch { /* quota exceeded or unavailable — ignore */ }
+    } catch { /* quota exceeded or unavailable - ignore */ }
 }
 
 // ── Context ────────────────────────────────────────────────────────
@@ -88,7 +88,7 @@ export function UserDataProvider({
 }) {
     const { subscribeUser } = useSSE()
 
-    // State — initialized from sessionStorage on first render
+    // State - initialized from sessionStorage on first render
     const [rewards, setRewards] = useState<RewardsData | null>(() =>
         userAddress ? readCache<RewardsData>(REWARDS_KEY(userAddress)) : null
     )
@@ -133,7 +133,7 @@ export function UserDataProvider({
             const data = await apiFetch<RewardsData>(`/api/user/${userAddress}/rewards`)
             setRewardsAndCache(data)
         } catch {
-            // 429 or network error — state keeps current value (from sessionStorage or previous fetch)
+            // 429 or network error - state keeps current value (from sessionStorage or previous fetch)
         }
     }, [userAddress, setRewardsAndCache])
 
@@ -143,7 +143,7 @@ export function UserDataProvider({
             const info = await apiFetch<UserStakeInfo>(`/api/staking/${userAddress}`)
             setStakeInfoAndCache(info)
         } catch {
-            // 429 or network error — state keeps current value (from sessionStorage or previous fetch)
+            // 429 or network error - state keeps current value (from sessionStorage or previous fetch)
         }
     }, [userAddress, setStakeInfoAndCache])
 
@@ -158,7 +158,7 @@ export function UserDataProvider({
                 discord: data.discord,
             })
         } catch {
-            // 429 or network error — state keeps current value (from sessionStorage or previous fetch)
+            // 429 or network error - state keeps current value (from sessionStorage or previous fetch)
         }
     }, [userAddress, setProfileAndCache])
 
@@ -177,7 +177,7 @@ export function UserDataProvider({
 
     useEffect(() => {
         if (!userAddress) {
-            // Wallet disconnected — clear state
+            // Wallet disconnected - clear state
             setRewards(null)
             setStakeInfo(null)
             setProfile(null)
@@ -198,7 +198,7 @@ export function UserDataProvider({
         fetchProfile()
     }, [userAddress, fetchRewards, fetchStakeInfo, fetchProfile])
 
-    // ── SSE subscriptions — update state from event payloads ───────
+    // ── SSE subscriptions - update state from event payloads ───────
 
     useEffect(() => {
         // stakeDeposited/stakeWithdrawn: newBalance is hex string (BigInt)
@@ -253,7 +253,7 @@ export function UserDataProvider({
             })
         })
 
-        // claimedBEAN: mining rewards claimed — roasted and unroasted go to 0
+        // claimedBEAN: mining rewards claimed - roasted and unroasted go to 0
         const unsub5 = subscribeUser('claimedBEAN', () => {
             setRewards(prev => {
                 if (!prev) return prev
@@ -291,7 +291,7 @@ export function UserDataProvider({
         return () => { unsub1(); unsub2(); unsub3(); unsub4(); unsub5(); unsub6() }
     }, [subscribeUser])
 
-    // settlementComplete window event — new mining rewards may be available
+    // settlementComplete window event - new mining rewards may be available
     useEffect(() => {
         const handler = () => fetchRewards()
         window.addEventListener('settlementComplete', handler)

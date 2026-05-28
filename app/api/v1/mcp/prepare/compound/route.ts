@@ -4,7 +4,7 @@ import { successEnvelope, badRequest, validationError, upstreamError } from '@/l
 import { fmtForDescription } from '@/lib/mcp/format'
 
 // Base MCP prepare endpoint: claim + redeposit staking yield in one call.
-// Encodes Staking.compound() — no args.
+// Encodes Staking.compound() - no args.
 // Pre-flights via /api/staking/:address (canCompound + pendingRewards).
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.minebean.com'

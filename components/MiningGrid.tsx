@@ -119,7 +119,7 @@ export default function MiningGrid({
     const [autoMode, setAutoMode] = useState<{ enabled: boolean, strategy: "all" | "random" | "select" | null }>({ enabled: false, strategy: null })
 const [isAutoMinerActive, setIsAutoMinerActive] = useState(false)
 
-    // Heat map state — toggle controlled by SidebarControls/MobileControls via heatmapToggle event
+    // Heat map state - toggle controlled by SidebarControls/MobileControls via heatmapToggle event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
     const [heatmapRounds, setHeatmapRounds] = useState<number>(500)
     const [heatmapCounts, setHeatmapCounts] = useState<number[]>(() => Array(25).fill(0))
@@ -224,7 +224,7 @@ const [isAutoMinerActive, setIsAutoMinerActive] = useState(false)
                 blockIds.forEach(id => next.add(id))
                 return next
             })
-            // One deploy per round — lock the grid after deploy
+            // One deploy per round - lock the grid after deploy
             setHasDeployedThisRound(true)
             setSelectedBlocks([])
             window.dispatchEvent(new CustomEvent("blocksChanged", {
@@ -309,7 +309,7 @@ setCells(blocksToGrid(d.blocks))
             pendingResetRef.current = newRound
 
             if (settled) {
-                // Round had deployments — run settlement animation
+                // Round had deployments - run settlement animation
                 const winner = parseInt(settled.winningBlock, 10)
                 clearAnimationTimers()
 
@@ -350,7 +350,7 @@ setCells(blocksToGrid(d.blocks))
                     new CustomEvent("roundSettled", { detail: settled })
                 )
             } else {
-                // Empty round — reset immediately (no settlement animation)
+                // Empty round - reset immediately (no settlement animation)
                 resetForNewRound(newRound)
             }
         })
@@ -395,7 +395,7 @@ setCells(blocksToGrid(d.blocks))
                 setSelectedBlocks(allBlocks)
                 window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: allBlocks, count: allBlocks.length } }))
             } else if (enabled && strategy === "select") {
-                // Allow user to pick blocks on grid — clear previous selection
+                // Allow user to pick blocks on grid - clear previous selection
                 setSelectedBlocks([])
                 window.dispatchEvent(new CustomEvent("blocksChanged", { detail: { blocks: [], count: 0 } }))
             } else {
@@ -503,7 +503,7 @@ setCells(blocksToGrid(d.blocks))
         return () => unsub()
     }, [heatmapEnabled, subscribeGlobal])
 
-    // Rank cells into quintiles (0 = coldest, 4 = hottest) — 5 cells per bin.
+    // Rank cells into quintiles (0 = coldest, 4 = hottest) - 5 cells per bin.
     // Discrete bins scale better than continuous gradients on a 25-cell grid.
     const heatmapRanks = useMemo(() => {
         if (!heatmapEnabled || heatmapTotal === 0) return null
@@ -517,7 +517,7 @@ setCells(blocksToGrid(d.blocks))
         return ranks as number[]
     }, [heatmapEnabled, heatmapCounts, heatmapTotal])
 
-    // Monochrome amber scale — single-hue discrete bins, dark-UI friendly.
+    // Monochrome amber scale - single-hue discrete bins, dark-UI friendly.
     // Number on the cell does the primary work; color is ambient pattern signal.
     // Agent-card style: bright border is the main signal. Background stays dark & uniform-ish.
     // No big outer glows (they'd clash between adjacent cells). Inset glow gives the "lit from inside" feel.
@@ -577,7 +577,7 @@ setCells(blocksToGrid(d.blocks))
     const selectedBlocksRef = useRef(selectedBlocks)
     selectedBlocksRef.current = selectedBlocks
 
-    // Drag-to-select state (refs — avoid re-renders during a drag gesture)
+    // Drag-to-select state (refs - avoid re-renders during a drag gesture)
     const isDraggingRef = useRef(false)
     const dragToggledRef = useRef<Set<number>>(new Set())
     const pendingDragOpRef = useRef<"add" | "remove" | null>(null)
@@ -617,11 +617,11 @@ setCells(blocksToGrid(d.blocks))
         const adx = Math.abs(dx)
         const ady = Math.abs(dy)
 
-        // Not yet committed — decide between scroll (touch + mostly-vertical) and drag.
+        // Not yet committed - decide between scroll (touch + mostly-vertical) and drag.
         if (!dragCommittedRef.current) {
             if (Math.max(adx, ady) < DRAG_THRESHOLD) return
             if (isTouch && ady > adx * 1.3) {
-                // Finger is scrolling vertically — release so the browser handles it
+                // Finger is scrolling vertically - release so the browser handles it
                 isDraggingRef.current = false
                 dragStartPosRef.current = null
                 return
@@ -668,7 +668,7 @@ setCells(blocksToGrid(d.blocks))
         }
 
         if (pointerType === 'touch') {
-            // Native touch path — preventDefault on touchmove actually works on iOS with {passive:false}
+            // Native touch path - preventDefault on touchmove actually works on iOS with {passive:false}
             const handleTouchMove = (ev: TouchEvent) => {
                 if (ev.touches.length !== 1) return
                 const t = ev.touches[0]
@@ -760,7 +760,7 @@ disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMi
                                     }}>
                                         {applyHeat
                                             ? `${heatFreq.toFixed(1)}%`
-                                            : (cell.amount > 0 ? cell.amount.toFixed(4) : '—')}
+                                            : (cell.amount > 0 ? cell.amount.toFixed(4) : ' - ')}
                                     </div>
                                     {heatmapEnabled && heatmapHover === index && heatmapTotal > 0 && (
                                         <div style={{
@@ -790,7 +790,7 @@ disabled={phase !== "counting" || isDeployed || hasDeployedThisRound || isAutoMi
                 })}
             </div>
 
-            {/* Heat map legend — shown only when enabled */}
+            {/* Heat map legend - shown only when enabled */}
             {heatmapEnabled && (
                 <div style={{
                     display: 'flex',

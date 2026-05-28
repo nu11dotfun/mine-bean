@@ -29,7 +29,7 @@ export async function GET(_req: Request, { params }: { params: { address: string
   const address = (await params).address.toLowerCase()
 
   try {
-    // 1. Fetch user's full deployment history (high limit — users deploy multiple blocks per round)
+    // 1. Fetch user's full deployment history (high limit - users deploy multiple blocks per round)
     const histRes = await fetch(`${API_BASE}/api/user/${address}/history?type=deploy&limit=1000`)
     if (!histRes.ok) return NextResponse.json([])
 
@@ -66,12 +66,12 @@ export async function GET(_req: Request, { params }: { params: { address: string
         for (const b of decodeBlockMask(h.blockMask)) userBlocks.add(b)
       }
 
-      // isWin comparison stays 0-indexed — matches both bitmask and API winningBlock
+      // isWin comparison stays 0-indexed - matches both bitmask and API winningBlock
       const isWin = userBlocks.has(Number(winningBlock))
       const beanpotAmountRaw = roundData?.beanpotAmount || '0'
       const isBeanpot = BigInt(beanpotAmountRaw) > BigInt(0)
 
-      // deployed comes from history (covers losers too — miners list only has winners)
+      // deployed comes from history (covers losers too - miners list only has winners)
       const deployed = history
         .filter(h => Number(h.roundId) === roundId)
         .reduce((sum, h) => sum + Number(h.totalAmount || '0'), 0) / 1e18

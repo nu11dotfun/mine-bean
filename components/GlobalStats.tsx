@@ -105,21 +105,21 @@ export default function GlobalStats({
         {
             value: data?.circulatingSupply != null
                 ? Math.floor(data.circulatingSupply).toLocaleString()
-                : "—",
+                : " - ",
             label: "Circulating Supply",
             iconType: "beans",
         },
         {
             value: data?.burnedTotal != null
                 ? Math.floor(data.burnedTotal).toLocaleString()
-                : "—",
+                : " - ",
             label: "Burned",
             iconType: "beans",
         },
         {
             value: data?.protocolRevenue != null
                 ? data.protocolRevenue.toLocaleString(undefined, { minimumFractionDigits: 4, maximumFractionDigits: 4 })
-                : "—",
+                : " - ",
             label: "Protocol Revenue",
             iconType: "eth",
         },
@@ -161,7 +161,7 @@ export default function GlobalStats({
                     ))}
                 </div>
 
-                {/* Deflationary Tracker — Mobile */}
+                {/* Deflationary Tracker - Mobile */}
                 <div style={{ marginTop: 16 }}>
                     <TrackerCard
                         periods={periods}
@@ -207,7 +207,7 @@ export default function GlobalStats({
                 ))}
             </div>
 
-            {/* Deflationary Tracker — Desktop */}
+            {/* Deflationary Tracker - Desktop */}
             <div style={styles.trackerSection}>
                 <TrackerCard
                     periods={periods}
@@ -287,13 +287,13 @@ function TrackerCard({ periods, selectedPeriod, setSelectedPeriod, periodBurned,
                 ))}
             </div>
 
-            {/* Three stat boxes in a row — same style as the protocol stat boxes above */}
+            {/* Three stat boxes in a row - same style as the protocol stat boxes above */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 8 : 16 }}>
                 {/* Burned */}
                 <div style={boxStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
                         <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? Math.floor(periodBurned).toLocaleString() : '—'}</span>
+                        <span>{hasData ? Math.floor(periodBurned).toLocaleString() : ' - '}</span>
                     </div>
                     <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Burned</div>
                 </div>
@@ -302,7 +302,7 @@ function TrackerCard({ periods, selectedPeriod, setSelectedPeriod, periodBurned,
                 <div style={boxStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
                         <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? Math.floor(periodMinted).toLocaleString() : '—'}</span>
+                        <span>{hasData ? Math.floor(periodMinted).toLocaleString() : ' - '}</span>
                     </div>
                     <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Emitted</div>
                 </div>
@@ -311,7 +311,7 @@ function TrackerCard({ periods, selectedPeriod, setSelectedPeriod, periodBurned,
                 <div style={boxStyle}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
                         <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? `${periodNet >= 0 ? '+' : '-'}${Math.floor(Math.abs(periodNet)).toLocaleString()}` : '—'}</span>
+                        <span>{hasData ? `${periodNet >= 0 ? '+' : '-'}${Math.floor(Math.abs(periodNet)).toLocaleString()}` : ' - '}</span>
                     </div>
                     <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Net Change</div>
                 </div>

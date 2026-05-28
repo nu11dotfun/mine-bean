@@ -187,7 +187,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     beanEarned: userBEANInVault,
   }
 
-  // Layer 2 wrong-network gate — every tx handler diverts to switchToBase() when wallet is off-chain.
+  // Layer 2 wrong-network gate - every tx handler diverts to switchToBase() when wallet is off-chain.
   const { isOnBase, switchToBase } = useIsOnBase()
 
   // ── Write contracts ──
@@ -229,13 +229,13 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     }
   }, [depositConfirmed])
 
-  // On-chain revert handling — reset UI when tx submits but reverts
+  // On-chain revert handling - reset UI when tx submits but reverts
   useEffect(() => { if (approveReverted) setDepositStep('idle') }, [approveReverted])
   useEffect(() => { if (lockReverted) setDepositStep('idle') }, [lockReverted])
   useEffect(() => { if (depositReverted) setDepositStep('idle') }, [depositReverted])
   useEffect(() => { if (withdrawReverted) setWithdrawPending(false) }, [withdrawReverted])
 
-  // Withdraw confirmed — invalidate all queries to force fresh contract reads
+  // Withdraw confirmed - invalidate all queries to force fresh contract reads
   useEffect(() => {
     if (withdrawETHConfirmed || withdrawReverted) {
       setWithdrawPending(false)
@@ -581,7 +581,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                   ))}
                 </div>
 
-                {/* Invest button — coming soon for agents without vaults */}
+                {/* Invest button - coming soon for agents without vaults */}
                 {!agent.vaultAddress && (
                   <>
                     <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
@@ -599,12 +599,12 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                         opacity: 0.6,
                       }}
                     >
-                      INVEST — COMING SOON
+                      INVEST - COMING SOON
                     </button>
                   </>
                 )}
 
-                {/* Invest button — only for agents with vaults */}
+                {/* Invest button - only for agents with vaults */}
                 {agent.vaultAddress && (
                   <>
                     <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
@@ -626,7 +626,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       INVEST
                     </button>
 
-                    {/* Custom Params — opens config drawer with custom params + backtest */}
+                    {/* Custom Params - opens config drawer with custom params + backtest */}
                     <button
                       onClick={() => setShowAgentConfig(true)}
                       style={{
@@ -656,7 +656,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       CUSTOM INVEST
                     </button>
 
-                    {/* Pending vault claim — shows when user has resolved ETH from mid-round withdrawal */}
+                    {/* Pending vault claim - shows when user has resolved ETH from mid-round withdrawal */}
                     {hasPendingWithdrawal && pendingResolved && parseFloat(pendingETHAmount) > 0 && (
                       <div style={{
                         marginTop: 8,
@@ -692,7 +692,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                       </div>
                     )}
 
-                    {/* Legacy vault — shows when user has balance in old vault contract */}
+                    {/* Legacy vault - shows when user has balance in old vault contract */}
                     {hasOldVaultBalance && isConnected && (
                       <div style={{
                         marginTop: 8,
@@ -853,7 +853,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
             {/* Performance chart */}
             <NeonCard style={{ flexShrink: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <span style={s.sectionLabel}>{'// PERFORMANCE — 7D'}</span>
+                <span style={s.sectionLabel}>{'// PERFORMANCE - 7D'}</span>
                 <span style={{
                   fontSize: 16, fontWeight: 700,
                   color: '#fff',
@@ -886,7 +886,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
             {/* Round history */}
             <NeonCard fillHeight>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexShrink: 0 }}>
-                <span style={s.sectionLabel}>{'// ROUND HISTORY — 7D'}</span>
+                <span style={s.sectionLabel}>{'// ROUND HISTORY - 7D'}</span>
                 <div style={{ display: 'flex', gap: 10, fontSize: 13, fontFamily: "'Space Mono', monospace", fontWeight: 700 }}>
                   <span style={{ color: 'rgba(255,255,255,0.5)' }}>{wins}W</span>
                   <span style={{ color: 'rgba(255,255,255,0.12)' }}>/</span>
@@ -923,12 +923,12 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                     <span style={{ ...s.numCell, textAlign: 'right' }}>{r.deployed.toFixed(4)}</span>
                     {!isMobile && (
                       <span style={{ ...s.numCell, textAlign: 'right' }}>
-                        {!r.settled ? '—' : r.won.toFixed(4)}
+                        {!r.settled ? ' - ' : r.won.toFixed(4)}
                       </span>
                     )}
                     {!isMobile && (
                       <span style={{ ...s.numCell, textAlign: 'right', color: r.beansEarned > 0 ? '#FFD700' : 'rgba(255,255,255,0.5)' }}>
-                        {!r.settled ? '—' : r.beansEarned > 0 ? r.beansEarned.toFixed(4) : '0'}
+                        {!r.settled ? ' - ' : r.beansEarned > 0 ? r.beansEarned.toFixed(4) : '0'}
                       </span>
                     )}
                     <div style={{ textAlign: 'right' }}>
@@ -952,7 +952,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                 ))}
               </div>
 
-              {/* Pagination controls — always visible */}
+              {/* Pagination controls - always visible */}
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 16, paddingTop: 10, flexShrink: 0, borderTop: '1px solid rgba(255,255,255,0.06)' }}>
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}

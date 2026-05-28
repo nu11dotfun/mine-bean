@@ -42,7 +42,7 @@ async function postBeanpotEmbed(
   beanUsd: number
 ) {
   const embed = {
-    title: `☕ BEANPOT — Round #${roundId}`,
+    title: `☕ BEANPOT - Round #${roundId}`,
     description: `**Block #${winningBlock}** just hit the beanpot!`,
     color: 0xffd700,
     fields: [
@@ -73,7 +73,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'DISCORD_BEANPOT_WEBHOOK_URL not set' }, { status: 500 })
   }
 
-  // Test mode — hit /api/cron/beanpot?test=true
+  // Test mode - hit /api/cron/beanpot?test=true
   const url = new URL(req.url)
   if (url.searchParams.get('test') === 'true') {
     const beanUsd = await getBeanPrice()
@@ -84,7 +84,7 @@ export async function GET(req: Request) {
   try {
     const beanUsd = await getBeanPrice()
 
-    // Base produces ~1 block per 2 seconds — 150 blocks ≈ 5 minutes of coverage
+    // Base produces ~1 block per 2 seconds - 150 blocks ≈ 5 minutes of coverage
     const latestBlock = await publicClient.getBlockNumber()
     const fromBlock = latestBlock - BigInt(150)
 

@@ -93,7 +93,7 @@ export default function SidebarControls({
     const [autoMinerState, setAutoMinerState] = useState<AutoMinerState | null>(null)
     const autoMinerActive = autoMinerState?.active === true
 
-    // Heat map toggle — broadcasts to MiningGrid via window event
+    // Heat map toggle - broadcasts to MiningGrid via window event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
     const [heatmapRounds, setHeatmapRounds] = useState<number>(500)
     const toggleHeatmap = () => {
@@ -373,7 +373,7 @@ const handleSelectClick = () => {
                     <div style={styles.statValue}>
                         <BeanLogo size={20} />
                         <span style={styles.beanpotValue}>
-                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : '—'}
+                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : ' - '}
                         </span>
                     </div>
                     <div style={styles.statLabel}>
@@ -404,7 +404,7 @@ const handleSelectClick = () => {
                     <div style={styles.statValue}>
                         <EthLogo size={20} />
                         <span style={styles.statValueText}>
-                            {totalDeployed > 0 ? totalDeployed.toFixed(5) : '—'}
+                            {totalDeployed > 0 ? totalDeployed.toFixed(5) : ' - '}
                         </span>
                     </div>
                     <div style={styles.statLabel}>
@@ -421,7 +421,7 @@ const handleSelectClick = () => {
                 >
                     <div style={styles.statValue}>
                         <EthLogo size={20} />
-                        <span style={styles.statValueText}>{userDeployed > 0 ? userDeployed.toFixed(5) : '—'}</span>
+                        <span style={styles.statValueText}>{userDeployed > 0 ? userDeployed.toFixed(5) : ' - '}</span>
                     </div>
                     <div style={styles.statLabel}>
                         {isHoveringYouDeployed && userDeployed > 0
@@ -432,7 +432,7 @@ const handleSelectClick = () => {
             </div>
 
             <div style={styles.controlsCard}>
-                {/* Mode toggle — hidden when AutoMiner is active */}
+                {/* Mode toggle - hidden when AutoMiner is active */}
                 {!autoMinerActive && (
                     <div style={styles.modeToggle}>
                         <button
@@ -484,7 +484,7 @@ const handleSelectClick = () => {
                     </div>
                 )}
 
-                {/* Heat Map toggle — affects grid rendering via window event */}
+                {/* Heat Map toggle - affects grid rendering via window event */}
                 {!autoMinerActive && (
                     <div
                         onClick={toggleHeatmap}
@@ -536,7 +536,7 @@ const handleSelectClick = () => {
                     </div>
                 )}
 
-                {/* Heat Map round-count selector — visible only when heatmap is enabled */}
+                {/* Heat Map round-count selector - visible only when heatmap is enabled */}
                 {!autoMinerActive && heatmapEnabled && (
                     <div style={{ display: "flex", gap: 6, marginBottom: 10 }}>
                         {[250, 500, 750, 1000].map((n) => (
@@ -666,7 +666,7 @@ const handleSelectClick = () => {
                     </>
                 )}
 
-                {/* ===== AUTO MODE — CONFIGURE VIEW ===== */}
+                {/* ===== AUTO MODE - CONFIGURE VIEW ===== */}
                 {mode === "auto" && !autoMinerActive && (
                     <>
                         <div style={styles.balanceRow}>
@@ -813,7 +813,7 @@ const handleSelectClick = () => {
                     </>
                 )}
 
-                {/* ===== AUTO MODE — ACTIVE VIEW ===== */}
+                {/* ===== AUTO MODE - ACTIVE VIEW ===== */}
                 {autoMinerActive && autoMinerState && (
                     <>
                         <div style={styles.activeHeader}>

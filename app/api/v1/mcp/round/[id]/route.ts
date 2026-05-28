@@ -32,7 +32,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
     return NextResponse.json(data, {
       headers: {
-        // Historical rounds are immutable once settled — cache long.
+        // Historical rounds are immutable once settled - cache long.
         'Cache-Control': 'public, max-age=60, stale-while-revalidate=300',
       },
     })

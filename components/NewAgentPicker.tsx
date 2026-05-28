@@ -76,7 +76,7 @@ export default function NewAgentPicker({ isOpen, onClose, onPick }: NewAgentPick
         }}
       />
 
-      {/* Modal card — glassmorphism to match site language */}
+      {/* Modal card - glassmorphism to match site language */}
       <div
         role="dialog"
         aria-label="Pick a base strategy"

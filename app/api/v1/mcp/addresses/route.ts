@@ -3,7 +3,7 @@ import { CONTRACTS } from '@/lib/contracts'
 
 // Base MCP plugin endpoint: chain config + canonical MineBean contract addresses.
 // Matches the manifest's documented response shape.
-// Cache aggressively — addresses only change on contract migration.
+// Cache aggressively - addresses only change on contract migration.
 
 export async function GET() {
   return NextResponse.json(

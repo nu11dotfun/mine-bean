@@ -82,7 +82,7 @@ export async function GET(request: Request) {
 
     // Assign Holder role if total >= 1 BEAN
     if (totalBean >= 1) {
-      console.log(`[Discord] assigning Holder role — guildId=${process.env.DISCORD_GUILD_ID} userId=${discordUser.id} roleId=${process.env.DISCORD_HOLDER_ROLE_ID}`)
+      console.log(`[Discord] assigning Holder role - guildId=${process.env.DISCORD_GUILD_ID} userId=${discordUser.id} roleId=${process.env.DISCORD_HOLDER_ROLE_ID}`)
       const roleRes = await fetch(
         `https://discord.com/api/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUser.id}/roles/${process.env.DISCORD_HOLDER_ROLE_ID}`,
         {
@@ -96,12 +96,12 @@ export async function GET(request: Request) {
       )
       console.log(`[Discord] Holder role assign status=${roleRes.status}`, await roleRes.text())
     } else {
-      console.log(`[Discord] skipping Holder role — total ${totalBean} below threshold`)
+      console.log(`[Discord] skipping Holder role - total ${totalBean} below threshold`)
     }
 
     // Assign Whale role if total >= 100 BEAN
     if (totalBean >= 100) {
-      console.log(`[Discord] assigning Whale role — userId=${discordUser.id} roleId=${process.env.DISCORD_WHALE_ROLE_ID}`)
+      console.log(`[Discord] assigning Whale role - userId=${discordUser.id} roleId=${process.env.DISCORD_WHALE_ROLE_ID}`)
       const whaleRes = await fetch(
         `https://discord.com/api/guilds/${process.env.DISCORD_GUILD_ID}/members/${discordUser.id}/roles/${process.env.DISCORD_WHALE_ROLE_ID}`,
         {

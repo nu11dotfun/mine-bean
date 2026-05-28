@@ -59,10 +59,10 @@ export default function Stake() {
 
   const handleDeposit = useCallback((amount: bigint, compoundFeeBnb?: bigint) => {
     if (!isConnected) return
-    // Check if allowance is already sufficient — skip approve if so
+    // Check if allowance is already sufficient - skip approve if so
     const currentAllowance = typeof allowance === 'bigint' ? allowance : BigInt(0)
     if (currentAllowance >= amount) {
-      // Allowance sufficient — deposit directly
+      // Allowance sufficient - deposit directly
       writeContract2({
         chainId: base.id,
         address: CONTRACTS.Staking.address,
@@ -73,7 +73,7 @@ export default function Stake() {
         dataSuffix: BUILDER_CODE_SUFFIX,
       })
     } else {
-      // Need approval first — store for the approval->deposit chain
+      // Need approval first - store for the approval->deposit chain
       setPendingApprovalAmount(amount)
       setPendingCompoundFee(compoundFeeBnb)
       writeContract({

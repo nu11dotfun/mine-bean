@@ -55,7 +55,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
                     <div style={styles.valueRow}>
                         <BeanLogo size={20} />
                         <span style={styles.value}>
-                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : '—'}
+                            {beanpotPool > 0 ? beanpotPool.toFixed(1) : ' - '}
                         </span>
                     </div>
                     <span style={styles.label}>Beanpot</span>
@@ -72,7 +72,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
                     <div style={styles.valueRow}>
                         <img src={ETH_LOGO_URL} alt="ETH" style={styles.ethLogo} />
                         <span style={styles.value}>
-                            {totalDeployed > 0 ? totalDeployed.toFixed(4) : '—'}
+                            {totalDeployed > 0 ? totalDeployed.toFixed(4) : ' - '}
                         </span>
                     </div>
                     <span style={styles.label}>Total deployed</span>
@@ -80,7 +80,7 @@ export default function MobileStatsBar({ userAddress }: MobileStatsBarProps) {
                 <div style={styles.stat}>
                     <div style={styles.valueRow}>
                         <img src={ETH_LOGO_URL} alt="ETH" style={styles.ethLogo} />
-                        <span style={styles.value}>{userDeployed > 0 ? userDeployed.toFixed(4) : '—'}</span>
+                        <span style={styles.value}>{userDeployed > 0 ? userDeployed.toFixed(4) : ' - '}</span>
                     </div>
                     <span style={styles.label}>You deployed</span>
                 </div>

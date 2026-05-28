@@ -31,7 +31,7 @@ export const CONTRACTS = {
     abi: StakingABI,
   },
   AgentVault: {
-    abi: AgentVaultABI, // Each agent has its own vault address — see agents.ts vaultAddress field
+    abi: AgentVaultABI, // Each agent has its own vault address - see agents.ts vaultAddress field
   },
   AgentVaultV1: {
     abi: AgentVaultV1ABI, // Legacy vault ABI (withdrawETH takes uint256 param)
@@ -42,7 +42,7 @@ export const CONTRACTS = {
 // Make sure they reflect the true contract values.
 export const MIN_DEPLOY_PER_BLOCK = 0.0000025 // ETH
 export const EXECUTOR_FEE_BPS = 100 // 1% AutoMiner executor fee
-export const EXECUTOR_FLAT_FEE = 0.000006 // ETH per round — fee floor for AutoMiner
+export const EXECUTOR_FLAT_FEE = 0.000006 // ETH per round - fee floor for AutoMiner
 
 // ERC-8021 Builder Code attribution suffix (bc_rudgiazu)
 export const BUILDER_CODE_SUFFIX = '0x62635f7275646769617a750b0080218021802180218021802180218021' as `0x${string}`

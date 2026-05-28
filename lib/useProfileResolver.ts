@@ -46,7 +46,7 @@ export function useProfileResolver(addresses: string[]) {
         const uncached = all.filter(a => !profileCache.has(a))
 
         if (uncached.length === 0) {
-            // All cached — build result from cache
+            // All cached - build result from cache
             const map = new Map<string, ProfileInfo>()
             all.forEach(a => {
                 const cached = profileCache.get(a)

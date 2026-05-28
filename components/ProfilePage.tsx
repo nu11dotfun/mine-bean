@@ -183,8 +183,8 @@ function PnlCard({ round, pfpUrl, username, onClose, ethPriceUsd }: { round: Rou
     const text = round.isBeanpot
       ? `Just hit the BEANPOT for ${round.beanpotAmount?.toFixed(3)} $BEAN on @minebean_`
       : round.isWin
-      ? `${round.pctChange >= 0 ? '+' : ''}${round.pctChange}% on Round #${round.id} — @minebean_ is live on Base`
-      : `Round #${round.id} on @minebean_ — the grind continues`
+      ? `${round.pctChange >= 0 ? '+' : ''}${round.pctChange}% on Round #${round.id} - @minebean_ is live on Base`
+      : `Round #${round.id} on @minebean_ - the grind continues`
     const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent('https://minebean.com')}`
     // Copy card image to clipboard so user can paste it into the tweet
     if (cardRef.current) {
@@ -278,7 +278,7 @@ function PnlCard({ round, pfpUrl, username, onClose, ethPriceUsd }: { round: Rou
                   <span style={{ fontFamily: "'Space Mono', monospace", fontSize: 13, fontWeight: 700, color: label === 'Won' ? (round.isWin ? '#00C853' : '#FF4444') : label === 'Beanpot' ? '#FFD700' : label === 'BEAN' ? '#3B7BFF' : '#fff' }}>{value}</span>
                 </div>
               ))}
-              {/* Your Picks — stacked with wrapping chips */}
+              {/* Your Picks - stacked with wrapping chips */}
               <div style={{ padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
                 <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.3)', display: 'block', marginBottom: 8 }}>Your Picks</span>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
@@ -459,13 +459,13 @@ export default function ProfilePage() {
       setSocialToast('Discord connected!')
       if (address) fetchSocial(address)
     } else if (discord === 'error') {
-      setSocialToast('Discord connection failed — try again')
+      setSocialToast('Discord connection failed - try again')
     }
     if (twitter === 'connected') {
       setSocialToast('X connected!')
       if (address) fetchSocial(address)
     } else if (twitter === 'error') {
-      setSocialToast('X connection failed — try again')
+      setSocialToast('X connection failed - try again')
     }
     if (discord || twitter) {
       window.history.replaceState({}, '', '/profile')

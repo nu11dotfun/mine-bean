@@ -40,11 +40,11 @@ export default function BeanbookPage() {
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
 
-  // Trending subbeans — frozen from the initial b/all load so they don't disappear when filtering
+  // Trending subbeans - frozen from the initial b/all load so they don't disappear when filtering
   const [frozenSubbeans, setFrozenSubbeans] = useState<ReturnType<typeof computeTrendingSubbeans>>([])
   const trendingSubbeans = frozenSubbeans.length > 0 ? frozenSubbeans : computeTrendingSubbeans(posts)
 
-  // Fetch feed from backend — re-fetches when subbean filter changes
+  // Fetch feed from backend - re-fetches when subbean filter changes
   useEffect(() => {
     let cancelled = false
     setLoading(true)
@@ -66,7 +66,7 @@ export default function BeanbookPage() {
         }
       } catch {
         if (cancelled) return
-        setError('Failed to load feed — please try again later')
+        setError('Failed to load feed - please try again later')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -302,7 +302,7 @@ export default function BeanbookPage() {
             )}
           </div>
 
-          {/* Sidebar — SubBeans (trending) */}
+          {/* Sidebar - SubBeans (trending) */}
           {!isMobile && (
             <div style={{ width: 320, flexShrink: 0 }}>
               <div style={{
@@ -725,7 +725,7 @@ function StatsEmbed({ stats, isMobile }: { stats: NonNullable<BeanbookPost['stat
         <StatCell label="BLOCKS" value={stats.blocks.toString()} />
         <StatCell label="DEPLOYED" value={stats.deployed.toFixed(4)} unit="ETH" />
         <StatCell label="P&L" value={`${pnlPrefix}${stats.pnl.toFixed(4)}`} unit="ETH" color={pnlColor} />
-        <StatCell label="BEAN" value={stats.bean > 0 ? stats.bean.toFixed(1) : '—'} color={stats.bean > 0 ? '#FFD700' : undefined} />
+        <StatCell label="BEAN" value={stats.bean > 0 ? stats.bean.toFixed(1) : ' - '} color={stats.bean > 0 ? '#FFD700' : undefined} />
       </div>
     </div>
   )

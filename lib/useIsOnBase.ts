@@ -10,7 +10,7 @@ import { base } from 'wagmi/chains'
  *
  * IMPORTANT: We read `useAccount().chainId`, NOT `useChainId()`.
  * `useChainId()` returns the *configured* chain id (defaults to the first
- * configured chain — base.id — when the wallet is on an unsupported chain like
+ * configured chain - base.id - when the wallet is on an unsupported chain like
  * Ethereum mainnet), which caused `isOnBase` to incorrectly evaluate to `true`
  * for users on the wrong network. `useAccount().chainId` returns the wallet's
  * *actual* current chain id, including unsupported ones.

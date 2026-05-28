@@ -64,7 +64,7 @@ export default function MobileControls({
     const [autoMinerState, setAutoMinerState] = useState<AutoMinerState | null>(null)
     const autoMinerActive = autoMinerState?.active === true
 
-    // Heat map toggle — broadcasts to MiningGrid via window event
+    // Heat map toggle - broadcasts to MiningGrid via window event
     const [heatmapEnabled, setHeatmapEnabled] = useState(false)
     const [heatmapRounds, setHeatmapRounds] = useState<number>(500)
     const toggleHeatmap = () => {
@@ -296,7 +296,7 @@ export default function MobileControls({
     return (
         <>
             <div style={styles.container}>
-                {/* Mode Toggle — hidden when AutoMiner active */}
+                {/* Mode Toggle - hidden when AutoMiner active */}
                 {!autoMinerActive && (
                     <div style={styles.modeToggle}>
                         <button
@@ -329,7 +329,7 @@ export default function MobileControls({
                     </div>
                 )}
 
-                {/* Heat Map toggle — affects grid rendering via window event */}
+                {/* Heat Map toggle - affects grid rendering via window event */}
                 {!autoMinerActive && mode !== "agent" && (
                     <div
                         onClick={toggleHeatmap}
@@ -381,7 +381,7 @@ export default function MobileControls({
                     </div>
                 )}
 
-                {/* Heat Map round-count selector — visible only when heatmap is enabled */}
+                {/* Heat Map round-count selector - visible only when heatmap is enabled */}
                 {!autoMinerActive && mode !== "agent" && heatmapEnabled && (
                     <div style={{ display: "flex", gap: 5, marginBottom: 8 }}>
                         {[250, 500, 750, 1000].map((n) => (
@@ -493,7 +493,7 @@ export default function MobileControls({
                     />
                 )}
 
-                {/* ===== AUTO MODE — CONFIGURE VIEW ===== */}
+                {/* ===== AUTO MODE - CONFIGURE VIEW ===== */}
                 {mode === "auto" && !autoMinerActive && (
                     <>
                         <div style={styles.balanceRow}>
@@ -645,7 +645,7 @@ export default function MobileControls({
                     </>
                 )}
 
-                {/* ===== AUTO MODE — ACTIVE VIEW ===== */}
+                {/* ===== AUTO MODE - ACTIVE VIEW ===== */}
                 {autoMinerActive && autoMinerState && (
                     <>
                         <div style={styles.activeHeader}>
@@ -983,7 +983,7 @@ const styles: { [key: string]: React.CSSProperties } = {
 }
 
 // ── AGENT MODE BLOCK ──────────────────────────────────────────────────────
-// Mirrors SidebarControls.AgentModeBlock — saved-agents list + picker, with
+// Mirrors SidebarControls.AgentModeBlock - saved-agents list + picker, with
 // USE / EDIT / CREATE NEW dispatching the openAgentDrawer window event that
 // app/(main)/page.tsx listens for.
 function AgentModeBlock({

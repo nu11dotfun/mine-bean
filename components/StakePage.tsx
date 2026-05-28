@@ -63,7 +63,7 @@ export default function StakePage({
     const [stakingStats, setStakingStats] = useState<StakingStats | null>(null)
     const { stakeInfo: userStakeInfo, refetchStakeInfo } = useUserData()
 
-    // 7d buyback flow to stakers — used to project user rewards at current stake level
+    // 7d buyback flow to stakers - used to project user rewards at current stake level
     const [recentBeansToStakers7d, setRecentBeansToStakers7d] = useState<number>(0)
 
     // Fetch BEAN price
@@ -258,7 +258,7 @@ export default function StakePage({
     const tooltipTexts: Record<string, string> = {
         totalDeposits: "Total BEAN tokens staked in the protocol by all users.",
         apr: "Annual Percentage Rate based on the last 7 days of yield distributions. Actual returns may vary.",
-        tvl: "Total Value Locked — the USD value of all staked BEAN at current market price.",
+        tvl: "Total Value Locked - the USD value of all staked BEAN at current market price.",
         poolShare: "Your share of the staking pool. Calculated as your staked BEAN ÷ total staked BEAN.",
         estimatedRewards: "Projected based on the last 7 days of buyback flow to stakers, scaled to your current pool share. Actual rewards depend on future protocol activity and may vary.",
     }
@@ -467,7 +467,7 @@ export default function StakePage({
                             <span style={isMobile ? { fontSize: '14px', fontWeight: 500, color: '#fff' } : { fontSize: '15px', fontWeight: 500, color: '#fff' }}>
                                 {totalStaked > 0
                                     ? `${poolShare.toLocaleString(undefined, { maximumFractionDigits: poolShare < 0.01 ? 4 : 2 })}%`
-                                    : '—'}
+                                    : ' - '}
                             </span>
                         </div>
 
@@ -511,7 +511,7 @@ export default function StakePage({
                             </>
                         )}
 
-                        {/* Estimated rewards — projected from last 7d buyback flow */}
+                        {/* Estimated rewards - projected from last 7d buyback flow */}
                         <div style={styles.estRewardsSection}>
                             <div style={styles.estRewardsHeader}>
                                 <span style={isMobile ? { fontSize: '11px', fontWeight: 600, letterSpacing: '0.05em', color: '#777' } : { fontSize: '12px', fontWeight: 600, letterSpacing: '0.05em', color: '#777' }}>
@@ -540,7 +540,7 @@ export default function StakePage({
                                                     ? `~${row.value.toLocaleString(undefined, {
                                                           maximumFractionDigits: row.value < 1 ? 3 : row.value < 100 ? 2 : 0,
                                                       })}`
-                                                    : '—'}
+                                                    : ' - '}
                                             </span>
                                         </div>
                                         {row.value > 0 && beansPrice > 0 && (
@@ -556,7 +556,7 @@ export default function StakePage({
 
                             {recentBeansToStakers7d <= 0 && (
                                 <div style={{ fontSize: '11px', color: '#777', marginTop: 8, textAlign: 'center' }}>
-                                    Waiting for buyback data — projections will appear once protocol revenue distributes.
+                                    Waiting for buyback data - projections will appear once protocol revenue distributes.
                                 </div>
                             )}
                         </div>
@@ -574,7 +574,7 @@ export default function StakePage({
                         </div>
                         <div style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
                             <BeanLogo size={14} />
-                            <span>{stakingStats ? Math.floor(totalStaked).toLocaleString() : '—'}</span>
+                            <span>{stakingStats ? Math.floor(totalStaked).toLocaleString() : ' - '}</span>
                         </div>
                     </div>
 
@@ -584,7 +584,7 @@ export default function StakePage({
                             <InfoIcon id="apr" />
                         </div>
                         <span style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
-                            {stakingStats ? `${parseFloat(stakingStats.apr).toFixed(2)}%` : '—'}
+                            {stakingStats ? `${parseFloat(stakingStats.apr).toFixed(2)}%` : ' - '}
                         </span>
                     </div>
 
@@ -594,7 +594,7 @@ export default function StakePage({
                             <InfoIcon id="tvl" />
                         </div>
                         <span style={isMobile ? styles.summaryValueMobile : styles.summaryValue}>
-                            {stakingStats ? `$${parseFloat(stakingStats.tvlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'}
+                            {stakingStats ? `$${parseFloat(stakingStats.tvlUsd).toLocaleString(undefined, { maximumFractionDigits: 0 })}` : ' - '}
                         </span>
                     </div>
                 </div>

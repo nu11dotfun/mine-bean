@@ -74,11 +74,11 @@ export default function Privacy() {
         <p style={text}>We do not sell, rent, or trade your information to third parties for marketing or advertising purposes. We may share information as follows:</p>
         <p style={text}><span style={bold}>Public Blockchain Data:</span> Your wallet address and transaction details are recorded on the Base blockchain, which is publicly accessible and not controlled by us.</p>
         <p style={text}><span style={bold}>Service Providers:</span> We may share technical data with third-party providers who assist us in operating the Website. These include:</p>
-        <p style={text}>(a) <span style={bold}>RainbowKit</span> — Wallet connection user interface</p>
-        <p style={text}>(b) <span style={bold}>wagmi</span> — Blockchain interaction library</p>
-        <p style={text}>(c) <span style={bold}>Base (Coinbase L2)</span> — The underlying blockchain network</p>
-        <p style={text}>(d) <span style={bold}>Cloudflare</span> — Content delivery, image hosting, and infrastructure</p>
-        <p style={text}>(e) <span style={bold}>Vercel</span> — Website hosting and deployment</p>
+        <p style={text}>(a) <span style={bold}>RainbowKit</span> - Wallet connection user interface</p>
+        <p style={text}>(b) <span style={bold}>wagmi</span> - Blockchain interaction library</p>
+        <p style={text}>(c) <span style={bold}>Base (Coinbase L2)</span> - The underlying blockchain network</p>
+        <p style={text}>(d) <span style={bold}>Cloudflare</span> - Content delivery, image hosting, and infrastructure</p>
+        <p style={text}>(e) <span style={bold}>Vercel</span> - Website hosting and deployment</p>
         <p style={text}>These providers may process data in accordance with their own privacy policies.</p>
         <p style={text}><span style={bold}>Legal Compliance:</span> We may disclose information to comply with laws, respond to legal processes (e.g., subpoenas), or protect our rights, property, or safety.</p>
         <p style={text}><span style={bold}>Business Transfers:</span> If NU11 LABS LLC undergoes a merger, acquisition, or asset sale, your information may be transferred as part of the transaction, subject to confidentiality obligations.</p>

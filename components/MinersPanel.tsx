@@ -46,7 +46,7 @@ if (autoCloseRef.current) clearTimeout(autoCloseRef.current)
 autoCloseRef.current = setTimeout(() => setIsOpen(false), 3000)
                 }
                 // If no miners (empty round), keep showing previous round's data
-                // but don't open the panel — it stays as-is
+                // but don't open the panel - it stays as-is
             })
             .catch((err) => console.error('Failed to fetch miners:', err))
             .finally(() => setLoading(false))

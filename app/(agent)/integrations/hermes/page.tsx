@@ -49,7 +49,7 @@ export default function HermesIntegrationPage() {
   })
 
   // Read pending rewards STRAIGHT from the GridMining contract via wagmi.
-  // This is the same source `/api/user/:address/rewards` reads on the backend —
+  // This is the same source `/api/user/:address/rewards` reads on the backend  - 
   // skipping the backend entirely sidesteps any CORS, subdomain, env-var, or
   // rate-limit issue between agent.minebean.com and api.minebean.com.
   const pendingRewardsRead = useReadContract({
@@ -71,7 +71,7 @@ export default function HermesIntegrationPage() {
   const unroastedBean = parseFloat(formatUnits(unroastedBeanRaw, 18))
   const roastedBean = parseFloat(formatUnits(roastedBeanRaw, 18))
 
-  // Rounds mined — same-origin proxy at /api/user/[address]/rounds-count.
+  // Rounds mined - same-origin proxy at /api/user/[address]/rounds-count.
   // Reads canonical totals.roundsPlayed (matches main-site profile page).
   const lowerAddress = address?.toLowerCase()
   const roundsRouteQuery = useQuery({
@@ -133,7 +133,7 @@ export default function HermesIntegrationPage() {
           All integrations
         </Link>
 
-        {/* Hero — logo + title centered as a group, subtitle centered below */}
+        {/* Hero - logo + title centered as a group, subtitle centered below */}
         <section style={s.hero}>
           <div style={s.heroTitleRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -147,12 +147,12 @@ export default function HermesIntegrationPage() {
           </p>
         </section>
 
-        {/* Mining stats — wallet-scoped, LLM provider agnostic */}
+        {/* Mining stats - wallet-scoped, LLM provider agnostic */}
         {!isConnected && (
           <section style={s.emptyState}>
             <span style={s.emptyTitle}>Connect your wallet</span>
             <span style={s.emptySub}>
-              Once connected, your BEAN mining stats appear here. The wallet is the source of truth — your LLM provider (Venice, Anthropic, DeepSeek, anything) doesn&apos;t change what shows up.
+              Once connected, your BEAN mining stats appear here. The wallet is the source of truth - your LLM provider (Venice, Anthropic, DeepSeek, anything) doesn&apos;t change what shows up.
             </span>
           </section>
         )}

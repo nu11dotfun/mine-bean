@@ -64,12 +64,12 @@ export default function AboutPage({
             title: "Overview",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: paragraphGap }}>
-                    <p style={{ margin: 0 }}><strong>BEAN</strong> is a gamified mining protocol on Base where players compete in continuous 60-second rounds to earn ETH and BEAN tokens. It combines the excitement of competitive gaming with real DeFi mechanics — every round has real stakes, real winners, and real rewards.</p>
-                    <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy ETH onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is applied to the losers&apos; pool. The remaining ETH from losing blocks is redistributed to miners on the winning block — proportional to how much each player deployed.</p>
+                    <p style={{ margin: 0 }}><strong>BEAN</strong> is a gamified mining protocol on Base where players compete in continuous 60-second rounds to earn ETH and BEAN tokens. It combines the excitement of competitive gaming with real DeFi mechanics - every round has real stakes, real winners, and real rewards.</p>
+                    <p style={{ margin: 0 }}>The game takes place on a 5×5 grid of 25 blocks. Each round, players deploy ETH onto the blocks they think will win. When the timer runs out, one winning block is randomly selected on-chain. A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is applied to the losers&apos; pool. The remaining ETH from losing blocks is redistributed to miners on the winning block - proportional to how much each player deployed.</p>
                     <p style={{ margin: 0 }}>On top of ETH rewards, 1 BEAN is minted each round and awarded to a miner on the winning block. A growing jackpot called the Beanpot can trigger at any time, distributing a potentially massive BEAN bonus. And a unique roasting mechanic rewards patient miners who delay claiming their earned BEAN.</p>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Why BEAN?</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEAN tokens reward patience. When you win BEAN, they start as &quot;unroasted&quot; — raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEAN. The longer you let your BEAN roast, the more roasted BEAN you accumulate from others claiming before you.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Just like coffee beans need to be roasted to reach their full potential, BEAN tokens reward patience. When you win BEAN, they start as &quot;unroasted&quot; - raw and unclaimed. A 10% roasting fee is applied when you claim, and that fee is redistributed to other miners still holding unclaimed BEAN. The longer you let your BEAN roast, the more roasted BEAN you accumulate from others claiming before you.</p>
                     </div>
                 </div>
             ),
@@ -82,9 +82,9 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>What You Need</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>A Web3 wallet</strong> — MetaMask, Trust Wallet, Rabby, or any WalletConnect-compatible wallet. Make sure it&apos;s configured for the Base network.</li>
-                            <li><strong>ETH for mining</strong> — This is what you deploy on the grid each round. You can start with as little as 0.00001 ETH to get a feel for the game.</li>
-                            <li><strong>A small amount of ETH for gas</strong> — Transaction fees on Base are very low (typically under $0.05 per transaction).</li>
+                            <li><strong>A Web3 wallet</strong> - MetaMask, Trust Wallet, Rabby, or any WalletConnect-compatible wallet. Make sure it&apos;s configured for the Base network.</li>
+                            <li><strong>ETH for mining</strong> - This is what you deploy on the grid each round. You can start with as little as 0.00001 ETH to get a feel for the game.</li>
+                            <li><strong>A small amount of ETH for gas</strong> - Transaction fees on Base are very low (typically under $0.05 per transaction).</li>
                         </ol>
                     </div>
                     <div>
@@ -95,9 +95,9 @@ export default function AboutPage({
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Your Account</h3>
                         <p style={{ margin: 0 }}>Click your address in the header to open the Account panel. Here you can see:</p>
                         <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
-                            <li><strong>Wallet Address</strong> — Your connected address with a copy button for easy sharing.</li>
-                            <li><strong>ETH Balance</strong> — Your current ETH balance on Base, used for deploying and gas fees.</li>
-                            <li><strong>Portfolio</strong> — Your BEAN token breakdown across three categories: Wallet (BEAN in your wallet), Staked (BEAN deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
+                            <li><strong>Wallet Address</strong> - Your connected address with a copy button for easy sharing.</li>
+                            <li><strong>ETH Balance</strong> - Your current ETH balance on Base, used for deploying and gas fees.</li>
+                            <li><strong>Portfolio</strong> - Your BEAN token breakdown across three categories: Wallet (BEAN in your wallet), Staked (BEAN deposited in the staking contract), and Rewards (unclaimed staking rewards).</li>
                         </ul>
                         <SectionImage alt="Account panel showing wallet and portfolio" placeholder="accountpanel.png" maxWidth="280px" />
                     </div>
@@ -107,7 +107,7 @@ export default function AboutPage({
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Quick Start</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Once connected, you&apos;re ready to mine. Head to the main page, select some blocks on the grid, enter an ETH amount, and hit Deploy. Your first round takes about 60 seconds to settle — watch the elimination animation and see if your blocks win. Check the About sections below to understand the full mechanics before deploying larger amounts.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Once connected, you&apos;re ready to mine. Head to the main page, select some blocks on the grid, enter an ETH amount, and hit Deploy. Your first round takes about 60 seconds to settle - watch the elimination animation and see if your blocks win. Check the About sections below to understand the full mechanics before deploying larger amounts.</p>
                     </div>
                 </div>
             ),
@@ -116,16 +116,16 @@ export default function AboutPage({
             title: "Mining",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEAN. Rounds run continuously — one every 60 seconds — on a 5×5 grid of 25 blocks. Each round is an independent game with its own set of deployments, a randomly selected winner, and immediate payouts.</p>
+                    <p style={{ margin: 0 }}>Mining is the core mechanic of BEAN. Rounds run continuously - one every 60 seconds - on a 5×5 grid of 25 blocks. Each round is an independent game with its own set of deployments, a randomly selected winner, and immediate payouts.</p>
                     <SectionImage alt="BEAN mining grid with active round" placeholder="beansmininggrid.png" maxWidth="520px" />
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How a Round Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Select your blocks</strong> — Click on any of the 25 blocks on the grid. You can select as few as 1 or as many as all 25. Selected blocks are highlighted with a yellow border. Each block shows the total ETH deployed on it by all miners and the number of miners on that block.</li>
-                            <li><strong>Set your per-block amount</strong> — Enter how much ETH to deploy per block in the controls panel. The minimum is 0.00001 ETH per block. Your total cost is calculated as the per-block amount multiplied by the number of blocks selected.</li>
-                            <li><strong>Deploy</strong> — Hit the Deploy button to submit your transaction on-chain. Once confirmed, your blocks are locked in for the round and shown with a green border and checkmark. You can only deploy once per round — the smart contract enforces this.</li>
-                            <li><strong>Round settles</strong> — When the 60-second timer expires, blocks are eliminated one by one in a rapid animation until only the winning block remains. The winning block is selected using a secure on-chain random number that cannot be predicted or manipulated.</li>
-                            <li><strong>Rewards distributed</strong> — A 1% admin fee is deducted from all deployed ETH. The losers&apos; pool (ETH from non-winning blocks) then has a 10% vault fee applied. The remaining ETH is distributed to miners on the winning block, proportional to each miner&apos;s share of that block.</li>
+                            <li><strong>Select your blocks</strong> - Click on any of the 25 blocks on the grid. You can select as few as 1 or as many as all 25. Selected blocks are highlighted with a yellow border. Each block shows the total ETH deployed on it by all miners and the number of miners on that block.</li>
+                            <li><strong>Set your per-block amount</strong> - Enter how much ETH to deploy per block in the controls panel. The minimum is 0.00001 ETH per block. Your total cost is calculated as the per-block amount multiplied by the number of blocks selected.</li>
+                            <li><strong>Deploy</strong> - Hit the Deploy button to submit your transaction on-chain. Once confirmed, your blocks are locked in for the round and shown with a green border and checkmark. You can only deploy once per round - the smart contract enforces this.</li>
+                            <li><strong>Round settles</strong> - When the 60-second timer expires, blocks are eliminated one by one in a rapid animation until only the winning block remains. The winning block is selected using a secure on-chain random number that cannot be predicted or manipulated.</li>
+                            <li><strong>Rewards distributed</strong> - A 1% admin fee is deducted from all deployed ETH. The losers&apos; pool (ETH from non-winning blocks) then has a 10% vault fee applied. The remaining ETH is distributed to miners on the winning block, proportional to each miner&apos;s share of that block.</li>
                         </ol>
                     </div>
                     <SideBySideImages left={{ alt: "Manual controls panel", placeholder: "manualcontrolpanel.png" }} right={{ alt: "Auto controls panel", placeholder: "autocontrolpanel.png" }} />
@@ -148,27 +148,27 @@ export default function AboutPage({
             title: "The Beanpot",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing BEAN jackpot that can trigger on any round — a potentially massive bonus on top of normal rewards.</p>
+                    <p style={{ margin: 0 }}>The <strong>Beanpot</strong> is a growing BEAN jackpot that can trigger on any round - a potentially massive bonus on top of normal rewards.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li>Each round, <strong>0.1 BEAN</strong> is added to the Beanpot from the round&apos;s token emission.</li>
                             <li>Every round has a <strong>1-in-777 chance</strong> (0.13%) of triggering the Beanpot.</li>
                             <li>If triggered, the entire accumulated Beanpot is distributed among the round&apos;s winners, proportional to their deployment on the winning block.</li>
-                            <li>If not triggered, the pool carries over and continues growing — making the next potential payout even larger.</li>
+                            <li>If not triggered, the pool carries over and continues growing - making the next potential payout even larger.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Beanpot Math</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                             <p style={{ margin: 0 }}>At 0.1 BEAN per round with rounds every 60 seconds, the Beanpot grows by roughly <strong>144 BEAN per day</strong> (1,440 rounds × 0.1 BEAN). On average, it triggers once every ~777 rounds (~13 hours), creating an expected pool of <strong>~78 BEAN</strong> at the time of trigger.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>The actual timing is random — it could trigger after just a few rounds or accumulate for thousands, creating a much larger jackpot. Consistent mining maximizes your chances of being present when it hits.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>The actual timing is random - it could trigger after just a few rounds or accumulate for thousands, creating a much larger jackpot. Consistent mining maximizes your chances of being present when it hits.</p>
                         </div>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEAN</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 ETH on the winning block, which has 0.1 ETH total. Your <strong>20% share</strong> earns you <strong>40 BEAN</strong> from the Beanpot — on top of your normal ETH rewards and BEAN reward for the round.</p>
+                            <p style={{ margin: 0 }}>The Beanpot has accumulated <strong>200 BEAN</strong> over ~1,000 rounds without triggering. This round, it triggers. You deployed 0.02 ETH on the winning block, which has 0.1 ETH total. Your <strong>20% share</strong> earns you <strong>40 BEAN</strong> from the Beanpot - on top of your normal ETH rewards and BEAN reward for the round.</p>
                         </div>
                     </div>
                 </div>
@@ -178,10 +178,10 @@ export default function AboutPage({
             title: "BEAN Rewards",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>Every round, <strong>1 BEAN</strong> is minted and awarded to miners on the winning block. This is the primary way new BEAN enter circulation — there is no pre-mine or team allocation. Every BEAN in existence was earned through mining.</p>
+                    <p style={{ margin: 0 }}>Every round, <strong>1 BEAN</strong> is minted and awarded to miners on the winning block. This is the primary way new BEAN enter circulation - there is no pre-mine or team allocation. Every BEAN in existence was earned through mining.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How the Winner is Chosen</h3>
-                        <p style={{ margin: 0 }}>Each round, it&apos;s a 50/50 chance whether the 1 BEAN goes to a single miner or is split among all miners on the winning block. If a single winner is chosen, the selection is weighted — miners who deployed more ETH to the winning block have a proportionally higher chance. All outcomes are determined on-chain using a verifiable random seed, ensuring fair and tamper-proof results.</p>
+                        <p style={{ margin: 0 }}>Each round, it&apos;s a 50/50 chance whether the 1 BEAN goes to a single miner or is split among all miners on the winning block. If a single winner is chosen, the selection is weighted - miners who deployed more ETH to the winning block have a proportionally higher chance. All outcomes are determined on-chain using a verifiable random seed, ensuring fair and tamper-proof results.</p>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Split Rounds</h3>
@@ -205,23 +205,23 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Win BEAN</strong> — Your mining rewards accumulate as unroasted BEAN in the contract. You can see your unroasted balance in the Rewards panel.</li>
-                            <li><strong>Others claim</strong> — When another miner claims their BEAN, a 10% roasting fee is deducted from their unroasted balance. This fee is redistributed proportionally to all miners still holding unclaimed BEAN — including you.</li>
-                            <li><strong>Your roasted balance grows</strong> — Every time someone else claims, you receive a share of their roasting fee based on the size of your unclaimed balance relative to the total unclaimed pool. Your roasted BEAN are shown separately in the Rewards panel.</li>
-                            <li><strong>Claim when ready</strong> — When you claim, the 10% roasting fee is only applied to your unroasted BEAN — not to any roasted BEAN you&apos;ve accumulated from other miners&apos; fees. You receive your unroasted BEAN (minus 10%) plus all your roasted BEAN in full. The fee from your claim then flows to the remaining holders.</li>
+                            <li><strong>Win BEAN</strong> - Your mining rewards accumulate as unroasted BEAN in the contract. You can see your unroasted balance in the Rewards panel.</li>
+                            <li><strong>Others claim</strong> - When another miner claims their BEAN, a 10% roasting fee is deducted from their unroasted balance. This fee is redistributed proportionally to all miners still holding unclaimed BEAN - including you.</li>
+                            <li><strong>Your roasted balance grows</strong> - Every time someone else claims, you receive a share of their roasting fee based on the size of your unclaimed balance relative to the total unclaimed pool. Your roasted BEAN are shown separately in the Rewards panel.</li>
+                            <li><strong>Claim when ready</strong> - When you claim, the 10% roasting fee is only applied to your unroasted BEAN - not to any roasted BEAN you&apos;ve accumulated from other miners&apos; fees. You receive your unroasted BEAN (minus 10%) plus all your roasted BEAN in full. The fee from your claim then flows to the remaining holders.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>You have <strong>10 unroasted BEAN</strong> sitting unclaimed. The total unclaimed pool across all miners is <strong>1,000 BEAN</strong> — so you hold 1% of the pool.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>Another miner claims 100 BEAN and pays <strong>10 BEAN</strong> as the roasting fee. That 10 BEAN is redistributed to everyone holding unclaimed BEAN. Your 1% share earns you <strong>0.1 roasted BEAN</strong> — added to your balance automatically without you doing anything.</p>
+                            <p style={{ margin: 0 }}>You have <strong>10 unroasted BEAN</strong> sitting unclaimed. The total unclaimed pool across all miners is <strong>1,000 BEAN</strong> - so you hold 1% of the pool.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>Another miner claims 100 BEAN and pays <strong>10 BEAN</strong> as the roasting fee. That 10 BEAN is redistributed to everyone holding unclaimed BEAN. Your 1% share earns you <strong>0.1 roasted BEAN</strong> - added to your balance automatically without you doing anything.</p>
                             <p style={{ margin: "12px 0 0 0" }}>Over time, as more miners claim, your roasted balance grows. If you hold for weeks while actively mining, the accumulated roasted BEAN can become a significant bonus on top of your mining rewards.</p>
                         </div>
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>The Patience Game</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>Roasting creates a strategic tension: claim early and pay the 10% fee, or hold longer and benefit from others claiming before you. There&apos;s no lock-up — you can claim anytime — but the incentive structure rewards patience. Some miners delay claiming for weeks or months to maximize their roasted balance. The tradeoff is that your BEAN sit in the contract rather than your wallet until you decide to claim.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Roasting creates a strategic tension: claim early and pay the 10% fee, or hold longer and benefit from others claiming before you. There&apos;s no lock-up - you can claim anytime - but the incentive structure rewards patience. Some miners delay claiming for weeks or months to maximize their roasted balance. The tradeoff is that your BEAN sit in the contract rather than your wallet until you decide to claim.</p>
                     </div>
                 </div>
             ),
@@ -231,20 +231,20 @@ export default function AboutPage({
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
                     <p style={{ margin: 0 }}>The <strong>AutoMiner</strong> lets you mine across multiple rounds without manually deploying each time. Deposit ETH upfront, configure your strategy, and the protocol handles deployment on your behalf every round until your balance runs out or you stop it.</p>
-                    <p style={{ margin: 0 }}>This can be especially useful for maximizing Beanpot chances and roasting fee accumulation — consistent presence across many rounds can be more profitable than sporadic manual mining.</p>
+                    <p style={{ margin: 0 }}>This can be especially useful for maximizing Beanpot chances and roasting fee accumulation - consistent presence across many rounds can be more profitable than sporadic manual mining.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How It Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Choose a strategy</strong> — Select between <strong>All Blocks</strong> (deploys to all 25 blocks every round, guaranteeing you&apos;re on the winning block) or <strong>Random</strong> (deploys to a set number of randomly selected blocks each round for higher risk/reward).</li>
-                            <li><strong>Set rounds and amount</strong> — Choose how many rounds to run and your ETH per block. The interface calculates your total deposit, per-round cost, and shows exactly what you&apos;ll be spending.</li>
-                            <li><strong>Activate</strong> — A single transaction deposits your ETH into the AutoMiner contract and starts it. From that point, the protocol deploys on your behalf each round automatically.</li>
-                            <li><strong>Monitor</strong> — While active, you can see your remaining balance, rounds executed vs total, strategy, and per-block amount in the controls panel. Your auto-deployed blocks are highlighted green on the grid each round.</li>
-                            <li><strong>Stop anytime</strong> — Hit Stop to deactivate the AutoMiner. Any remaining unspent ETH is refunded to your wallet immediately.</li>
+                            <li><strong>Choose a strategy</strong> - Select between <strong>All Blocks</strong> (deploys to all 25 blocks every round, guaranteeing you&apos;re on the winning block) or <strong>Random</strong> (deploys to a set number of randomly selected blocks each round for higher risk/reward).</li>
+                            <li><strong>Set rounds and amount</strong> - Choose how many rounds to run and your ETH per block. The interface calculates your total deposit, per-round cost, and shows exactly what you&apos;ll be spending.</li>
+                            <li><strong>Activate</strong> - A single transaction deposits your ETH into the AutoMiner contract and starts it. From that point, the protocol deploys on your behalf each round automatically.</li>
+                            <li><strong>Monitor</strong> - While active, you can see your remaining balance, rounds executed vs total, strategy, and per-block amount in the controls panel. Your auto-deployed blocks are highlighted green on the grid each round.</li>
+                            <li><strong>Stop anytime</strong> - Hit Stop to deactivate the AutoMiner. Any remaining unspent ETH is refunded to your wallet immediately.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Executor Fee</h3>
-                        <p style={{ margin: 0 }}>The AutoMiner charges a <strong>1% executor fee</strong> on your deposit to cover the gas costs of executing deployments on your behalf each round. This is deducted from your deposit upfront — the per-block and per-round amounts shown in the interface already account for this fee, so what you see is what gets deployed.</p>
+                        <p style={{ margin: 0 }}>The AutoMiner charges a <strong>1% executor fee</strong> on your deposit to cover the gas costs of executing deployments on your behalf each round. This is deducted from your deposit upfront - the per-block and per-round amounts shown in the interface already account for this fee, so what you see is what gets deployed.</p>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Example</h3>
@@ -256,7 +256,7 @@ export default function AboutPage({
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Grid Lock</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>While AutoMiner is active, the mining grid is locked — you can&apos;t manually select or deploy blocks. This prevents conflicts between manual and automatic deployments. The Manual mining tab is hidden and replaced with your AutoMiner status display.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>While AutoMiner is active, the mining grid is locked - you can&apos;t manually select or deploy blocks. This prevents conflicts between manual and automatic deployments. The Manual mining tab is hidden and replaced with your AutoMiner status display.</p>
                     </div>
                 </div>
             ),
@@ -265,27 +265,27 @@ export default function AboutPage({
             title: "Strategy",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>There&apos;s no single &quot;correct&quot; strategy in BEAN — it depends on your risk tolerance, bankroll, and goals. Here are the main approaches and how to think about them.</p>
+                    <p style={{ margin: 0 }}>There&apos;s no single &quot;correct&quot; strategy in BEAN - it depends on your risk tolerance, bankroll, and goals. Here are the main approaches and how to think about them.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Block Selection</h3>
                         <ul style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Fewer blocks (1–5): High risk, high reward</strong> — Each block has a 1-in-25 (4%) chance of winning. Selecting 3 blocks gives you a 12% chance of being on the winning block each round. Your actual payout depends on how many other miners are also on the winning block and how much they deployed — but generally, fewer blocks means larger returns relative to your deployment when you do win.</li>
-                            <li><strong>More blocks (10–20): Moderate risk</strong> — Selecting 15 blocks gives you a 60% chance of winning each round. Wins are more frequent but smaller, since you&apos;re paying for more blocks.</li>
-                            <li><strong>All 25 blocks: Zero risk on block selection</strong> — You&apos;re guaranteed to be on the winning block every round. You&apos;ll pay the 1% admin fee on your total deployment, and the vault fee is only applied to the losers&apos; pool. This means you&apos;re paying a small fee per round for guaranteed participation in BEAN rewards and Beanpot chances.</li>
+                            <li><strong>Fewer blocks (1–5): High risk, high reward</strong> - Each block has a 1-in-25 (4%) chance of winning. Selecting 3 blocks gives you a 12% chance of being on the winning block each round. Your actual payout depends on how many other miners are also on the winning block and how much they deployed - but generally, fewer blocks means larger returns relative to your deployment when you do win.</li>
+                            <li><strong>More blocks (10–20): Moderate risk</strong> - Selecting 15 blocks gives you a 60% chance of winning each round. Wins are more frequent but smaller, since you&apos;re paying for more blocks.</li>
+                            <li><strong>All 25 blocks: Zero risk on block selection</strong> - You&apos;re guaranteed to be on the winning block every round. You&apos;ll pay the 1% admin fee on your total deployment, and the vault fee is only applied to the losers&apos; pool. This means you&apos;re paying a small fee per round for guaranteed participation in BEAN rewards and Beanpot chances.</li>
                         </ul>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Maximizing Returns</h3>
                         <ul style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Mine consistently</strong> — Sporadic mining means you&apos;ll miss Beanpot triggers and roasting fee accumulation. Mining 100 consecutive rounds is far more valuable than 100 rounds spread across weeks. Use AutoMiner to stay in every round.</li>
-                            <li><strong>Delay claiming BEAN</strong> — Your unclaimed balance earns roasting fees from every other miner who claims before you. The longer you hold, the more your roasted balance grows. Some miners hold for weeks or months.</li>
-                            <li><strong>Stake your claimed BEAN</strong> — Once you do claim, stake your BEAN to earn yield from protocol buybacks. This creates a full cycle: mine → hold (roast) → claim → stake → earn yield.</li>
-                            <li><strong>Watch the Beanpot</strong> — When the Beanpot is high, it&apos;s an especially good time to be mining. Every round it doesn&apos;t trigger makes the next potential payout larger.</li>
+                            <li><strong>Mine consistently</strong> - Sporadic mining means you&apos;ll miss Beanpot triggers and roasting fee accumulation. Mining 100 consecutive rounds is far more valuable than 100 rounds spread across weeks. Use AutoMiner to stay in every round.</li>
+                            <li><strong>Delay claiming BEAN</strong> - Your unclaimed balance earns roasting fees from every other miner who claims before you. The longer you hold, the more your roasted balance grows. Some miners hold for weeks or months.</li>
+                            <li><strong>Stake your claimed BEAN</strong> - Once you do claim, stake your BEAN to earn yield from protocol buybacks. This creates a full cycle: mine → hold (roast) → claim → stake → earn yield.</li>
+                            <li><strong>Watch the Beanpot</strong> - When the Beanpot is high, it&apos;s an especially good time to be mining. Every round it doesn&apos;t trigger makes the next potential payout larger.</li>
                         </ul>
                     </div>
                     <div style={{ ...styles.warningBox, ...(isMobile ? { padding: "14px", fontSize: "13px" } : {}) }}>
                         <strong>⚠️ Risk Disclaimer</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>BEAN mining involves financial risk. Only one block wins each round — the other 24 blocks lose their deployed ETH. If your selected blocks don&apos;t include the winner, your ETH for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>BEAN mining involves financial risk. Only one block wins each round - the other 24 blocks lose their deployed ETH. If your selected blocks don&apos;t include the winner, your ETH for that round goes to the winners. Most rounds will result in losses for most participants. You only profit when you&apos;re on the winning block and your share of the rewards exceeds your deployment.</p>
                         <p style={{ margin: "12px 0 0 0" }}>Even covering all 25 blocks guarantees being on the winning block but still incurs admin fees each round. There are no guaranteed ways to profit. Never deploy more than you can afford to lose.</p>
                     </div>
                 </div>
@@ -295,7 +295,7 @@ export default function AboutPage({
             title: "Supply",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEAN has a fixed maximum supply with zero initial allocation. Every token in circulation was minted through mining — there is no pre-mine, team allocation, or investor distribution. This is a <strong>fair launch</strong> in the truest sense.</p>
+                    <p style={{ margin: 0 }}>BEAN has a fixed maximum supply with zero initial allocation. Every token in circulation was minted through mining - there is no pre-mine, team allocation, or investor distribution. This is a <strong>fair launch</strong> in the truest sense.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Token Details</h3>
                         <table style={styles.table}>
@@ -321,7 +321,7 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Supply Timeline</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
-                            <p style={{ margin: 0 }}>At 1.1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,584 BEAN per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more ETH is deployed, the burn rate scales up — creating the potential for net deflation where more BEAN are burned than minted.</p>
+                            <p style={{ margin: 0 }}>At 1.1 BEAN per round and 1,440 rounds per day, raw emission is <strong>1,584 BEAN per day</strong>. However, the burn mechanism (90% of protocol buybacks are burned) works against emission. As mining activity increases and more ETH is deployed, the burn rate scales up - creating the potential for net deflation where more BEAN are burned than minted.</p>
                         </div>
                     </div>
                 </div>
@@ -336,10 +336,10 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Revenue Flow</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Collection</strong> — A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is taken from the losers&apos; pool. This revenue is sent to the Treasury contract automatically each round.</li>
-                            <li><strong>Buyback</strong> — The Treasury periodically uses accumulated ETH to buy BEAN from the BEAN/ETH liquidity pool on Uniswap.</li>
-                            <li><strong>Burn</strong> — 90% of purchased BEAN are permanently burned — removed from circulation forever.</li>
-                            <li><strong>Staker Rewards</strong> — The remaining 10% of purchased BEAN are distributed to BEAN stakers as yield.</li>
+                            <li><strong>Collection</strong> - A 1% admin fee is taken from all deployed ETH, and a 10% vault fee is taken from the losers&apos; pool. This revenue is sent to the Treasury contract automatically each round.</li>
+                            <li><strong>Buyback</strong> - The Treasury periodically uses accumulated ETH to buy BEAN from the BEAN/ETH liquidity pool on Uniswap.</li>
+                            <li><strong>Burn</strong> - 90% of purchased BEAN are permanently burned - removed from circulation forever.</li>
+                            <li><strong>Staker Rewards</strong> - The remaining 10% of purchased BEAN are distributed to BEAN stakers as yield.</li>
                         </ol>
                     </div>
                     <div>
@@ -354,7 +354,7 @@ export default function AboutPage({
                     </div>
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Transparency</strong>
-                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much ETH was spent, how much BEAN was burned, and how much yield was generated for stakers — all verifiable on BaseScan.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>All buyback transactions are recorded on-chain and visible on the Global page under the Revenue tab. You can see exactly how much ETH was spent, how much BEAN was burned, and how much yield was generated for stakers - all verifiable on BaseScan.</p>
                     </div>
                 </div>
             ),
@@ -363,13 +363,13 @@ export default function AboutPage({
             title: "Burn Mechanism",
             content: (
                 <div style={{ display: "flex", flexDirection: "column", gap: sectionGap }}>
-                    <p style={{ margin: 0 }}>BEAN is designed to be <strong>deflationary</strong>. While new tokens are minted through mining (~1 per round), the burn mechanism works to offset and eventually exceed emission — creating an increasingly scarce token over time.</p>
+                    <p style={{ margin: 0 }}>BEAN is designed to be <strong>deflationary</strong>. While new tokens are minted through mining (~1 per round), the burn mechanism works to offset and eventually exceed emission - creating an increasingly scarce token over time.</p>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Burns Work</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
                             <li>The Treasury collects protocol revenue from admin fees and vault fees each round.</li>
                             <li>This ETH is used to buy BEAN from the on-chain BEAN/ETH liquidity pool.</li>
-                            <li>90% of purchased BEAN are sent to the burn address — permanently removed from circulation.</li>
+                            <li>90% of purchased BEAN are sent to the burn address - permanently removed from circulation.</li>
                             <li>The remaining 10% is distributed to stakers.</li>
                         </ol>
                     </div>
@@ -377,7 +377,7 @@ export default function AboutPage({
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Deflationary Dynamics</h3>
                         <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                             <p style={{ margin: 0 }}>The more ETH deployed across rounds, the more revenue the protocol generates, and the more BEAN are burned. This creates a positive feedback loop: increased mining activity → more vault fees collected → more buybacks → more tokens burned → increased scarcity.</p>
-                            <p style={{ margin: "12px 0 0 0" }}>At high enough mining volumes, the burn rate can exceed the emission rate of 1,584 BEAN per day — making the circulating supply actively shrink. Current burn totals and buyback history are visible on the Global stats page.</p>
+                            <p style={{ margin: "12px 0 0 0" }}>At high enough mining volumes, the burn rate can exceed the emission rate of 1,584 BEAN per day - making the circulating supply actively shrink. Current burn totals and buyback history are visible on the Global stats page.</p>
                         </div>
                     </div>
                 </div>
@@ -392,19 +392,19 @@ export default function AboutPage({
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>How Staking Works</h3>
                         <ol style={{ ...styles.list, gap: listGap }}>
-                            <li><strong>Deposit BEAN</strong> — Stake your BEAN tokens into the staking contract. Your staked balance earns yield immediately.</li>
-                            <li><strong>Earn yield</strong> — Each time the Treasury executes a buyback, 10% of the purchased BEAN is distributed to stakers proportional to their stake. If you hold 5% of all staked BEAN, you receive 5% of the yield.</li>
-                            <li><strong>Claim rewards</strong> — Accumulated staking rewards can be claimed at any time. They don&apos;t compound automatically — claimed rewards go to your wallet.</li>
-                            <li><strong>Withdraw</strong> — Unstake your BEAN whenever you want. There is no lock-up period, no cooldown, no penalty.</li>
+                            <li><strong>Deposit BEAN</strong> - Stake your BEAN tokens into the staking contract. Your staked balance earns yield immediately.</li>
+                            <li><strong>Earn yield</strong> - Each time the Treasury executes a buyback, 10% of the purchased BEAN is distributed to stakers proportional to their stake. If you hold 5% of all staked BEAN, you receive 5% of the yield.</li>
+                            <li><strong>Claim rewards</strong> - Accumulated staking rewards can be claimed at any time. They don&apos;t compound automatically - claimed rewards go to your wallet.</li>
+                            <li><strong>Withdraw</strong> - Unstake your BEAN whenever you want. There is no lock-up period, no cooldown, no penalty.</li>
                         </ol>
                     </div>
                     <div>
                         <h3 style={isMobile ? styles.h3Mobile : styles.h3}>Staking Summary</h3>
                         <p style={{ margin: 0 }}>The Stake page displays key metrics so you can evaluate staking at a glance:</p>
                         <ul style={{ ...styles.list, gap: listGap, marginTop: "12px" }}>
-                            <li><strong>Total Deposits</strong> — The total amount of BEAN staked across all stakers.</li>
-                            <li><strong>APR</strong> — The current annualized percentage return based on recent buyback activity and total staked amount.</li>
-                            <li><strong>TVL</strong> — Total Value Locked, showing the dollar value of all staked BEAN.</li>
+                            <li><strong>Total Deposits</strong> - The total amount of BEAN staked across all stakers.</li>
+                            <li><strong>APR</strong> - The current annualized percentage return based on recent buyback activity and total staked amount.</li>
+                            <li><strong>TVL</strong> - Total Value Locked, showing the dollar value of all staked BEAN.</li>
                         </ul>
                     </div>
                     <div>
@@ -414,8 +414,8 @@ export default function AboutPage({
                     <div style={isMobile ? styles.infoBoxMobile : styles.infoBox}>
                         <strong>Staking vs Roasting</strong>
                         <p style={{ margin: "12px 0 0 0" }}>These are two separate reward streams that work together:</p>
-                        <p style={{ margin: "8px 0 0 0" }}><strong>Roasting</strong> — Passive rewards from holding unclaimed BEAN. Funded by the 10% roasting fee when other miners claim. Benefits miners who delay claiming.</p>
-                        <p style={{ margin: "8px 0 0 0" }}><strong>Staking</strong> — Active yield from depositing claimed BEAN into the staking contract. Funded by the Treasury buyback cycle (10% of vault fees → buyback → 10% to stakers).</p>
+                        <p style={{ margin: "8px 0 0 0" }}><strong>Roasting</strong> - Passive rewards from holding unclaimed BEAN. Funded by the 10% roasting fee when other miners claim. Benefits miners who delay claiming.</p>
+                        <p style={{ margin: "8px 0 0 0" }}><strong>Staking</strong> - Active yield from depositing claimed BEAN into the staking contract. Funded by the Treasury buyback cycle (10% of vault fees → buyback → 10% to stakers).</p>
                         <p style={{ margin: "8px 0 0 0" }}>The optimal flow: mine → hold unclaimed BEAN to accumulate roasting rewards → claim when ready → stake claimed BEAN → earn staking yield. Both streams reward long-term participation.</p>
                     </div>
                 </div>
@@ -431,7 +431,7 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Can I lose my ETH?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>Yes. If none of your selected blocks are the winning block, your deployed ETH.goes to the winners (minus fees). You can reduce risk by deploying on more blocks, or eliminate block selection risk entirely by covering all 25 — though admin fees still apply each round.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Yes. If none of your selected blocks are the winning block, your deployed ETH.goes to the winners (minus fees). You can reduce risk by deploying on more blocks, or eliminate block selection risk entirely by covering all 25 - though admin fees still apply each round.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How many times can I deploy per round?</h4>
@@ -443,11 +443,11 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is the Beanpot?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A growing BEAN jackpot funded by 0.1 BEAN per round. Each round has a 1-in-777 chance of triggering it. On average it triggers roughly every 13 hours, but the timing is random — it could trigger much sooner or accumulate much larger.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A growing BEAN jackpot funded by 0.1 BEAN per round. Each round has a 1-in-777 chance of triggering it. On average it triggers roughly every 13 hours, but the timing is random - it could trigger much sooner or accumulate much larger.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What is roasting?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>When you claim earned BEAN, a 10% roasting fee is deducted and redistributed to other miners still holding unclaimed BEAN. By delaying your claim, you accumulate &quot;roasted&quot; BEAN from other players&apos; fees. It&apos;s a patience mechanic — the longer you hold, the more you earn.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>When you claim earned BEAN, a 10% roasting fee is deducted and redistributed to other miners still holding unclaimed BEAN. By delaying your claim, you accumulate &quot;roasted&quot; BEAN from other players&apos; fees. It&apos;s a patience mechanic - the longer you hold, the more you earn.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>What does the AutoMiner do?</h4>
@@ -455,7 +455,7 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Where does protocol revenue come from?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed ETH.each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEAN from the liquidity pool — 90% is burned permanently and 10% goes to stakers as yield.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>A 1% admin fee is taken from all deployed ETH.each round, and a 10% vault fee is applied to the losers&apos; pool. This revenue is used by the Treasury to buy BEAN from the liquidity pool - 90% is burned permanently and 10% goes to stakers as yield.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Is there a token pre-mine or team allocation?</h4>
@@ -467,7 +467,7 @@ export default function AboutPage({
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>Which wallets are supported?</h4>
-                        <p style={{ margin: "12px 0 0 0" }}>Any wallet that supports Base and WalletConnect — including MetaMask, Trust Wallet, Rabby, Coinbase Wallet, and more. Connect via the button in the top-right corner of the page.</p>
+                        <p style={{ margin: "12px 0 0 0" }}>Any wallet that supports Base and WalletConnect - including MetaMask, Trust Wallet, Rabby, Coinbase Wallet, and more. Connect via the button in the top-right corner of the page.</p>
                     </div>
                     <div style={styles.faqItem}>
                         <h4 style={isMobile ? styles.h4Mobile : styles.h4}>How much ETH do I need to start?</h4>

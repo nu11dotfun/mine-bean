@@ -1,4 +1,4 @@
-# BEAN — Agent Skill (Base Mainnet)
+# BEAN - Agent Skill (Base Mainnet)
 
 > **Chain:** Base (8453)
 > **App:** https://minebean.com
@@ -28,12 +28,12 @@ All amounts are in wei (18 decimals) unless noted. Use `ethers.parseEther()` / `
 | ROUND_DURATION       | 60 seconds                | Based on `block.timestamp` (~2s blocks on Base)         |
 | GRID_SIZE            | 25 (5×5)                  | Block IDs 0–24                                          |
 | MIN_DEPLOY           | 0.0000025 ETH per block   | Minimum ETH per block in a deploy                       |
-| MAX_SUPPLY           | 3,000,000 BEAN            | Hard cap — minting stops when exhausted                 |
+| MAX_SUPPLY           | 3,000,000 BEAN            | Hard cap - minting stops when exhausted                 |
 | BEAN per round       | 1.1 BEAN                  | 1.0 miner reward + 0.1 beanpot accumulation             |
 | BEANPOT_CHANCE       | 777                       | ~0.13% jackpot probability per eligible round           |
 | ADMIN_FEE_BPS        | 100 (1%)                  | Deducted from total pool                                |
 | VAULT_FEE_BPS        | 1000 (10%)                | Deducted from losers' pool only                         |
-| ROASTING_FEE_BPS     | 1000 (10%)                | On mined BEAN claims only — roasted bonus is untaxed    |
+| ROASTING_FEE_BPS     | 1000 (10%)                | On mined BEAN claims only - roasted bonus is untaxed    |
 | Deploys per round    | 1 per user                | Second deploy reverts `AlreadyDeployedThisRound`        |
 
 ---
@@ -47,10 +47,10 @@ GameStarted → 60s timer (block.timestamp) → reset() → Chainlink VRF → Ro
 ```
 
 1. A round starts. You have ~60 seconds to deploy.
-2. Call `deploy(blockIds)` with ETH — it's split equally across your chosen blocks.
+2. Call `deploy(blockIds)` with ETH - it's split equally across your chosen blocks.
 3. After the timer expires, `reset()` is called (automated by the backend).
 4. Chainlink VRF returns 3 random words:
-   - **Word 0**: Winning block (`% 25`, uniform random — no block has better odds)
+   - **Word 0**: Winning block (`% 25`, uniform random - no block has better odds)
    - **Word 1**: Split/single BEAN winner (`% 2`) + weighted random seed
    - **Word 2**: Beanpot trigger (`% 777`)
 5. Round settles. Winners are all miners who deployed to the winning block.
@@ -80,7 +80,7 @@ yourReward = claimablePool × (yourDeployOnWinningBlock / totalOnWinningBlock)
 Two possible distribution modes (50/50 chance):
 
 - **Split**: 1 BEAN divided proportionally among all winners based on ETH deployed to the winning block.
-- **Single winner**: One miner wins all 1 BEAN via weighted random — more ETH on the winning block = higher probability. If >2000 unique miners deployed in the entire round (not just the winning block), forced to split as a safety cap.
+- **Single winner**: One miner wins all 1 BEAN via weighted random - more ETH on the winning block = higher probability. If >2000 unique miners deployed in the entire round (not just the winning block), forced to split as a safety cap.
 
 ### Beanpot (Jackpot)
 
@@ -237,7 +237,7 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 
 ### Global Events
 
-**`deployed`** — Someone deployed. Full grid snapshot (no client-side decoding needed):
+**`deployed`** - Someone deployed. Full grid snapshot (no client-side decoding needed):
 ```json
 {
   "type": "deployed",
@@ -253,7 +253,7 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 }
 ```
 
-**`roundTransition`** — Round ended and new round begins:
+**`roundTransition`** - Round ended and new round begins:
 ```json
 {
   "type": "roundTransition",
@@ -271,7 +271,7 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 ```
 `settled` is `null` for empty rounds (no deployments). `beanpotAmount` is `"0"` when the jackpot didn't trigger.
 
-**`heartbeat`** — Every 30 seconds: `{ "timestamp": "..." }`
+**`heartbeat`** - Every 30 seconds: `{ "timestamp": "..." }`
 
 ### Per-User Events
 
@@ -289,7 +289,7 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 
 ## Contract Functions
 
-### GridMining — Gameplay
+### GridMining - Gameplay
 
 **Write (state-changing):**
 
@@ -306,9 +306,9 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 | `getCurrentRoundInfo()` | `(roundId, startTime, endTime, totalDeployed, timeRemaining, isActive)` |
 | `getTotalPendingRewards(address)` | `(pendingETH, unroastedBEAN, roastedBEAN, uncheckpointedRound)` |
 | `getPendingBEAN(address)` | `(gross, fee, net)` |
-| `getRoundDeployed(uint64 roundId)` | `uint256[25]` — ETH per block |
+| `getRoundDeployed(uint64 roundId)` | `uint256[25]` - ETH per block |
 | `getMinerInfo(uint64 roundId, address)` | `(deployedMask, amountPerBlock, checkpointed)` |
-| `beanpotPool()` | `uint256` — current beanpot value |
+| `beanpotPool()` | `uint256` - current beanpot value |
 | `currentRoundId()` | `uint64` |
 
 ### Bean Token (ERC20)
@@ -319,7 +319,7 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 | `transfer(address to, uint256 amount)` | Transfer BEAN tokens |
 | `balanceOf(address)` | Your BEAN balance |
 
-### Staking — Yield from Buybacks
+### Staking - Yield from Buybacks
 
 | Function | Payable | Description |
 |----------|---------|-------------|
@@ -334,10 +334,10 @@ GET /api/user/{address}/events          Per-user stream (your rewards, claims)
 | Function | Returns |
 |----------|---------|
 | `getStakeInfo(address)` | `(balance, pendingRewards, compoundFeeReserve, lastClaimAt, lastDepositAt, lastWithdrawAt, canCompound)` |
-| `getPendingRewards(address)` | `uint256` — pending yield |
+| `getPendingRewards(address)` | `uint256` - pending yield |
 | `getGlobalStats()` | `(totalStaked, totalYieldDistributed, accYieldPerShare)` |
 
-### AutoMiner — Automated Play
+### AutoMiner - Automated Play
 
 | Function | Payable | Description |
 |----------|---------|-------------|
@@ -404,7 +404,7 @@ Rounds are 60 seconds (based on `block.timestamp`, which may drift ~2s from wall
 
 1. **Hold unclaimed BEAN**: Earn passive roasting bonus (10% of every other user's BEAN claim fees redistribute to you).
 2. **Stake BEAN**: Earn yield from treasury buybacks. Check APR via `/api/staking/stats` (value is already a percentage, e.g. `"7.52"` = 7.52%).
-3. **Self-compound**: Call `compound()` — no fee, no cooldown.
+3. **Self-compound**: Call `compound()` - no fee, no cooldown.
 4. **Track price**: Use `/api/price` for BEAN/ETH rate. Sell when price is high, accumulate when low.
 
 ### AutoMiner vs Manual
@@ -440,7 +440,7 @@ Rounds are 60 seconds (based on `block.timestamp`, which may drift ~2s from wall
 3. CLAIM REWARDS (periodically, when gas-efficient)
    - Check /api/user/ADDR/rewards
    - claimETH() when pendingETH is meaningful
-   - claimBEAN() — consider holding for roasting bonus vs claiming
+   - claimBEAN() - consider holding for roasting bonus vs claiming
    - Consider BEAN price trend before claiming (holding = roasting bonus)
 
 4. MANAGE BEAN
@@ -457,7 +457,7 @@ Rounds are 60 seconds (based on `block.timestamp`, which may drift ~2s from wall
 
 ## Critical Rules
 
-1. **One deploy per round** — second attempt reverts `AlreadyDeployedThisRound`.
+1. **One deploy per round** - second attempt reverts `AlreadyDeployedThisRound`.
 2. **Minimum deploy**: 0.0000025 ETH per block. Transaction reverts below this.
 3. **Approve before staking**: Call `Bean.approve(stakingAddress, amount)` before `Staking.deposit()`.
 4. **Roasting fee**: 10% on mined BEAN only. Roasted bonus (from others' fees) is untaxed.

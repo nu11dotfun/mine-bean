@@ -8,13 +8,13 @@ import { CONTRACTS } from '@/lib/contracts'
 // Aggregates:
 //   - ETH balance         (RPC eth_getBalance)
 //   - BEAN balance        (Bean.balanceOf)
-//   - Staking position    (proxy /api/staking/:address — backend already computes canCompound)
-//   - Mining rewards      (GridMining.getTotalPendingRewards — same source venice/hermes/aeon pages use)
+//   - Staking position    (proxy /api/staking/:address - backend already computes canCompound)
+//   - Mining rewards      (GridMining.getTotalPendingRewards - same source venice/hermes/aeon pages use)
 //   - BEAN→STAKING allowance  (Bean.allowance)
 //   - Lifetime stats      (proxy /api/user/:addr/history → totals.roundsPlayed)
 //   - BEAN + ETH prices   (DexScreener)
 //
-// All fetches run in parallel. Failures degrade gracefully — if prices fail, USD
+// All fetches run in parallel. Failures degrade gracefully - if prices fail, USD
 // fields are omitted but on-chain numbers still return.
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://api.minebean.com'
@@ -25,7 +25,7 @@ const client = createPublicClient({
 })
 
 // GridMining.getTotalPendingRewards returns (pendingETH, pendingUnroasted, pendingRoasted, uncheckpointedRound).
-// Backend computes 10% fee on unroasted only — mirror that here for parity with /api/user/:addr/rewards.
+// Backend computes 10% fee on unroasted only - mirror that here for parity with /api/user/:addr/rewards.
 const getTotalPendingRewardsAbi = [
   {
     name: 'getTotalPendingRewards',

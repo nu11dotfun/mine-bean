@@ -31,7 +31,7 @@ export async function PUT(req: Request, { params }: { params: { address: string 
     return NextResponse.json({ error: 'Expired timestamp' }, { status: 401 })
   }
 
-  // Verify the wallet signature — reconstruct expected message server-side
+  // Verify the wallet signature - reconstruct expected message server-side
   try {
     const expectedMessage = `BEAN Protocol Profile Update\nAddress: ${address}\nTimestamp: ${timestamp}`
     const valid = await verifyMessage({

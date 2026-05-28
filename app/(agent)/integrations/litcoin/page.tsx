@@ -51,12 +51,12 @@ export default function LitcoinIntegrationPage() {
     query: { refetchInterval: 30_000, staleTime: 30_000 },
   })
 
-  // Pending (unclaimed) Litcoin — Litcoin uses signature-based claims, so the
+  // Pending (unclaimed) Litcoin - Litcoin uses signature-based claims, so the
   // unclaimed amount lives on their backend, not on-chain. Their dashboard
   // calls /v1/claims/status?wallet={addr}; we proxy it through
   // /api/litcoin/balance/[addr] to stay same-origin from agent.minebean.com.
-  // Response includes `claimable` (wei string) — the amount that can be claimed
-  // right now — plus totalEarned / alreadyClaimed for full context.
+  // Response includes `claimable` (wei string) - the amount that can be claimed
+  // right now - plus totalEarned / alreadyClaimed for full context.
   const unclaimedQuery = useQuery({
     queryKey: ['litcoin-claims-status', NOSTRADAMUS_WALLET.toLowerCase()],
     queryFn: async () => {
@@ -127,13 +127,13 @@ export default function LitcoinIntegrationPage() {
   const isNostradamus = selected.id === 'nostradamus'
   const liquidDisplay = isNostradamus && nostraLiquidFloat !== null
     ? `${nostraLiquidFloat.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${litSymbol}`
-    : (isNostradamus ? (litBal.isLoading ? 'Loading…' : '—') : '—')
+    : (isNostradamus ? (litBal.isLoading ? 'Loading…' : ' - ') : ' - ')
   const liquidUsd = isNostradamus && nostraLiquidFloat !== null && litPriceUsd
     ? (nostraLiquidFloat * litPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : null
   const unclaimedDisplay = isNostradamus && nostraUnclaimedFloat !== null
     ? `${nostraUnclaimedFloat.toLocaleString('en-US', { maximumFractionDigits: 4 })} ${litSymbol}`
-    : (isNostradamus ? (unclaimedQuery.isPending ? 'Loading…' : '—') : '—')
+    : (isNostradamus ? (unclaimedQuery.isPending ? 'Loading…' : ' - ') : ' - ')
   const unclaimedUsd = isNostradamus && nostraUnclaimedFloat !== null && litPriceUsd
     ? (nostraUnclaimedFloat * litPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
     : null
@@ -154,7 +154,7 @@ export default function LitcoinIntegrationPage() {
           All integrations
         </Link>
 
-        {/* Hero — logo + title centered as a group, subtitle centered below */}
+        {/* Hero - logo + title centered as a group, subtitle centered below */}
         <section style={s.hero}>
           <div style={s.heroTitleRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -166,7 +166,7 @@ export default function LitcoinIntegrationPage() {
           </p>
         </section>
 
-        {/* Treasury aggregate cards — no heading, hero subtitle explains it */}
+        {/* Treasury aggregate cards - no heading, hero subtitle explains it */}
         <section style={s.section}>
           <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
             <Stat
@@ -246,9 +246,9 @@ export default function LitcoinIntegrationPage() {
                 <Stat label="LIQUID" value={liquidDisplay} sub={liquidUsd ? `$${liquidUsd}` : undefined} tooltip="Live Litcoin balance sitting in this agent's wallet, ready to spend or stake." />
                 <Stat label="UNCLAIMED" value={unclaimedDisplay} sub={unclaimedUsd ? `$${unclaimedUsd}` : undefined} tooltip="Pending Litcoin rewards earned by this agent, waiting for the next claim transaction." />
                 {selected.walletFull ? (
-                  <StatLink label="WALLET" value={selected.walletShort ?? '—'} href={`https://basescan.org/address/${selected.walletFull}`} />
+                  <StatLink label="WALLET" value={selected.walletShort ?? ' - '} href={`https://basescan.org/address/${selected.walletFull}`} />
                 ) : (
-                  <Stat label="WALLET" value={selected.walletShort ?? '—'} mono />
+                  <Stat label="WALLET" value={selected.walletShort ?? ' - '} mono />
                 )}
               </div>
             ) : (

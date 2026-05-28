@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server'
 // Litcoin's claim is signature-based: the contract takes (totalEarned, signature)
 // from the user, where totalEarned is signed by Litcoin's coordinator off-chain.
 // The unclaimed amount is therefore NOT readable directly from the on-chain
-// claims contract — it lives on Litcoin's backend.
+// claims contract - it lives on Litcoin's backend.
 //
 // This proxy hits the same endpoint Litcoin's own dashboard uses
 // (`/v1/claims/status?wallet={addr}`), staying same-origin from

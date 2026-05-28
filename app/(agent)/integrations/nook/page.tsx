@@ -103,6 +103,106 @@ export default function NookIntegrationPage() {
     staleTime: 15_000,
   })
 
+  // Live network-wide stats from Nookplot gateway.
+  //   { totalChallenges, openChallenges, totalSubmissions, verifiedSubmissions,
+  //     uniqueMiners, avgCompositeScore, totalNookEarned, totalStaked,
+  //     newMinersThisEpoch, challengesSolvedThisEpoch }
+  const networkStatsQuery = useQuery({
+    queryKey: ['nook-network-stats'],
+    queryFn: async () => {
+      const res = await fetch('/api/nook/network-stats', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`network-stats: ${res.status}`)
+      return res.json() as Promise<{
+        totalChallenges: number
+        openChallenges: number
+        totalSubmissions: number
+        verifiedSubmissions: number
+        uniqueMiners: number
+        avgCompositeScore: number
+        totalNookEarned: number
+        totalStaked: number
+        newMinersThisEpoch: number
+        challengesSolvedThisEpoch: number
+      }>
+    },
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+
+  // Recent reasoning submissions for the active agent (Nostradamus only for now).
+  // When more agents come online we map over the AGENTS array and merge results.
+  const submissionsQuery = useQuery({
+    queryKey: ['nook-agent-submissions', NOSTRADAMUS_WALLET.toLowerCase()],
+    queryFn: async () => {
+      const res = await fetch(`/api/nook/submissions/${NOSTRADAMUS_WALLET}?limit=100`, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`submissions: ${res.status}`)
+      return res.json() as Promise<{
+        submissions: Array<{
+          id: string
+          challengeId: string
+          traceSummary: string | null
+          modelUsed: string | null
+          compositeScore: string | null
+          rewardNook: string | null
+          rewardStatus: string | null
+          status: string | null
+          submittedAt: string
+          verifiedAt: string | null
+        }>
+      }>
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
+  // Live reward-pool stats - gives us the NOOK USD price + daily LP fee figures.
+  //   { balance, totalDeposited, totalDistributed,
+  //     dex: { priceUsd, volume24h, estimatedDailyFeeUsd, estimatedDailyFeeNook } }
+  const rewardPoolQuery = useQuery({
+    queryKey: ['nook-reward-pool'],
+    queryFn: async () => {
+      const res = await fetch('/api/nook/reward-pool', { cache: 'no-store' })
+      if (!res.ok) throw new Error(`reward-pool: ${res.status}`)
+      return res.json() as Promise<{
+        balance: number
+        totalDeposited: number
+        totalDistributed: number
+        dex: {
+          priceUsd: number
+          volume24h: number
+          estimatedDailyFeeUsd: number
+          estimatedDailyFeeNook: number
+          lastUpdated: string
+        }
+      }>
+    },
+    refetchInterval: 60_000,
+    staleTime: 30_000,
+  })
+
+  // Recent verifications performed by the agent (scoring other agents' submissions).
+  // Earns from the verifier reward pool - separate income stream from solver rewards.
+  const verificationsQuery = useQuery({
+    queryKey: ['nook-agent-verifications', NOSTRADAMUS_WALLET.toLowerCase()],
+    queryFn: async () => {
+      const res = await fetch(`/api/nook/verifications/${NOSTRADAMUS_WALLET}?limit=100`, { cache: 'no-store' })
+      if (!res.ok) throw new Error(`verifications: ${res.status}`)
+      return res.json() as Promise<{
+        verifications: Array<{
+          submissionId: string
+          challengeId: string
+          challengeTitle: string
+          difficulty: string
+          scores: { correctness: number; reasoning: number; efficiency: number; novelty: number }
+          consensusAligned: boolean | null
+          verifiedAt: string
+        }>
+      }>
+    },
+    refetchInterval: 30_000,
+    staleTime: 15_000,
+  })
+
   // Local 1s ticker for the epoch countdown so the time updates without
   // re-fetching the API every second. Anchors to the server's nextEpochTime.
   const [nowMs, setNowMs] = useState<number>(() => Date.now())
@@ -113,7 +213,7 @@ export default function NookIntegrationPage() {
 
   const nextEpochMs = epochQuery.data?.nextEpochTime ? new Date(epochQuery.data.nextEpochTime).getTime() : null
   const remainingMs = nextEpochMs !== null ? Math.max(0, nextEpochMs - nowMs) : null
-  const remainingDisplay = remainingMs !== null ? formatDuration(remainingMs) : (epochQuery.isPending ? 'Loading…' : '—')
+  const remainingDisplay = remainingMs !== null ? formatDuration(remainingMs) : (epochQuery.isPending ? 'Loading…' : ' - ')
 
   // Stats-derived display values (all live from the agent stats endpoint).
   const stakedNook = statsQuery.data?.stakedNook ?? 0
@@ -132,14 +232,100 @@ export default function NookIntegrationPage() {
     ? 'Loading…'
     : `${Math.round(treasuryTotalNook).toLocaleString('en-US')} ${nookSymbol}`
 
-  const tierLabel = statsQuery.data?.tier ? statsQuery.data.tier.toUpperCase() : '—'
+  const tierLabel = statsQuery.data?.tier ? statsQuery.data.tier.toUpperCase() : ' - '
   const multiplierDisplay = statsQuery.data?.multiplier
     ? `${statsQuery.data.multiplier}× bonus`
-    : '—'
+    : ' - '
   const totalSolves = statsQuery.data?.totalSolves ?? 0
   const avgScoreDisplay = statsQuery.data?.avgScore !== undefined
     ? statsQuery.data.avgScore.toFixed(4)
-    : '—'
+    : ' - '
+
+  // Fleet-aggregate metrics. Single-agent today, will sum across AGENTS once the
+  // other four wallets come online.
+  //
+  // VERIFIED SOLVES value uses the gateway's authoritative `totalSolves` field  - 
+  // not array length - so it does not cap at the submissions fetch limit.
+  const verifiedSolvesDisplay = statsQuery.isPending
+    ? 'Loading…'
+    : totalSolves.toLocaleString('en-US')
+
+  // CAPPED: recent submissions array length is bounded by the fetch limit (100).
+  // Only used for the live submissions feed render + verbose tooltips, never as
+  // a top-line stat.
+  const recentSubmissionsCount = submissionsQuery.data?.submissions?.length ?? 0
+
+  // Live NOOK price (USD) from the reward-pool DEX block, used to value the
+  // treasury and total-earned cards in real dollars. Format mirrors the Litcoin
+  // page exactly: `$X,XXX.XX` in the sub line, no extra description.
+  const nookPriceUsd = rewardPoolQuery.data?.dex?.priceUsd ?? 0
+
+  // AVG REWARD per verified solve, in NOOK + USD. Used as the VERIFIED SOLVES sub.
+  const avgRewardNook = totalSolves > 0 ? totalEarnedNook / totalSolves : 0
+  const avgRewardUsd = avgRewardNook * nookPriceUsd
+  const verifiedSolvesSub = totalSolves > 0
+    ? `${Math.round(avgRewardNook).toLocaleString('en-US')} NOOK avg · $${avgRewardUsd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : 'Reasoning traces verified by Nookplot'
+
+  // CAPPED: verifications array length is bounded by the fetch limit (currently 100).
+  // The gateway has no per-agent verification count field, so we revisit this when
+  // total verifications routinely exceed 100.
+  const allVerifications = verificationsQuery.data?.verifications ?? []
+  const verificationsCount = allVerifications.length
+  const verificationsDisplay = verificationsQuery.isPending
+    ? 'Loading…'
+    : verificationsCount.toLocaleString('en-US')
+
+  // Consensus-alignment % across this fleet's verifications. Live metric for
+  // the VERIFICATIONS sub line.
+  const alignedCount = allVerifications.filter((v) => v.consensusAligned === true).length
+  const scoredVerifications = allVerifications.filter((v) => v.consensusAligned !== null).length
+  const consensusPct = scoredVerifications > 0 ? (alignedCount / scoredVerifications) * 100 : 0
+  const verificationsSub = scoredVerifications > 0
+    ? `${consensusPct.toFixed(1)}% agreed with other verifiers`
+    : 'Verifier consensus pending'
+
+  // Treasury + total-earned + balance USD displays. Format mirrors the Litcoin
+  // page exactly: `$X,XXX.XX` in the sub line, no extra description.
+  const treasuryUsd = nookPriceUsd > 0
+    ? (treasuryTotalNook * nookPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : null
+  const totalEarnedUsd = nookPriceUsd > 0
+    ? (totalEarnedNook * nookPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : null
+  const nookBalanceUsd = nookPriceUsd > 0
+    ? (nookBalanceFloat * nookPriceUsd).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : null
+
+  // Network stake share - MineBean's staked NOOK as a percentage of the entire
+  // Nookplot network's staked supply.
+  const networkStaked = networkStatsQuery.data?.totalStaked ?? 0
+  const networkStakeSharePct = networkStaked > 0 ? (stakedNook / networkStaked) * 100 : 0
+  const networkStakeDisplay = (statsQuery.isPending || networkStatsQuery.isPending)
+    ? 'Loading…'
+    : `${networkStakeSharePct.toFixed(2)}%`
+  // Format the network-wide stake number cleanly. 1,205,639,645 reads as "1206M"
+  // which is easily misread as "120 billion"; render as "1.2B" once we're past
+  // a billion, "M" otherwise.
+  const formatNookCount = (n: number): string => {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`
+    return n.toLocaleString('en-US')
+  }
+  const networkStakeSub = networkStaked > 0
+    ? `of ${formatNookCount(networkStaked)} total network stake`
+    : 'Share of total NOOK staked'
+
+  // Agent avg composite score vs network avg.
+  const networkAvgScore = networkStatsQuery.data?.avgCompositeScore ?? 0
+  const agentAvgScore = statsQuery.data?.avgScore ?? 0
+  const avgScoreCardDisplay = (statsQuery.isPending || networkStatsQuery.isPending)
+    ? 'Loading…'
+    : agentAvgScore > 0 ? agentAvgScore.toFixed(3) : ' - '
+  const avgScoreSub = networkAvgScore > 0
+    ? `Network avg ${networkAvgScore.toFixed(3)}`
+    : 'Composite reasoning quality'
 
   useEffect(() => {
     setMounted(true)
@@ -170,7 +356,7 @@ export default function NookIntegrationPage() {
           All integrations
         </Link>
 
-        {/* Hero — mirrors Litcoin: logo + title row, subtitle below */}
+        {/* Hero - mirrors Litcoin: logo + title row, subtitle below */}
         <section style={s.hero}>
           <div style={s.heroTitleRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -182,34 +368,58 @@ export default function NookIntegrationPage() {
           </p>
         </section>
 
-        {/* Treasury — 3 cards. All live from the Nookplot gateway. */}
+        {/* Treasury - fleet output and holdings. All live from the Nookplot gateway. */}
         <section style={s.section}>
           <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
             <Stat
-              label="NOOK BALANCE"
-              value={nookBalanceDisplay}
-              sub="Live liquid wallet balance"
-              tooltip="Live NOOK sitting in the Nostradamus wallet. The liquid portion, separate from the supply we have staked for the mining bonus."
+              label="VERIFIED SOLVES"
+              value={verifiedSolvesDisplay}
+              sub={verifiedSolvesSub}
+              tooltip={`Verified reasoning submissions across every active MineBean agent on Nookplot. Live from the gateway, not derived from a paginated array. Each verified submission earns NOOK from the daily solver pool (3.5M NOOK per epoch). The last ${recentSubmissionsCount} submissions are visible in the feed below - pending submissions settle once Nookplot's verifier quorum scores them.`}
             />
             <Stat
               label="TOTAL EARNED"
               value={totalEarnedDisplay}
-              sub={totalEarnedNook > 0 ? 'Lifetime mined' : 'Ticks over at next epoch'}
-              tooltip="Lifetime NOOK earned through mining. Rewards settle when the daily epoch turns at 2am UTC. Lives on Nookplot's gateway, refreshes every 30s."
+              sub={totalEarnedUsd ? `$${totalEarnedUsd}` : undefined}
+              tooltip="Lifetime NOOK earned through mining. Rewards settle when the daily epoch turns at 2am UTC."
             />
             <Stat
               label="TREASURY"
               value={treasuryDisplay}
-              sub="Total NOOK held by MineBean ecosystem"
+              sub={treasuryUsd ? `$${treasuryUsd}` : undefined}
               tooltip={`Staked + liquid + lifetime mined NOOK across the MineBean ecosystem. ${stakedNook.toLocaleString('en-US')} staked in MiningStake for the supply-side bonus (${tierLabel} at ${multiplierDisplay}), plus liquid wallet balance, plus everything earned through mining since launch.`}
             />
           </div>
         </section>
 
-        {/* Live epoch banner — countdown to next daily mining cycle (2am UTC). */}
+        {/* Network position - where MineBean sits relative to the entire Nookplot network. */}
+        <section style={s.section}>
+          <div style={isMobile ? s.statsGridMobile : s.statsGrid}>
+            <Stat
+              label="NETWORK STAKE"
+              value={networkStakeDisplay}
+              sub={networkStakeSub}
+              tooltip={`Share of the entire Nookplot network's staked NOOK held by MineBean. Total network stake: ${networkStaked.toLocaleString('en-US')} NOOK across ${networkStatsQuery.data?.uniqueMiners ?? ' - '} unique miners.`}
+            />
+            <Stat
+              label="AVG SCORE"
+              value={avgScoreCardDisplay}
+              sub={avgScoreSub}
+              tooltip="Average composite reasoning quality score across this fleet's verified submissions. Scored 0 to 1 by Nookplot's verifier consensus. Network average shown below for context."
+            />
+            <Stat
+              label="VERIFICATIONS"
+              value={verificationsDisplay}
+              sub={verificationsSub}
+              tooltip={`Verifications performed by MineBean agents - scoring other miners' reasoning traces. ${alignedCount} of ${scoredVerifications} scored verifications aligned with verifier consensus. The verifier pool pays 250,000 NOOK per day across all verifiers, on top of solver rewards.`}
+            />
+          </div>
+        </section>
+
+        {/* Live epoch banner - countdown to next daily mining cycle (2am UTC). */}
         <section style={s.epochBanner}>
           <div style={s.epochBannerLeft}>
-            <span style={s.epochBannerLabel}>EPOCH {epochQuery.data?.currentEpoch ?? '—'}</span>
+            <span style={s.epochBannerLabel}>EPOCH {epochQuery.data?.currentEpoch ?? ' - '}</span>
             <span style={s.epochBannerValue}>{remainingDisplay} until next</span>
           </div>
           <span style={s.epochBannerSub}>
@@ -217,7 +427,7 @@ export default function NookIntegrationPage() {
           </span>
         </section>
 
-        {/* Agents — same tab + detail pattern as Litcoin */}
+        {/* Agents - same tab + detail pattern as Litcoin */}
         <section style={s.section}>
           <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Agents</h2>
           <p style={s.sectionSub}>Click an agent to see its details below.</p>
@@ -269,19 +479,19 @@ export default function NookIntegrationPage() {
                 <Stat
                   label="BALANCE"
                   value={nookBalanceDisplay}
-                  sub="Live on-chain read"
+                  sub={nookBalanceUsd ? `$${nookBalanceUsd}` : undefined}
                   tooltip="This agent's live NOOK balance read directly from the token contract."
                 />
                 <Stat
                   label="TOTAL EARNED"
                   value={totalEarnedDisplay}
-                  sub={totalEarnedNook > 0 ? 'Lifetime mined' : 'Ticks over at next epoch'}
+                  sub={totalEarnedUsd ? `$${totalEarnedUsd}` : undefined}
                   tooltip={`Lifetime NOOK earned by this agent. ${totalSolves} challenge${totalSolves === 1 ? '' : 's'} solved, avg score ${avgScoreDisplay}. Rewards settle at the daily 2am UTC epoch.`}
                 />
                 {selected.walletFull ? (
-                  <StatLink label="WALLET" value={selected.walletShort ?? '—'} href={`https://basescan.org/address/${selected.walletFull}`} />
+                  <StatLink label="WALLET" value={selected.walletShort ?? ' - '} href={`https://basescan.org/address/${selected.walletFull}`} />
                 ) : (
-                  <Stat label="WALLET" value={selected.walletShort ?? '—'} mono />
+                  <Stat label="WALLET" value={selected.walletShort ?? ' - '} mono />
                 )}
               </div>
             ) : (
@@ -289,6 +499,24 @@ export default function NookIntegrationPage() {
                 <span style={s.detailEmptyTitle}>Queued for rollout</span>
                 <span style={s.detailEmptySub}>This agent will be deployed against Nookplot as we extend the framework.</span>
               </div>
+            )}
+          </div>
+        </section>
+
+        {/* Live submissions - most recent reasoning traces filed by the fleet. */}
+        <section style={s.section}>
+          <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Live submissions</h2>
+          <p style={s.sectionSub}>The most recent reasoning traces filed by MineBean agents on Nookplot. Pending submissions become verified when Nookplot's verifier quorum settles.</p>
+
+          <div style={s.feedList}>
+            {submissionsQuery.isPending ? (
+              <div style={s.feedEmpty}>Loading…</div>
+            ) : (submissionsQuery.data?.submissions ?? []).length === 0 ? (
+              <div style={s.feedEmpty}>No submissions yet.</div>
+            ) : (
+              (submissionsQuery.data?.submissions ?? []).slice(0, 5).map((sub) => (
+                <SubmissionRow key={sub.id} submission={sub} />
+              ))
             )}
           </div>
         </section>
@@ -354,6 +582,70 @@ function StatLink({ label, value, href }: { label: string; value: string; href: 
         {value}
       </div>
     </a>
+  )
+}
+
+type SubmissionForRow = {
+  id: string
+  challengeId: string
+  traceSummary: string | null
+  modelUsed: string | null
+  compositeScore: string | null
+  rewardNook: string | null
+  rewardStatus: string | null
+  status: string | null
+  submittedAt: string
+  verifiedAt: string | null
+}
+
+function SubmissionRow({ submission }: { submission: SubmissionForRow }) {
+  const [hovered, setHovered] = useState(false)
+  const score = submission.compositeScore != null
+    ? parseFloat(submission.compositeScore).toFixed(3)
+    : ' - '
+  const reward = submission.rewardNook != null && parseFloat(submission.rewardNook) > 0
+    ? parseFloat(submission.rewardNook).toLocaleString('en-US', { maximumFractionDigits: 0 })
+    : ' - '
+  const status = (submission.status ?? 'pending').toLowerCase()
+  const verifiedAt = submission.verifiedAt ?? submission.submittedAt
+  const timeStr = verifiedAt ? new Date(verifiedAt).toLocaleString() : ' - '
+
+  // Trace summaries follow a "**Approach:** ... **Key decision:** ... **Why it works:** ..." pattern.
+  // Pull the Approach segment as the headline; fall back to the raw summary if the marker is missing.
+  const approachMatch = submission.traceSummary?.match(/\*\*Approach:\*\*\s*([^*]+)/)
+  const approach = approachMatch
+    ? approachMatch[1].trim()
+    : (submission.traceSummary ?? '').replace(/\*\*/g, '').trim()
+  const approachTrimmed = approach.length > 220 ? `${approach.slice(0, 220).trim()}…` : approach
+
+  const statusColor = status === 'verified'
+    ? '#00C853'
+    : status === 'submitted'
+      ? 'rgba(240,180,11,0.95)'
+      : 'rgba(255,255,255,0.5)'
+
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        ...s.feedRow,
+        borderColor: hovered ? 'rgba(0,82,255,0.32)' : 'rgba(255,255,255,0.06)',
+        background: hovered
+          ? 'linear-gradient(180deg, rgba(0,82,255,0.06) 0%, rgba(0,82,255,0.01) 100%)'
+          : 'rgba(255,255,255,0.02)',
+      }}
+    >
+      <div style={s.feedRowHeader}>
+        <span style={{ ...s.feedStatus, color: statusColor }}>{status.toUpperCase()}</span>
+        <span style={s.feedHeaderMeta}>Score {score}</span>
+        <span style={s.feedReward}>{reward} NOOK</span>
+      </div>
+      {approachTrimmed && <div style={s.feedApproach}>{approachTrimmed}</div>}
+      <div style={s.feedMeta}>
+        {submission.modelUsed ?? 'unknown model'} · {timeStr}
+      </div>
+    </div>
   )
 }
 
@@ -426,7 +718,7 @@ const s: { [key: string]: React.CSSProperties } = {
   sectionTitle: { fontSize: 26, fontWeight: 700, color: '#fff', margin: 0, letterSpacing: '-0.015em' },
   sectionSub: { fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.55, margin: 0, maxWidth: 720 },
 
-  // Stats grids — 3-col, 2-col, and mobile variants
+  // Stats grids - 3-col, 2-col, and mobile variants
   statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 },
   statsGridTwo: { display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 14 },
   statsGridMobile: { display: 'grid', gridTemplateColumns: '1fr', gap: 10 },
@@ -445,7 +737,7 @@ const s: { [key: string]: React.CSSProperties } = {
   },
   statLabel: { fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.45)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.14em', marginBottom: 8 },
   statValue: { fontSize: 24, fontWeight: 700, color: '#fff', fontFamily: "'Space Mono', monospace", lineHeight: 1.15, wordBreak: 'break-all' },
-  statSub: { fontSize: 10, color: 'rgba(255,255,255,0.32)', marginTop: 'auto', paddingTop: 12, fontFamily: "'Space Mono', monospace", letterSpacing: '0.08em', textTransform: 'uppercase' },
+  statSub: { fontSize: 13, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Mono', monospace", marginTop: 4 },
 
   // Agent tabs
   agentTabs: { display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 },
@@ -503,7 +795,7 @@ const s: { [key: string]: React.CSSProperties } = {
     pointerEvents: 'none',
   },
 
-  // Slim banner for epoch info — separate from treasury cards
+  // Slim banner for epoch info - separate from treasury cards
   epochBanner: {
     display: 'flex',
     alignItems: 'center',
@@ -558,4 +850,71 @@ const s: { [key: string]: React.CSSProperties } = {
   },
   linkCardTitle: { fontSize: 15, fontWeight: 600, color: '#fff' },
   linkCardUrl: { fontSize: 11, color: 'rgba(255,255,255,0.4)', fontFamily: "'Space Mono', monospace", letterSpacing: '0.02em', wordBreak: 'break-all' },
+
+  // Live submissions feed
+  feedList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  feedEmpty: {
+    padding: '24px 16px',
+    textAlign: 'center',
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.4)',
+    border: '1px dashed rgba(255,255,255,0.08)',
+    borderRadius: 14,
+    fontFamily: "'Space Mono', monospace",
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  feedRow: {
+    border: '1px solid rgba(255,255,255,0.06)',
+    borderRadius: 14,
+    padding: '14px 18px',
+    background: 'rgba(255,255,255,0.02)',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+    transition: 'all 0.2s ease',
+  },
+  feedRowHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    flexWrap: 'wrap',
+  },
+  feedStatus: {
+    fontSize: 10,
+    fontWeight: 700,
+    fontFamily: "'Space Mono', monospace",
+    letterSpacing: '0.14em',
+  },
+  feedHeaderMeta: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.5)',
+    fontFamily: "'Space Mono', monospace",
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
+  feedReward: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: 'rgba(180,210,255,0.95)',
+    fontFamily: "'Space Mono', monospace",
+    letterSpacing: '0.04em',
+    marginLeft: 'auto',
+  },
+  feedApproach: {
+    fontSize: 13,
+    color: 'rgba(255,255,255,0.78)',
+    lineHeight: 1.55,
+  },
+  feedMeta: {
+    fontSize: 10,
+    color: 'rgba(255,255,255,0.32)',
+    fontFamily: "'Space Mono', monospace",
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase',
+  },
 }

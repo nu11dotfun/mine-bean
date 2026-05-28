@@ -4,7 +4,7 @@ import { publicClient } from '@/lib/mcp/client'
 import { successEnvelope, badRequest, validationError, upstreamError } from '@/lib/mcp/envelope'
 
 // Base MCP prepare endpoint: claim mining ETH rewards.
-// Encodes GridMining.claimETH() — no args, non-payable.
+// Encodes GridMining.claimETH() - no args, non-payable.
 // Pre-flights via GridMining.getTotalPendingRewards to surface pending ETH
 // and reject with NOTHING_TO_CLAIM when the wallet has nothing to claim.
 

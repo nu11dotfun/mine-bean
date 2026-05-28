@@ -94,11 +94,11 @@ export default function Terms() {
 
         <h2 style={heading}>7. Third-Party Services</h2>
         <p style={text}>The Website integrates with or relies upon the following third-party services:</p>
-        <p style={text}>(a) <span style={bold}>RainbowKit</span> — Wallet connection user interface</p>
-        <p style={text}>(b) <span style={bold}>wagmi</span> — Blockchain interaction library</p>
-        <p style={text}>(c) <span style={bold}>Base (Coinbase L2)</span> — The underlying blockchain network</p>
-        <p style={text}>(d) <span style={bold}>Cloudflare</span> — Content delivery and asset hosting</p>
-        <p style={text}>(e) <span style={bold}>Vercel</span> — Website hosting and deployment</p>
+        <p style={text}>(a) <span style={bold}>RainbowKit</span> - Wallet connection user interface</p>
+        <p style={text}>(b) <span style={bold}>wagmi</span> - Blockchain interaction library</p>
+        <p style={text}>(c) <span style={bold}>Base (Coinbase L2)</span> - The underlying blockchain network</p>
+        <p style={text}>(d) <span style={bold}>Cloudflare</span> - Content delivery and asset hosting</p>
+        <p style={text}>(e) <span style={bold}>Vercel</span> - Website hosting and deployment</p>
         <p style={text}>We do not control, endorse, or assume responsibility for any third-party services, content, or functionality. Your use of third-party services is at your own risk and subject to their respective terms and conditions.</p>
 
         <h2 style={heading}>8. Limitation of Liability</h2>

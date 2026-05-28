@@ -26,7 +26,7 @@ export default function Home() {
   const [showMining, setShowMining] = useState(false)
   const [mounted, setMounted] = useState(false)
 
-  // AgentConfigDrawer state — opened via the AGENT tab in Sidebar/Mobile Controls
+  // AgentConfigDrawer state - opened via the AGENT tab in Sidebar/Mobile Controls
   // via a window CustomEvent. Single shared instance for USE / EDIT / CREATE NEW.
   type AgentDrawerState = {
     open: boolean

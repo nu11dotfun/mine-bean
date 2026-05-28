@@ -160,7 +160,7 @@ export default function AgentsPage() {
       <main style={isMobile ? { padding: '16px 16px 80px', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 } : s.main}>
         {/* Carousel */}
         <div style={s.carouselWrap}>
-          {/* Left arrow (hidden on mobile — use swipe) */}
+          {/* Left arrow (hidden on mobile - use swipe) */}
           {!isMobile && (
             <button onClick={prev} className="agent-arrow" style={s.arrow}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -351,7 +351,7 @@ export default function AgentsPage() {
             })}
           </div>
 
-          {/* Right arrow (hidden on mobile — use swipe) */}
+          {/* Right arrow (hidden on mobile - use swipe) */}
           {!isMobile && (
             <button onClick={next} className="agent-arrow" style={s.arrow}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

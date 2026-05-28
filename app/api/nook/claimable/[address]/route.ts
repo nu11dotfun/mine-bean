@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 
 // Same-origin proxy to Nookplot's gateway for a wallet's claimable rewards.
-// Returns: { nook, weth } — both null means nothing claimable yet.
+// Returns: { nook, weth } - both null means nothing claimable yet.
 // No auth required upstream.
 
 const NOOK_GATEWAY = 'https://gateway.nookplot.com/v1/rewards/merkle/claimable'

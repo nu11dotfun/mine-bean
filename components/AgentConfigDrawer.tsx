@@ -116,9 +116,9 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   const [nostraGridFillWaitSec, setNostraGridFillWaitSec] = useState(NOSTRADAMUS_DEFAULTS.gridFillWaitSec)
   const [predictionLookbackRounds, setPredictionLookbackRounds] = useState(NOSTRADAMUS_DEFAULTS.predictionLookbackRounds)
   const [nostraMinRoiPct, setNostraMinRoiPct] = useState(NOSTRADAMUS_DEFAULTS.minRoiPct)
-  // Predicted T (avg totalDeployed across last N settled rounds) — used by Nostradamus
+  // Predicted T (avg totalDeployed across last N settled rounds) - used by Nostradamus
   const [predictedT, setPredictedT] = useState<number>(0)
-  // String buffer for the Hunter rounds input — same free-typing pattern as deposit/backtest.
+  // String buffer for the Hunter rounds input - same free-typing pattern as deposit/backtest.
   const [hunterRoundsInput, setHunterRoundsInput] = useState(String(beanToRounds(HUNTER_DEFAULTS.beanpotThreshold)))
   // Sync buffer when threshold changes externally (defaults load, preset, reset, slider).
   // Skips when the typed value already matches, preserving in-progress typing.
@@ -128,7 +128,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [beanpotThreshold])
 
-  // Deposit (shared) — string buffers allow free typing (clear field, partial values).
+  // Deposit (shared) - string buffers allow free typing (clear field, partial values).
   // Derived numeric values clamp to a sane minimum at use-time.
   const [perBlockInput, setPerBlockInput] = useState('0.00001')
   const [numRoundsInput, setNumRoundsInput] = useState('100')
@@ -136,7 +136,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   const numRounds = Math.max(1, Math.floor(Number(numRoundsInput)) || 1)
 
   // Backtest sample size (independent from deposit numRounds)
-  // Cap at 1000 — backend has limited settled history and 20 paginated requests
+  // Cap at 1000 - backend has limited settled history and 20 paginated requests
   // (1000 / 50) stays well within rate limits, so the returned count reliably
   // matches the requested target.
   const [backtestRoundsInput, setBacktestRoundsInput] = useState('200')
@@ -150,7 +150,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   const [historical, setHistorical] = useState<HistoricalRound[]>([])
   const [historicalLoaded, setHistoricalLoaded] = useState(false)
 
-  // Existing user config (loaded on open) — drives "Active" state + prefill
+  // Existing user config (loaded on open) - drives "Active" state + prefill
   type ExistingConfig = {
     agentId: string
     enabled: boolean
@@ -164,14 +164,14 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // Mutually exclusive with the server prefill paths.
   const presetAppliedRef = useRef(false)
 
-  // M3/M4/M5: SAVE AS AGENT — inline name input + post-deposit prompt.
+  // M3/M4/M5: SAVE AS AGENT - inline name input + post-deposit prompt.
   // saveMode controls the inline UI band that appears above the footer.
   // 'naming' shows the name input; 'saved' / 'error' show a transient banner.
   type SaveMode = 'idle' | 'naming' | 'saved' | 'error'
   const [saveMode, setSaveMode] = useState<SaveMode>('idle')
   const [saveName, setSaveName] = useState('')
   const [saveError, setSaveError] = useState<string | null>(null)
-  // M5: post-DEPOSIT prompt only — separate state so it doesn't collide with
+  // M5: post-DEPOSIT prompt only - separate state so it doesn't collide with
   // the regular SAVE AS AGENT band that lives above the footer.
   const [postSaveMode, setPostSaveMode] = useState<SaveMode>('idle')
   const [postSaveName, setPostSaveName] = useState('')
@@ -186,7 +186,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   type LastFire = { roundId: string; totalDeployedEth: number; agentId?: string; at: number }
   const [lastFire, setLastFire] = useState<LastFire | null>(null)
 
-  // Live projection toggle (collapsed by default — backtest is the headline)
+  // Live projection toggle (collapsed by default - backtest is the headline)
   const [showLiveProjection, setShowLiveProjection] = useState(false)
 
   // ── Activate flow state machine (sign-first per AGENT_CONFIG_API v2) ──
@@ -220,17 +220,17 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
 
   // Auto-error if the signature TTL passes while we're still waiting on-chain.
   // Backend will have dropped the awaitingActivation record, so this signature
-  // is no longer redeemable — force the user to re-sign.
+  // is no longer redeemable - force the user to re-sign.
   useEffect(() => {
     if (secondsRemaining !== 0) return
     if (activateStep !== 'sending-tx' && activateStep !== 'tx-pending') return
-    setActivateError('Signature expired — please try again')
+    setActivateError('Signature expired - please try again')
     setActivateStep('error')
   }, [secondsRemaining, activateStep])
 
   // Wagmi hooks
   const { address: walletAddress, isConnected } = useAccount()
-  // Layer 2 wrong-network gate — primary CTA flips to "Switch to Base" when wallet is off-chain.
+  // Layer 2 wrong-network gate - primary CTA flips to "Switch to Base" when wallet is off-chain.
   const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
   const { writeContract: writeSetConfig, data: setConfigTxHash, reset: resetSetConfig } = useWriteContract({
     mutation: {
@@ -261,7 +261,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // After stop tx confirms, listen for the backend's `stopped` SSE event
   // (emitted once the webhook fires and disables the agent config). When it
   // arrives, clear local state so the gate disappears with no API roundtrip.
-  // Single delayed GET as a fallback if SSE drops — keeps us under the 5 req/min
+  // Single delayed GET as a fallback if SSE drops - keeps us under the 5 req/min
   // strict rate limit on user endpoints.
   useEffect(() => {
     if (!stopConfirmed || stopStep !== 'pending' || !walletAddress) return
@@ -372,7 +372,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     return () => { a(); b(); c() }
   }, [isOpen, isUnsupported, subscribeGlobal, refreshFeed])
 
-  // Historical sample — backtest window is independent from the deposit
+  // Historical sample - backtest window is independent from the deposit
   // numRounds. Backend caps /api/rounds at 50/page, so we paginate. Capped
   // at 2000 rounds (40 pages) to bound API load. Debounced 400ms to avoid
   // firing on every keystroke while user types.
@@ -396,7 +396,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               rounds.push({ totalDeployedEth, beanpotBean, beanpotWon: beanpotBean > 0 })
             }
           }
-          // Don't blow away existing data on a failed/empty refetch — keeps the
+          // Don't blow away existing data on a failed/empty refetch - keeps the
           // backtest visible even if the API rate-limits us during typing.
           if (rounds.length > 0) {
             setHistorical(rounds.slice(0, target))
@@ -428,7 +428,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   }, [isOpen, isUnsupported, isNostradamus, predictionLookbackRounds, feed?.fetchedAt])
 
   // Fetch API defaults from /api/agent-strategies (once, on first open).
-  // Skipped when a preset is supplied — the preset is the source of truth and
+  // Skipped when a preset is supplied - the preset is the source of truth and
   // we don't want a late-arriving defaults payload to overwrite it (plan v4 note 1).
   useEffect(() => {
     if (!isOpen || isUnsupported || apiDefaultsAppliedRef.current) return
@@ -618,7 +618,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     }
   }, [isOpen])
 
-  // Subscribe to user's autoMineExecuted SSE — show "last fire" indicator if this agent
+  // Subscribe to user's autoMineExecuted SSE - show "last fire" indicator if this agent
   useEffect(() => {
     if (!isOpen || isUnsupported || !walletAddress) return
     const unsub = subscribeUser('autoMineExecuted', (data: any) => {
@@ -676,7 +676,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // - Hunter: replay rounds-since-last-hit gate; PnL = sum of pot wins during fired rounds minus protocol fees on misses
   // Keep the backtest panel mounted as soon as history loads. If X or P aren't
   // ready (transient feed gap, empty inputs), we still render the section with
-  // zeroed PnL stats — it never disappears mid-typing.
+  // zeroed PnL stats - it never disappears mid-typing.
   let historicalSample: { fired: number; total: number; sumPnl: number; potWins?: number } | null =
     historical.length > 0 ? { fired: 0, total: historical.length, sumPnl: 0, potWins: 0 } : null
   if (historical.length > 0 && X > 0 && P > 0) {
@@ -902,7 +902,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
     }
   }, [initialPreset, isSniper, isAntiWinner, isHunter, isAntiLoser, isNostradamus, agentId, timingOffsetSec, sniperMinRoiPct, awGridFillWaitSec, excludeLastN, awMinRoiPct, hunterGridFillWaitSec, beanpotThreshold, alTimingOffsetSec, alHistoryLookbackRounds, excludeColdN, alMinRoiPct, nostraGridFillWaitSec, predictionLookbackRounds, nostraMinRoiPct, perBlock, numRounds])
 
-  // M3: shared submit handler — translates SaveResult to UI state.
+  // M3: shared submit handler - translates SaveResult to UI state.
   const submitSave = useCallback((rawName: string, opts: {
     onMode: (mode: SaveMode) => void
     onError: (err: string | null) => void
@@ -930,7 +930,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   const handleSaveAsAgent = () => {
     const ok = submitSave(saveName, { onMode: setSaveMode, onError: setSaveError })
     // Once the user has explicitly saved this session, suppress the post-DEPOSIT
-    // "save these params for next time?" prompt — they already said yes.
+    // "save these params for next time?" prompt - they already said yes.
     if (ok) setPostSaveMode('saved')
   }
   const handlePostDepositSave = () => {
@@ -949,7 +949,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // M5: once the post-DEPOSIT prompt is dismissed or saved, leave it alone for
   // the rest of the drawer session. Auto-resetting it to 'idle' caused the
   // prompt to reappear and overwrite the saved/dismissed state.
-  // No effect needed — postSaveMode stays at 'saved' until drawer close.
+  // No effect needed - postSaveMode stays at 'saved' until drawer close.
 
   // Reset save UI on close.
   useEffect(() => {
@@ -982,7 +982,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
   // Sign-first activation flow (per AGENT_CONFIG_API v2).
   // 1. GET nonce
   // 2. Sign canonical message (off-chain)
-  // 3. POST to /agent-config — backend stores status="awaitingActivation" with 5-min TTL
+  // 3. POST to /agent-config - backend stores status="awaitingActivation" with 5-min TTL
   // 4. If on-chain AutoMiner already active+compatible: done (status flips to "enabled" server-side).
   //    Otherwise: fire writeSetConfig and wait for receipt.
   const handleActivate = async () => {
@@ -1030,7 +1030,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
       setAgentConfigExpiresAt(result?.config?.expiresAt ?? null)
 
       // If backend already activated (on-chain AutoMiner exists and is compatible)
-      // the on-chain step is unnecessary — config is live for the next round.
+      // the on-chain step is unnecessary - config is live for the next round.
       if (status === 'enabled' || autoMinerActiveCompatible) {
         setActivateStep('success')
         return
@@ -1236,7 +1236,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
           padding: '18px 22px',
           borderBottom: '1px solid rgba(255,255,255,0.06)',
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-          // In modal variant the body is solid #0d111c — make the header match
+          // In modal variant the body is solid #0d111c - make the header match
           // so there's no visible band between the two. Drawer variant keeps
           // its slight tint for blurred-glass feel.
           background: isModalVariant ? 'transparent' : 'rgba(10,12,20,0.75)',
@@ -1303,7 +1303,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
           )}
 
           {isSupported && (<>
-            {/* Different agent currently running — block activation */}
+            {/* Different agent currently running - block activation */}
             {isOtherAgentActive && (
               <div style={{
                 padding: '12px 14px',
@@ -1319,7 +1319,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               </div>
             )}
 
-            {/* This agent is the active one — informational */}
+            {/* This agent is the active one - informational */}
             {isThisAgentActive && (
               <div style={{
                 padding: '12px 14px',
@@ -1356,7 +1356,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               </div>
             )}
 
-            {/* M3: on-chain AutoMiner active and compatible — sign-only flow */}
+            {/* M3: on-chain AutoMiner active and compatible - sign-only flow */}
             {!isThisAgentActive && !isOtherAgentActive && autoMinerActiveCompatible && (
               <div style={{
                 padding: '12px 14px',
@@ -1368,7 +1368,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
                 lineHeight: 1.55,
                 marginBottom: 14,
               }}>
-                <strong style={{ color: '#fff' }}>Your AutoMiner is already running and compatible with {agentName}.</strong> Saving these params will apply them to your existing deposit — no new transaction needed.
+                <strong style={{ color: '#fff' }}>Your AutoMiner is already running and compatible with {agentName}.</strong> Saving these params will apply them to your existing deposit - no new transaction needed.
               </div>
             )}
 
@@ -1420,13 +1420,13 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
             </>)}
 
             {/* ── Hunter params ── */}
-            {/* Note: gridFillWaitSec is hidden — pure execution timing, not a strategy lever.
+            {/* Note: gridFillWaitSec is hidden - pure execution timing, not a strategy lever.
                 Stays at the default (35) internally and is sent in the API payload. */}
             {isHunter && (<>
               <ParamRow
                 label="Fire after"
                 value={`${beanToRounds(beanpotThreshold)} rounds since last hit`}
-                help="Beanpot hits roughly every 1 in 777 rounds on average. Default 622 fires ~20% before the average — slightly aggressive baseline. Lower = chase the pot earlier (more shots, smaller pots). Higher = hold out for fatter pots (fewer shots, bigger pots when they land)."
+                help="Beanpot hits roughly every 1 in 777 rounds on average. Default 622 fires ~20% before the average - slightly aggressive baseline. Lower = chase the pot earlier (more shots, smaller pots). Higher = hold out for fatter pots (fewer shots, bigger pots when they land)."
               >
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                   <div style={{ flex: 1 }}>
@@ -1543,7 +1543,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               />
             </>)}
 
-            {/* Deposit — hidden when reusing a compatible existing AutoMiner (no new deposit needed). */}
+            {/* Deposit - hidden when reusing a compatible existing AutoMiner (no new deposit needed). */}
             {!autoMinerActiveCompatible && (<>
             <SectionHeader style={{ marginTop: isModalVariant ? 14 : 28, ...(isModalVariant ? { marginBottom: 8 } : {}) }}>Deposit</SectionHeader>
 
@@ -1606,7 +1606,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
             )}
             </>)}
 
-            {/* Backtest — Sniper / Anti-Winner only — primary headline */}
+            {/* Backtest - Sniper / Anti-Winner only - primary headline */}
             {historicalSample && historicalFiredPct !== null && (<>
               <SectionHeader style={{ marginTop: isModalVariant ? 14 : 28, marginBottom: isModalVariant ? 8 : 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
@@ -1721,7 +1721,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               </div>
             </>)}
 
-            {/* Live projection — collapsible, click to expand. Hidden in modal variant per plan note (less screen real estate). */}
+            {/* Live projection - collapsible, click to expand. Hidden in modal variant per plan note (less screen real estate). */}
             {!isModalVariant && (<>
             <button
               type="button"
@@ -1802,7 +1802,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
                       </div>
                     </>)}
                     {!projection && (
-                      <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}>—</div>
+                      <div style={{ fontSize: 24, fontWeight: 700, fontFamily: "'Space Mono', monospace", color: 'rgba(255,255,255,0.4)', lineHeight: 1 }}> - </div>
                     )}
                   </div>
                   {projection && (
@@ -1829,13 +1829,13 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
                   borderTop: '1px solid rgba(255,255,255,0.06)',
                 }}>
                   {isHunter ? (<>
-                    <FeedStat label="BEANPOT" value={feed ? `${beanpotNow.toFixed(2)} BEAN` : '—'} />
-                    <FeedStat label="GRID NOW" value={feed ? `${T.toFixed(4)} ETH` : '—'} />
+                    <FeedStat label="BEANPOT" value={feed ? `${beanpotNow.toFixed(2)} BEAN` : ' - '} />
+                    <FeedStat label="GRID NOW" value={feed ? `${T.toFixed(4)} ETH` : ' - '} />
                     <FeedStat label="YOUR DEPLOY" value={`${X.toFixed(5)} ETH`} />
                   </>) : (<>
-                    <FeedStat label="GRID NOW" value={feed ? `${T.toFixed(4)} ETH` : '—'} />
+                    <FeedStat label="GRID NOW" value={feed ? `${T.toFixed(4)} ETH` : ' - '} />
                     <FeedStat label="YOUR DEPLOY" value={`${X.toFixed(5)} ETH`} />
-                    <FeedStat label="BEAN/ETH" value={feed ? P.toFixed(7) : '—'} />
+                    <FeedStat label="BEAN/ETH" value={feed ? P.toFixed(7) : ' - '} />
                   </>)}
                 </div>
 
@@ -1867,7 +1867,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
                 fontSize: 11,
                 color: 'rgba(255,107,107,0.85)',
               }}>
-                Exclude can&apos;t exceed 24 — the agent needs at least 1 block to deploy to.
+                Exclude can&apos;t exceed 24 - the agent needs at least 1 block to deploy to.
               </div>
             )}
           </>)}
@@ -1907,7 +1907,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
             display: 'flex', flexDirection: 'column', gap: 10,
           }}>
             <div>✓ {autoMinerActiveCompatible ? 'AGENT CONFIG SAVED · DEPLOYS WILL FIRE PER YOUR PARAMS' : 'CONFIG SAVED · AGENT ACTIVATES NEXT ROUND'}</div>
-            {/* M5: post-DEPOSIT prompt — only when NOT opened from a preset
+            {/* M5: post-DEPOSIT prompt - only when NOT opened from a preset
                 (already saved) and the user hasn't dismissed or completed the prompt. */}
             {!initialPreset && postSaveMode !== 'saved' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
@@ -1972,7 +1972,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
           </div>
         )}
 
-        {/* M3: SAVE AS AGENT inline band — appears above footer when actively naming or showing a result. */}
+        {/* M3: SAVE AS AGENT inline band - appears above footer when actively naming or showing a result. */}
         {saveMode !== 'idle' && activateStep === 'idle' && (
           <div style={{
             padding: '12px 22px',
@@ -2079,7 +2079,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
           >
             RESET
           </button>
-          {/* M3: SAVE AS AGENT — visible whenever wallet connected and activate is idle.
+          {/* M3: SAVE AS AGENT - visible whenever wallet connected and activate is idle.
               Stays visible during STOP gate (saving is FE-only, decoupled from on-chain state). */}
           {isConnected && activateStep === 'idle' && saveMode === 'idle' && (
             <button
@@ -2116,7 +2116,7 @@ export default function AgentConfigDrawer({ isOpen, onClose, agentId: propAgentI
               DONE
             </button>
           ) : isConnected && !isOnBase ? (
-            // Wrong-chain gate — replaces every other CTA so the user cannot reach a
+            // Wrong-chain gate - replaces every other CTA so the user cannot reach a
             // tx submission path while on the wrong chain.
             <button
               onClick={switchToBase}

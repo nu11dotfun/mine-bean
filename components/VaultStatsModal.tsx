@@ -51,7 +51,7 @@ export default function VaultStatsModal({ isOpen, onClose, agentName, isMobile, 
           <button onClick={onClose} style={s.closeBtn}>&times;</button>
         </div>
 
-        {/* Investors — full width card */}
+        {/* Investors - full width card */}
             <div style={{ marginBottom: 10 }}>
               <div style={{ ...s.statCard, textAlign: 'center' as const }}>
                 <span style={s.statLabel}>INVESTORS</span>
@@ -64,7 +64,7 @@ export default function VaultStatsModal({ isOpen, onClose, agentName, isMobile, 
               <StatCard label="TVL" value={`${ethBal.toFixed(4)} ETH`} />
               <StatCard label="PROFIT" value={`${netProfitBean >= 0 ? '+' : ''}${netProfitBean.toFixed(2)} BEAN`} />
               <StatCard label="TOTAL VOLUME" value={`${ethDeployed.toFixed(4)} ETH`} />
-              <StatCard label="ROUNDS PLAYED" value={roundsPlayed ? roundsPlayed.toLocaleString() : '—'} />
+              <StatCard label="ROUNDS PLAYED" value={roundsPlayed ? roundsPlayed.toLocaleString() : ' - '} />
             </div>
 
             {/* Detail rows */}

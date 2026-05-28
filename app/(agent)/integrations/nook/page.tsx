@@ -506,7 +506,7 @@ export default function NookIntegrationPage() {
         {/* Live submissions - most recent reasoning traces filed by the fleet. */}
         <section style={s.section}>
           <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Live submissions</h2>
-          <p style={s.sectionSub}>The most recent reasoning traces filed by MineBean agents on Nookplot. Pending submissions become verified when Nookplot's verifier quorum settles.</p>
+          <p style={s.sectionSub}>The most recent reasoning traces filed by MineBean agents on Nookplot. Pending submissions become verified once the verifier quorum settles.</p>
 
           <div style={s.feedList}>
             {submissionsQuery.isPending ? (

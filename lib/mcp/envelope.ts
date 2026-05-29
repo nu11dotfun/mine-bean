@@ -44,7 +44,10 @@ export function successEnvelope(s: PrepareSuccess) {
   )
 }
 
-export type ErrorCode = 'BAD_REQUEST' | 'VALIDATION_ERROR' | 'UPSTREAM_ERROR' | 'INTERNAL_ERROR'
+// NOT_FOUND is included for middleware-level routing rejections (e.g. an
+// unrecognised /api/v1/x402/* sibling route). All other error envelopes from
+// route handlers stay within the original four codes.
+export type ErrorCode = 'BAD_REQUEST' | 'VALIDATION_ERROR' | 'UPSTREAM_ERROR' | 'INTERNAL_ERROR' | 'NOT_FOUND'
 
 export function errorEnvelope(code: ErrorCode, message: string, details?: Record<string, unknown>) {
   return NextResponse.json(

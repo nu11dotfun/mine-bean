@@ -10,6 +10,9 @@ const AGENT_PATHS = ['/agents', '/beanbook', '/integrations']
 // Paths that should pass through on any domain (API, assets, etc.)
 const PASSTHROUGH_PREFIXES = ['/api/', '/_next/', '/favicon', '/images/', '/.well-known/']
 
+// Note: the x402 paywall used to live here. It now lives on the dev's
+// backend at api.minebean.com/api/strategy/decide — see lib/x402Client.ts.
+
 function isAgentPath(pathname: string): boolean {
   return AGENT_PATHS.some(p => pathname === p || pathname.startsWith(p + '/'))
 }

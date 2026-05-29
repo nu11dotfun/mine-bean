@@ -8,6 +8,11 @@ export interface AgentMeta {
   vaultAddress?: `0x${string}` // vault contract for investing
   oldVaultAddress?: `0x${string}` // previous vault contract (for legacy withdrawals)
   status: 'active' | 'paused' | 'new'
+  // True when the agent's strategy produces a useful per-round decision and the
+  // x402 paid mining tier is enabled for it. False for agents (like Beanpot
+  // Hunter) whose strategy accumulates value across many rounds and does not
+  // map cleanly to a single per-call answer.
+  x402Enabled: boolean
 }
 
 // BEAN paid to holders before community voted 100% burn (pre-March 23 2026)
@@ -30,6 +35,7 @@ export const AGENTS: AgentMeta[] = [
     vaultAddress: '0x3f2E4985e13E786e80A177E5984787F05C859634',
     oldVaultAddress: '0x6F57a1063833282E7C1cC1F43a54C6362B807FEc',
     status: 'active',
+    x402Enabled: true,
   },
   {
     id: 'agent2',
@@ -41,6 +47,7 @@ export const AGENTS: AgentMeta[] = [
     vaultAddress: '0xaaCf48cDE365c754874526D365402a7e3dbb0C88',
     oldVaultAddress: '0xF6458A627eA93dee0c29A4A6b94b3e202875C208',
     status: 'active',
+    x402Enabled: false,
   },
   {
     id: 'agent3',
@@ -52,6 +59,7 @@ export const AGENTS: AgentMeta[] = [
     vaultAddress: '0xeA6f4ae6f6436Cedc9E9bDbcb9688ec8f771EFB2',
     oldVaultAddress: '0x29bbD4445BA27002D688bdB1FF652A67fA8f24ce',
     status: 'active',
+    x402Enabled: true,
   },
   {
     id: 'agent4',
@@ -63,6 +71,7 @@ export const AGENTS: AgentMeta[] = [
     vaultAddress: '0xA5e8275B132686BfD0Fc60094aE4a02635716f05',
     oldVaultAddress: '0xCfed0969a7D638cBe23Ff01C2C795d2D39C60887',
     status: 'active',
+    x402Enabled: true,
   },
   {
     id: 'agent5',
@@ -74,5 +83,6 @@ export const AGENTS: AgentMeta[] = [
     vaultAddress: '0x1098f65b0529E7E78cE8749621e3F0427b2a37f6',
     oldVaultAddress: '0xF95a18e24247377Ed48082E201d38fBE893A3fef',
     status: 'active',
+    x402Enabled: true,
   },
 ]

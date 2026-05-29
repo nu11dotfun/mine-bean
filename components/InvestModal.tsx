@@ -16,6 +16,7 @@ export interface VaultStats {
 }
 
 export type DepositStep = 'idle' | 'approving' | 'locking' | 'depositing' | 'done' | 'error'
+export type X402Step = 'idle' | 'signing-payment' | 'fetching-calldata' | 'signing-deploy' | 'broadcasting' | 'done' | 'error'
 
 interface Props {
   isOpen: boolean
@@ -44,6 +45,23 @@ interface Props {
   withdrawPending: boolean
   claimBeanPending: boolean
   depositsPaused?: boolean
+  // x402 paid mining tier. agentX402Enabled gates whether the tab renders
+  // for this specific agent. Strategy decides the deploy amount on the server
+  // side, so there's no ETH input here. Orchestrator wires the rest.
+  agentX402Enabled?: boolean
+  x402Step?: X402Step
+  onX402Mine?: () => void
+  userUsdcBalance?: number
+  roundTimeRemaining?: number
+  hasDeployedThisRound?: boolean
+  x402UsdcCost?: number
+  // Live decision from the dev's strategy endpoint. Null until the call
+  // resolves. fire:false renders as a "skip this round" recommendation.
+  x402Decision?: import('@/lib/x402Client').StrategyDecision | null
+  x402TxHash?: `0x${string}` | null
+  // Computed staleness (computedAt - gridUpdatedAt) for warning the user
+  // if the EV math was applied to a snapshot that may be out of date.
+  x402StalenessSec?: number | null
 }
 
 // ── Component ──
@@ -55,10 +73,13 @@ export default function InvestModal({
   onApproveBEAN, onLockBEAN, onDepositETH, onWithdrawETH, onWithdrawBEAN, onClaimBEAN, onClaimPendingWithdrawal,
   pendingWithdrawalETH, pendingWithdrawalBEAN, pendingWithdrawalResolved, hasPendingWithdrawal,
   depositStep, withdrawPending, claimBeanPending, depositsPaused,
+  agentX402Enabled = false, x402Step = 'idle', onX402Mine,
+  userUsdcBalance = 0, roundTimeRemaining = 60, hasDeployedThisRound = false, x402UsdcCost = 0.10,
+  x402Decision = null, x402TxHash = null, x402StalenessSec = null,
 }: Props) {
-  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw'>(depositsPaused ? 'withdraw' : 'deposit')
+  const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'x402'>(depositsPaused ? 'withdraw' : 'deposit')
   const [ethAmount, setEthAmount] = useState('')
-  const [claimBeanChecked, setClaimBeanChecked] = useState(false)
+    const [claimBeanChecked, setClaimBeanChecked] = useState(false)
 
   if (!isOpen) return null
 
@@ -130,6 +151,14 @@ export default function InvestModal({
           >
             WITHDRAW
           </button>
+          {agentX402Enabled && (
+            <button
+              onClick={() => setActiveTab('x402')}
+              style={{ ...s.tab, ...(activeTab === 'x402' ? s.tabActive : {}) }}
+            >
+              x402
+            </button>
+          )}
         </div>
 
         {/* Tab content */}
@@ -151,9 +180,9 @@ export default function InvestModal({
               buttonText={getDepositButtonText()}
               isDepositBusy={isDepositBusy}
               depositStep={depositStep}
-              isConnected={isConnected}
+                isConnected={isConnected}
             />
-          ) : (
+          ) : activeTab === 'withdraw' ? (
             <WithdrawTab
               stats={stats}
               hasPosition={hasPosition}
@@ -172,6 +201,22 @@ export default function InvestModal({
               withdrawPending={withdrawPending}
               isConnected={isConnected}
               beanLockAmount={beanLockAmount}
+            />
+          ) : (
+            <X402Tab
+              agentName={agentName}
+              userEthBalance={userEthBalance}
+              userUsdcBalance={userUsdcBalance}
+              roundTimeRemaining={roundTimeRemaining}
+              hasDeployedThisRound={hasDeployedThisRound}
+              isConnected={isConnected}
+              x402Step={x402Step}
+              usdcCost={x402UsdcCost}
+              onX402Mine={onX402Mine}
+              decision={x402Decision}
+              txHash={x402TxHash}
+              stalenessSec={x402StalenessSec}
+              depositsPaused={!!depositsPaused}
             />
           )}
         </div>
@@ -500,7 +545,223 @@ function WithdrawTab({
           }}
         >
           {claimBeanPending ? 'CLAIMING...' : `CLAIM ${parseFloat(stats.beanEarned).toFixed(4)} BEAN`}
+         </button>
+      )}
+    </div>
+  )
+}
+
+function X402Tab({
+  agentName, userEthBalance, userUsdcBalance, roundTimeRemaining,
+  hasDeployedThisRound, isConnected, x402Step, usdcCost,
+  onX402Mine, decision, txHash, stalenessSec, depositsPaused,
+}: {
+  agentName: string
+  userEthBalance: number; userUsdcBalance: number; roundTimeRemaining: number
+  hasDeployedThisRound: boolean; isConnected: boolean
+  x402Step: X402Step; usdcCost: number
+  onX402Mine?: () => void
+  decision: import('@/lib/x402Client').StrategyDecision | null
+  txHash: `0x${string}` | null
+  stalenessSec: number | null
+  depositsPaused: boolean
+}) {
+  const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
+  const wrongChain = isConnected && !isOnBase
+
+  // Strategy decides the ETH amount, so the user no longer types one. The
+  // only ETH check we can do up-front is "wallet must have some ETH" — the
+  // real check happens when the decision lands and we know amountWei.
+  const tooLate = roundTimeRemaining > 0 && roundTimeRemaining < 20
+  const alreadyDeployed = hasDeployedThisRound
+  const insufficientUsdc = isConnected && userUsdcBalance < usdcCost
+  const noEth = isConnected && userEthBalance < 0.001 // bare-minimum gas check
+
+  // `done` and any in-flight state both disable the button. fire:false sets
+  // x402Step='done' AND populates decision with fire:false; user can close
+  // the modal to try again next round.
+  const isBusy = x402Step !== 'idle' && x402Step !== 'error'
+  const canMine = isConnected && !alreadyDeployed && !tooLate && !insufficientUsdc && !noEth && !isBusy && !depositsPaused
+
+  const buttonText = (() => {
+    if (!isConnected) return 'CONNECT WALLET'
+    if (depositsPaused) return 'AGENT PAUSED'
+    if (alreadyDeployed) return 'ALREADY DEPLOYED THIS ROUND'
+    if (tooLate) return 'ROUND ENDING'
+    if (insufficientUsdc) return 'INSUFFICIENT USDC'
+    if (noEth) return 'NEED ETH FOR GAS'
+    switch (x402Step) {
+      case 'signing-payment': return 'SIGN USDC PAYMENT...'
+      case 'fetching-calldata': return 'FETCHING STRATEGY...'
+      case 'signing-deploy': return 'SIGN DEPLOY...'
+      case 'broadcasting': return 'BROADCASTING...'
+      case 'done': return decision?.fire ? 'DEPLOYED' : 'RECOMMENDATION DELIVERED'
+      case 'error': return `RETRY ($${usdcCost.toFixed(2)} USDC)`
+      default: return `MINE FOR $${usdcCost.toFixed(2)} USDC`
+    }
+  })()
+
+  const stepLabel = (() => {
+    switch (x402Step) {
+      case 'signing-payment': return 'Waiting for USDC signature in your wallet...'
+      case 'fetching-calldata': return 'Asking the agent for its deploy plan...'
+      case 'signing-deploy': return 'Waiting for deploy signature in your wallet...'
+      case 'broadcasting': return 'Sending the deploy on-chain...'
+      default: return ''
+    }
+  })()
+
+  const stale = stalenessSec !== null && stalenessSec > 15
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Intro */}
+      <div style={s.infoBanner}>
+        <div>
+          <span style={s.infoTitle}>X402 PER-CALL MINING</span>
+          <span style={s.infoText}>
+            Pay ${usdcCost.toFixed(2)} USDC to get a math-optimal deploy recommendation from {agentName} for this round. {agentName} picks the blocks and the amount; you sign the on-chain deploy. The fee is non-refundable, including when the recommendation is to skip the round.
+          </span>
+        </div>
+      </div>
+
+      {/* Pre-flight warnings */}
+      {depositsPaused && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            {agentName} is paused. The x402 tier is unavailable until the agent resumes.
+          </span>
+        </div>
+      )}
+      {!depositsPaused && alreadyDeployed && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            You already deployed this round. The contract allows only one deploy per round per wallet.
+          </span>
+        </div>
+      )}
+      {!depositsPaused && !alreadyDeployed && tooLate && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            Less than 20 seconds left this round. Wait for the next one — the strategy needs time to compute and broadcast.
+          </span>
+        </div>
+      )}
+      {!depositsPaused && !alreadyDeployed && !tooLate && insufficientUsdc && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            Need ${usdcCost.toFixed(2)} USDC available. Current balance: ${userUsdcBalance.toFixed(2)}.
+          </span>
+        </div>
+      )}
+
+      {/* Action button */}
+      {wrongChain ? (
+        <button
+          onClick={switchToBase}
+          disabled={isSwitching}
+          style={{
+            ...s.actionBtn,
+            background: '#ff4d4d',
+            opacity: isSwitching ? 0.6 : 1,
+            cursor: isSwitching ? 'not-allowed' : 'pointer',
+          }}
+        >
+          {isSwitching ? 'SWITCHING…' : 'SWITCH TO BASE'}
         </button>
+      ) : (
+        <button
+          onClick={() => canMine && onX402Mine?.()}
+          disabled={!canMine}
+          style={{
+            ...s.actionBtn,
+            opacity: canMine ? 1 : 0.4,
+            cursor: canMine ? 'pointer' : 'not-allowed',
+          }}
+        >
+          {buttonText}
+        </button>
+      )}
+
+      {/* Live step progress */}
+      {isBusy && stepLabel && (
+        <div style={s.summaryRow}>
+          <span style={s.summaryText}>{stepLabel}</span>
+        </div>
+      )}
+
+      {/* Recommendation panel — surfaces once decision lands */}
+      {decision && (decision.fire || x402Step === 'done') && (
+        <div style={s.infoBanner}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+            <span style={s.infoTitle}>
+              {decision.fire ? 'STRATEGY: DEPLOY' : 'STRATEGY: SKIP THIS ROUND'}
+            </span>
+            <span style={s.infoText}>{decision.reason}</span>
+            {/* Detail rows only meaningful on fire:true — for skip recommendations
+                amountWei is "0" and the blocks list is just "what it WOULD have
+                picked", which can read as a contradictory instruction. */}
+            {decision.fire && (
+              <>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
+                  <span style={s.infoText}>
+                    Amount: <strong>{decision.amountFormatted} ETH</strong>
+                  </span>
+                  <span style={s.infoText}>
+                    Expected ROI: <strong>{decision.expectedRoiPct.toFixed(2)}%</strong>
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                  <span style={s.infoText}>
+                    Blocks: <strong>{decision.blocks.length} / 25</strong>
+                  </span>
+                  {decision.timing && 'roundId' in decision.timing && (
+                    <span style={s.infoText}>
+                      Round: <strong>#{decision.timing.roundId}</strong>
+                    </span>
+                  )}
+                </div>
+                <span style={{ ...s.infoText, fontSize: 10, opacity: 0.6, marginTop: 2 }}>
+                  Expected ROI is a statistical expectation, not a guarantee.
+                </span>
+              </>
+            )}
+            {txHash && (
+              <a
+                href={`https://basescan.org/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ ...s.infoText, color: '#0064ff', textDecoration: 'underline', marginTop: 4 }}
+              >
+                View deploy tx on BaseScan
+              </a>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Staleness warning — if the EV math was applied to an old grid */}
+      {stale && decision?.fire && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            Grid snapshot was {stalenessSec}s old when the strategy computed. Expected ROI may not reflect current grid state.
+          </span>
+        </div>
+      )}
+
+      {/* Failure disclosure */}
+      {x402Step === 'error' && (
+        <div style={s.warningBanner}>
+          <span style={s.warningIcon}>&#9888;</span>
+          <span style={s.warningText}>
+            The flow failed. Retrying will charge another ${usdcCost.toFixed(2)} USDC. Paid calls are non-refundable — if you signed the USDC payment but the deploy did not land on-chain, that fee is consumed. Check your wallet for the deploy tx before retrying.
+          </span>
+        </div>
       )}
     </div>
   )

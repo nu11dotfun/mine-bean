@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react'
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt } from 'wagmi'
+import { useAccount, useBalance, useReadContract, useWriteContract, useWaitForTransactionReceipt, useWalletClient, useSendTransaction } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { useQueryClient } from '@tanstack/react-query'
-import { parseEther, formatEther } from 'viem'
+import { parseEther, formatEther, formatUnits } from 'viem'
 import AgentHeader from '@/components/AgentHeader'
 import AgentBottomNav from '@/components/AgentBottomNav'
 import { AGENTS, PRE_BURN_PER_AGENT } from '@/lib/agents'
@@ -14,7 +14,23 @@ import { AgentStats, RoundData, fetchAgentRounds, relativeTime } from '@/lib/age
 import { apiFetch } from '@/lib/api'
 import { CONTRACTS } from '@/lib/contracts'
 import { useIsOnBase } from '@/lib/useIsOnBase'
-import InvestModal, { DepositStep } from '@/components/InvestModal'
+import InvestModal, { DepositStep, X402Step } from '@/components/InvestModal'
+import {
+  payAndFetchDecision,
+  assertSafeStrategyDecision,
+  withBuilderCodeSuffix,
+  gridStalenessSeconds,
+  X402ClientError,
+  type StrategyDecision,
+} from '@/lib/x402Client'
+import type { StrategyId } from '@/lib/x402/config'
+
+// USDC on Base mainnet. ERC-20, 6 decimals. Used to read the user's USDC
+// balance for the x402 pre-flight check.
+const USDC_BASE = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' as const
+const ERC20_BALANCE_ABI = [
+  { name: 'balanceOf', type: 'function', stateMutability: 'view', inputs: [{ name: 'a', type: 'address' }], outputs: [{ type: 'uint256' }] },
+] as const
 import VaultStatsModal from '@/components/VaultStatsModal'
 import AgentConfigDrawer from '@/components/AgentConfigDrawer'
 
@@ -66,6 +82,18 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const [rounds, setRounds] = useState<RoundData[]>([])
   const HISTORY_PAGES = 4
 
+  // ── x402 paid mining state ──
+  // Step machine drives the X402Tab UI through the call → decision → deploy
+  // flow. Round info is refreshed when the modal opens so pre-flight checks
+  // are fresh (timing, already-deployed) without depending on MiningGrid SSE.
+  // x402Decision captures the response from dev's strategy endpoint so the
+  // UI can show ROI / reason / fire:false handling on the recommendation.
+  const [x402Step, setX402Step] = useState<X402Step>('idle')
+  const [x402RoundInfo, setX402RoundInfo] = useState<{ roundId: string; endTime: number; userDeployedFormatted: string } | null>(null)
+  const [x402TimeRemaining, setX402TimeRemaining] = useState(60)
+  const [x402Decision, setX402Decision] = useState<StrategyDecision | null>(null)
+  const [x402TxHash, setX402TxHash] = useState<`0x${string}` | null>(null)
+
   // ── Wallet + vault contract reads ──
   const { address, isConnected } = useAccount()
   const queryClient = useQueryClient()
@@ -77,6 +105,13 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const { data: beanBalanceData } = useBalance({ address, token: CONTRACTS.Bean.address })
   const userEthBalance = ethBalanceData ? parseFloat(formatEther(ethBalanceData.value)) : 0
   const userBeanBalance = beanBalanceData ? parseFloat(formatEther(beanBalanceData.value)) : 0
+
+  // USDC balance for the x402 paid mining pre-flight. 6 decimals.
+  const { data: usdcBalanceRaw, refetch: refetchUsdc } = useReadContract({
+    address: USDC_BASE, abi: ERC20_BALANCE_ABI, functionName: 'balanceOf', args: [address!],
+    query: { enabled: !!address },
+  })
+  const userUsdcBalance = usdcBalanceRaw ? parseFloat(formatUnits(usdcBalanceRaw as bigint, 6)) : 0
 
   // Vault reads (only when vault exists and wallet connected)
   const vaultReadEnabled = !!vaultAddress && !!address
@@ -343,6 +378,183 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
     if (!vaultAddress) return
     if (!isOnBase) { switchToBase(); return }
     writeClaimPending({ chainId: base.id, address: vaultAddress, abi: vaultAbi, functionName: 'claimPendingWithdrawal' })
+  }
+
+  // ── x402 paid mining handler + round info plumbing ──
+  // Lightweight: only runs when the x402 tab is actually visible (modal open
+  // AND the agent has x402Enabled). Keeps an API call out of every page load.
+  const { data: walletClient } = useWalletClient()
+  const { sendTransactionAsync } = useSendTransaction()
+
+  useEffect(() => {
+    if (!showInvestModal || !agent?.x402Enabled) return
+    let cancelled = false
+    const fetchRound = async () => {
+      try {
+        const qs = address ? `?user=${address}` : ''
+        const data = await apiFetch<{ roundId: string; endTime: number; userDeployedFormatted?: string }>(`/api/round/current${qs}`)
+        if (cancelled) return
+        setX402RoundInfo({
+          roundId: data.roundId,
+          endTime: data.endTime,
+          userDeployedFormatted: data.userDeployedFormatted ?? '0',
+        })
+      } catch (e) {
+        console.error('[x402] round fetch failed', e)
+      }
+    }
+    fetchRound()
+    return () => { cancelled = true }
+  }, [showInvestModal, agent?.x402Enabled, address])
+
+  // 1Hz tick for the X402Tab timer-based pre-flight check (round-ending guard).
+  useEffect(() => {
+    if (!showInvestModal || !x402RoundInfo) return
+    const tick = () => {
+      const remaining = Math.max(0, x402RoundInfo.endTime - Math.floor(Date.now() / 1000))
+      setX402TimeRemaining(remaining)
+    }
+    tick()
+    const id = setInterval(tick, 1000)
+    return () => clearInterval(id)
+  }, [showInvestModal, x402RoundInfo])
+
+  // x402 single-flight + cancel-on-close. The flight ref guards against
+  // rapid double-clicks before React re-renders the disabled button. The abort
+  // ref is set true on modal close so any in-flight await bails before
+  // prompting the next wallet signature on a closed modal.
+  const x402InFlightRef = React.useRef(false)
+  const x402AbortRef = React.useRef(false)
+
+  const handleX402Mine = async () => {
+    if (x402InFlightRef.current) {
+      console.warn('[x402] already in-flight, ignoring re-entrant call')
+      return
+    }
+    if (!walletClient || !address || !agent) {
+      // Pre-flight failure: no payment has occurred yet, so do NOT set 'error'
+      // (which would surface the "fee consumed" banner). Leave step at 'idle'
+      // and bail silently — the UI's button pre-flight should have blocked
+      // the click in the first place.
+      console.warn('[x402] wallet not ready — handler called before pre-flight settled')
+      return
+    }
+    if (!isOnBase) { switchToBase(); return }
+    x402InFlightRef.current = true
+    x402AbortRef.current = false
+    setX402Decision(null)
+    setX402TxHash(null)
+    try {
+      setX402Step('signing-payment')
+      // The dev's endpoint resolves apiAgentId-style strings to strategy ids.
+      // agents.ts uses 'antiwinner' (no hyphen) for the contract-side id; the
+      // x402 spec wants 'anti-winner' (hyphenated). Map here so we don't need
+      // to touch agents.ts (which feeds other surfaces). beanpot-hunter is
+      // intentionally NOT exposed via x402 — its tab is gated upstream by
+      // agent.x402Enabled === false in lib/agents.ts.
+      const strategy = mapAgentIdToStrategy(agent.apiAgentId)
+      const decision = await payAndFetchDecision({ walletClient, strategy })
+      if (x402AbortRef.current) {
+        console.warn('[x402] aborted after payment — USDC settled but no deploy will broadcast')
+        return
+      }
+      setX402Decision(decision)
+
+      // fire:false → recommendation is "skip this round". Show it via the
+      // 'done' step so the X402Tab can render the reason + ROI without
+      // prompting a deploy signature. No broadcast happens.
+      if (!decision.fire) {
+        setX402Step('done')
+        return
+      }
+
+      // Re-check chain before prompting the deploy signature. User may have
+      // switched networks between signing USDC and now; if so, sendTransaction
+      // would throw ChainMismatchError and the USDC fee is lost with no
+      // clear user feedback.
+      if (!isOnBase) {
+        console.error('[x402] chain switched after payment — bailing')
+        setX402Step('error')
+        return
+      }
+      // Client-side safety net. Throws X402ClientError on mismatch which the
+      // catch handles. Validates to/selector/value/blocks (suffix is checked
+      // separately via withBuilderCodeSuffix below).
+      assertSafeStrategyDecision(decision)
+      // ensure ERC-8021 attribution lands regardless of whether dev's server
+      // already appended the suffix. Idempotent — no-ops if suffix is present.
+      const dataWithSuffix = withBuilderCodeSuffix(decision.tx!.data)
+
+      setX402Step('signing-deploy')
+      const txHash = await sendTransactionAsync({
+        chainId: base.id,
+        to: decision.tx!.to,
+        data: dataWithSuffix,
+        value: BigInt(decision.tx!.value),
+      })
+      if (x402AbortRef.current) {
+        console.warn('[x402] aborted after broadcast')
+        return
+      }
+      setX402Step('broadcasting')
+      setX402TxHash(txHash)
+      console.log('[x402] deploy tx submitted', txHash)
+      // Optimistic deploy lock — see ratchet comment below.
+      setX402RoundInfo(prev => prev ? { ...prev, userDeployedFormatted: decision.amountFormatted } : prev)
+      setX402Step('done')
+      refetchUsdc()
+      // Refresh round info. Ratchet on userDeployedFormatted: the backend
+      // indexer may lag behind tx submission and report '0' for several
+      // seconds. Never let the server overwrite our optimistic lock with a
+      // smaller value — that would momentarily re-enable the MINE button.
+      const qs = address ? `?user=${address}` : ''
+      apiFetch<{ roundId: string; endTime: number; userDeployedFormatted?: string }>(`/api/round/current${qs}`)
+        .then(data => {
+          if (x402AbortRef.current) return
+          setX402RoundInfo(prev => {
+            // Coerce both sides through Number.isFinite — a malicious or
+            // malformed server response could return non-numeric strings
+            // ('NaN', '1e308', 'abc') which would otherwise NaN-poison the
+            // Math.max and unstick the optimistic lock.
+            const rawOptimistic = parseFloat(prev?.userDeployedFormatted ?? '0')
+            const rawServer = parseFloat(data.userDeployedFormatted ?? '0')
+            const optimistic = Number.isFinite(rawOptimistic) ? rawOptimistic : 0
+            const serverVal = Number.isFinite(rawServer) ? rawServer : 0
+            const merged = Math.max(optimistic, serverVal)
+            return {
+              roundId: data.roundId,
+              endTime: data.endTime,
+              userDeployedFormatted: merged > 0 ? merged.toString() : '0',
+            }
+          })
+        })
+        .catch(() => { /* non-fatal */ })
+    } catch (e) {
+      if (e instanceof X402ClientError) {
+        console.error('[x402] client error', e.code, e.message, e.details)
+      } else {
+        console.error('[x402] unexpected error', e)
+      }
+      if (!x402AbortRef.current) setX402Step('error')
+    } finally {
+      x402InFlightRef.current = false
+    }
+  }
+
+  // Maps lib/agents.ts apiAgentId values to the strategy ids the dev's x402
+  // endpoint accepts. agents.ts uses contract-side ids (antiwinner, hunter);
+  // the API spec uses hyphenated form. Kept local because it's only used here.
+  function mapAgentIdToStrategy(apiAgentId: string): StrategyId {
+    switch (apiAgentId) {
+      case 'antiwinner': return 'anti-winner'
+      case 'anti-loser': return 'anti-loser'
+      case 'sniper': return 'sniper'
+      case 'nostradamus': return 'nostradamus'
+      default:
+        // Should never hit because agent.x402Enabled gates the UI, but fail
+        // loud rather than send a request that will 400.
+        throw new X402ClientError('UNSUPPORTED_STRATEGY', `Agent ${apiAgentId} is not exposed via x402`)
+    }
   }
 
   // ── Old vault handlers ──
@@ -1059,7 +1271,18 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       {/* Invest modal */}
       <InvestModal
         isOpen={showInvestModal}
-        onClose={() => { setShowInvestModal(false); setDepositStep('idle'); setWithdrawPending(false); setClaimBeanPending(false) }}
+        onClose={() => {
+          // Abort any in-flight x402 promise so it cannot prompt a wallet
+          // signature on a closed modal. State is reset to idle for next open.
+          x402AbortRef.current = true
+          setShowInvestModal(false)
+          setDepositStep('idle')
+          setWithdrawPending(false)
+          setClaimBeanPending(false)
+          setX402Step('idle')
+          setX402Decision(null)
+          setX402TxHash(null)
+        }}
         agentName={agent.name}
         isMobile={isMobile}
         isConnected={isConnected}
@@ -1084,6 +1307,15 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         withdrawPending={withdrawPending}
         claimBeanPending={claimBeanPending}
         depositsPaused={agent.status === 'paused'}
+        agentX402Enabled={agent.x402Enabled}
+        x402Step={x402Step}
+        onX402Mine={handleX402Mine}
+        userUsdcBalance={userUsdcBalance}
+        roundTimeRemaining={x402TimeRemaining}
+        hasDeployedThisRound={parseFloat(x402RoundInfo?.userDeployedFormatted ?? '0') > 0}
+        x402Decision={x402Decision}
+        x402TxHash={x402TxHash}
+        x402StalenessSec={x402Decision ? gridStalenessSeconds(x402Decision) : null}
       />
 
       <VaultStatsModal

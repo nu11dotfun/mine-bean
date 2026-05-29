@@ -26,7 +26,6 @@ interface Props {
 export default function VaultStatsModal({ isOpen, onClose, agentName, isMobile, vaultData, roundsPlayed, beanPriceEth }: Props) {
   if (!isOpen || !vaultData) return null
 
-  const ethBal = parseFloat(vaultData.ethBalance || '0')
   const ethDeployed = parseFloat(vaultData.ethDeployed || '0')
   const ethRewarded = parseFloat(vaultData.ethRewarded || '0')
   const totalBean = parseFloat(vaultData.totalBean || '0')
@@ -59,9 +58,8 @@ export default function VaultStatsModal({ isOpen, onClose, agentName, isMobile, 
               </div>
             </div>
 
-            {/* 4 cards in 2x2 grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 22 }}>
-              <StatCard label="TVL" value={`${ethBal.toFixed(4)} ETH`} />
+            {/* 3 cards in a single row */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 22 }}>
               <StatCard label="PROFIT" value={`${netProfitBean >= 0 ? '+' : ''}${netProfitBean.toFixed(2)} BEAN`} />
               <StatCard label="TOTAL VOLUME" value={`${ethDeployed.toFixed(4)} ETH`} />
               <StatCard label="ROUNDS PLAYED" value={roundsPlayed ? roundsPlayed.toLocaleString() : ' - '} />

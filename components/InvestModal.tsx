@@ -800,33 +800,45 @@ function X402Tab({
         </div>
       )}
 
-      {/* Confirm-phase countdown — only while reviewing the prefilled amount */}
+      {/* Confirm-phase round timer — shows time until auto-broadcast and what
+          will fire if the user hasn't entered an amount yet. */}
       {inConfirmPhase && decision?.fire && roundTimeRemaining > 0 && (
         <div
           style={{
             display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            padding: '8px 12px',
-            borderRadius: 8,
+            flexDirection: 'column',
+            gap: 6,
+            padding: '10px 14px',
+            borderRadius: 10,
             background:
               roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
                 ? 'rgba(240,179,11,0.18)'
                 : 'rgba(0,100,255,0.14)',
             border:
               roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
-                ? '1px solid rgba(240,179,11,0.5)'
-                : '1px solid rgba(0,100,255,0.35)',
+                ? '1px solid rgba(240,179,11,0.55)'
+                : '1px solid rgba(0,100,255,0.4)',
           }}
         >
-          <span style={{ ...s.infoText, fontWeight: 600 }}>
-            {roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
-              ? 'Auto-deploying now...'
-              : `Auto-deploys in ${Math.max(0, roundTimeRemaining - AUTO_DEPLOY_AT_SECONDS)}s`}
-          </span>
-          <span style={{ ...s.infoText, fontSize: 10, opacity: 0.7 }}>
-            Round ends in {roundTimeRemaining}s
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12 }}>
+            <span style={{ ...s.infoText, fontWeight: 600, letterSpacing: 0.4 }}>
+              ROUND ENDS IN
+            </span>
+            <span
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                color: roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS ? '#F0B90B' : '#fff',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              {roundTimeRemaining}s
+            </span>
+          </div>
+          <span style={{ ...s.infoText, fontSize: 11, opacity: 0.85 }}>
+            {ethVal > 0
+              ? `When the round ends, we'll deploy your ${ethAmount} ETH automatically if you haven't clicked DEPLOY.`
+              : `Leave the amount blank and we'll auto-deploy the optimal ${decision.amountFormatted} ETH when the round closes.`}
           </span>
         </div>
       )}

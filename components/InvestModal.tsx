@@ -571,14 +571,10 @@ function X402Tab({
   // Flow: pay USDC first, THEN review/adjust the suggested amount, THEN deploy.
   // The pre-pay screen shows no amount input; it appears post-pay prefilled
   // with decision.amountFormatted so the user can either accept or override.
-  // 25s pre-payment gate gives the pay+confirm+deploy chain room to land
-  // before the round closes. Auto-broadcast at T-10s safety nets users who
-  // linger in the confirm step.
-  const PRE_PAYMENT_MIN_SECONDS = 25
+  // Auto-broadcast at T-10s safety nets users who linger in the confirm step.
   const AUTO_DEPLOY_AT_SECONDS = 10
 
   const ethVal = parseFloat(ethAmount) || 0
-  const tooLate = roundTimeRemaining > 0 && roundTimeRemaining < PRE_PAYMENT_MIN_SECONDS
   const alreadyDeployed = hasDeployedThisRound
   const insufficientUsdc = isConnected && userUsdcBalance < usdcCost
   const inConfirmPhase = x402Step === 'awaiting-confirm'
@@ -591,7 +587,7 @@ function X402Tab({
 
   // Pre-pay screen requires only USDC + chain. Post-pay (confirm phase) adds
   // the ETH amount checks.
-  const canMine = isConnected && !alreadyDeployed && !tooLate && !insufficientUsdc && !isBusy && !depositsPaused
+  const canMine = isConnected && !alreadyDeployed && !insufficientUsdc && !isBusy && !depositsPaused
     && (!inConfirmPhase || (!insufficientEth && !noEth))
 
   const handleMax = () => {
@@ -630,7 +626,6 @@ function X402Tab({
     if (!isConnected) return 'CONNECT WALLET'
     if (depositsPaused) return 'AGENT PAUSED'
     if (alreadyDeployed) return 'ALREADY DEPLOYED THIS ROUND'
-    if (tooLate) return 'ROUND ENDING'
     if (insufficientUsdc && !inConfirmPhase) return 'INSUFFICIENT USDC'
     if (insufficientEth) return 'INSUFFICIENT ETH'
     if (noEth) return 'ENTER AMOUNT'
@@ -740,15 +735,7 @@ function X402Tab({
           </span>
         </div>
       )}
-      {!depositsPaused && !alreadyDeployed && tooLate && (
-        <div style={s.warningBanner}>
-          <span style={s.warningIcon}>&#9888;</span>
-          <span style={s.warningText}>
-            Less than {PRE_PAYMENT_MIN_SECONDS} seconds left this round. Wait for the next one so the pay and deploy can finish before it closes.
-          </span>
-        </div>
-      )}
-      {!depositsPaused && !alreadyDeployed && !tooLate && insufficientUsdc && (
+      {!depositsPaused && !alreadyDeployed && insufficientUsdc && (
         <div style={s.warningBanner}>
           <span style={s.warningIcon}>&#9888;</span>
           <span style={s.warningText}>
@@ -756,7 +743,7 @@ function X402Tab({
           </span>
         </div>
       )}
-      {!depositsPaused && !alreadyDeployed && !tooLate && !insufficientUsdc && insufficientEth && (
+      {!depositsPaused && !alreadyDeployed && !insufficientUsdc && insufficientEth && (
         <div style={s.warningBanner}>
           <span style={s.warningIcon}>&#9888;</span>
           <span style={s.warningText}>

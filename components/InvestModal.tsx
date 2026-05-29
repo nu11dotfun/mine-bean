@@ -599,24 +599,32 @@ function X402Tab({
     setEthAmount(max > 0 ? max.toFixed(6) : '0')
   }
 
-  // Auto-fill the input with the strategy's suggested amount the moment we
-  // enter the confirm phase. User can still override before clicking DEPLOY.
-  useEffect(() => {
-    if (inConfirmPhase && decision?.fire && decision.amountFormatted) {
+  const handleUseOptimal = () => {
+    if (decision?.fire && decision.amountFormatted) {
       setEthAmount(decision.amountFormatted)
     }
-    // Only fire on entering confirm phase, not on every ethAmount change.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inConfirmPhase, decision])
+  }
 
-  // Safety net: if the user is still in confirm phase at T-10s, fire the
-  // deploy with whatever's in the input. The orchestrator single-flights
-  // and re-checks chain so this is safe.
+  // Reset input to empty on entering confirm phase. User explicitly clicks
+  // USE OPTIMAL or types a custom amount.
+  useEffect(() => {
+    if (inConfirmPhase) {
+      setEthAmount('')
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inConfirmPhase])
+
+  // Safety net: if the user is still in confirm phase at T-10s with no
+  // amount entered, fall back to the optimal amount so the $0.10 doesn't
+  // burn. If they typed something, broadcast that instead.
   useEffect(() => {
     if (inConfirmPhase && roundTimeRemaining > 0 && roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS) {
-      onX402Mine?.({ ethAmount })
+      const fallback = ethAmount && ethVal > 0
+        ? ethAmount
+        : (decision?.fire ? decision.amountFormatted : '')
+      if (fallback) onX402Mine?.({ ethAmount: fallback })
     }
-  }, [inConfirmPhase, roundTimeRemaining, onX402Mine, ethAmount])
+  }, [inConfirmPhase, roundTimeRemaining, onX402Mine, ethAmount, ethVal, decision])
 
   const buttonText = (() => {
     if (!isConnected) return 'CONNECT WALLET'
@@ -655,36 +663,64 @@ function X402Tab({
         <div>
           <span style={s.infoTitle}>X402 PER-CALL MINING</span>
           <span style={s.infoText}>
-            Pay ${usdcCost.toFixed(2)} USDC and {agentName} picks the blocks for this round. After paying, set your deploy amount (prefilled with the agent&apos;s suggestion) and confirm. The fee is non-refundable.
+            Pay ${usdcCost.toFixed(2)} USDC and {agentName} picks the blocks for this round. After paying, choose the agent&apos;s optimal amount or set your own. The fee is non-refundable.
           </span>
         </div>
       </div>
 
-      {/* ETH input — only visible after USDC payment lands */}
-      {inConfirmPhase && (
-        <div>
-          <div style={s.inputHeader}>
-            <span style={s.inputLabel}>ETH To Deploy</span>
-            <span style={s.inputBalance}>Balance: {userEthBalance.toFixed(4)} ETH</span>
-          </div>
-          <div style={s.inputWrap}>
-            <input
-              type="text"
-              inputMode="decimal"
-              placeholder="0.00"
-              value={ethAmount}
-              onChange={e => {
-                const v = e.target.value
-                if (/^\d*\.?\d*$/.test(v)) setEthAmount(v)
-              }}
-              style={s.input}
-            />
-            <div style={s.inputRight}>
-              <button onClick={handleMax} style={s.maxBtn}>MAX</button>
-              <span style={s.inputUnit}>ETH</span>
+      {/* Post-pay: optimal amount banner + USE OPTIMAL / CUSTOM input */}
+      {inConfirmPhase && decision?.fire && (
+        <>
+          <div style={s.infoBanner}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
+              <span style={s.infoTitle}>OPTIMAL AMOUNT</span>
+              <span style={s.infoText}>
+                {decision.amountFormatted} ETH for a potential gain of ~{decision.expectedRoiPct.toFixed(2)}%.
+              </span>
+              <button
+                onClick={handleUseOptimal}
+                style={{
+                  marginTop: 4,
+                  padding: '8px 14px',
+                  borderRadius: 8,
+                  border: '1px solid rgba(0,100,255,0.55)',
+                  background: 'rgba(0,100,255,0.18)',
+                  color: '#fff',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: 0.5,
+                  cursor: 'pointer',
+                }}
+              >
+                USE OPTIMAL ({decision.amountFormatted} ETH)
+              </button>
             </div>
           </div>
-        </div>
+
+          <div>
+            <div style={s.inputHeader}>
+              <span style={s.inputLabel}>Or Enter Custom Amount</span>
+              <span style={s.inputBalance}>Balance: {userEthBalance.toFixed(4)} ETH</span>
+            </div>
+            <div style={s.inputWrap}>
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="0.00"
+                value={ethAmount}
+                onChange={e => {
+                  const v = e.target.value
+                  if (/^\d*\.?\d*$/.test(v)) setEthAmount(v)
+                }}
+                style={s.input}
+              />
+              <div style={s.inputRight}>
+                <button onClick={handleMax} style={s.maxBtn}>MAX</button>
+                <span style={s.inputUnit}>ETH</span>
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Pre-flight warnings */}

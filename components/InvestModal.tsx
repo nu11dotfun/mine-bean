@@ -59,9 +59,6 @@ interface Props {
   // resolves. fire:false renders as a "skip this round" recommendation.
   x402Decision?: import('@/lib/x402Client').StrategyDecision | null
   x402TxHash?: `0x${string}` | null
-  // Computed staleness (computedAt - gridUpdatedAt) for warning the user
-  // if the EV math was applied to a snapshot that may be out of date.
-  x402StalenessSec?: number | null
 }
 
 // ── Component ──
@@ -75,7 +72,7 @@ export default function InvestModal({
   depositStep, withdrawPending, claimBeanPending, depositsPaused,
   agentX402Enabled = false, x402Step = 'idle', onX402Mine,
   userUsdcBalance = 0, roundTimeRemaining = 60, hasDeployedThisRound = false, x402UsdcCost = 0.10,
-  x402Decision = null, x402TxHash = null, x402StalenessSec = null,
+  x402Decision = null, x402TxHash = null,
 }: Props) {
   const [activeTab, setActiveTab] = useState<'deposit' | 'withdraw' | 'x402'>(depositsPaused ? 'withdraw' : 'deposit')
   const [ethAmount, setEthAmount] = useState('')
@@ -217,7 +214,6 @@ export default function InvestModal({
               onX402Mine={onX402Mine}
               decision={x402Decision}
               txHash={x402TxHash}
-              stalenessSec={x402StalenessSec}
               depositsPaused={!!depositsPaused}
             />
           )}
@@ -556,7 +552,7 @@ function WithdrawTab({
 function X402Tab({
   ethAmount, setEthAmount, agentName, userEthBalance, userUsdcBalance, roundTimeRemaining,
   hasDeployedThisRound, isConnected, x402Step, usdcCost,
-  onX402Mine, decision, txHash, stalenessSec, depositsPaused,
+  onX402Mine, decision, txHash, depositsPaused,
 }: {
   ethAmount: string
   setEthAmount: (v: string) => void
@@ -567,55 +563,55 @@ function X402Tab({
   onX402Mine?: (params: { ethAmount: string }) => void
   decision: import('@/lib/x402Client').StrategyDecision | null
   txHash: `0x${string}` | null
-  stalenessSec: number | null
   depositsPaused: boolean
 }) {
   const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
   const wrongChain = isConnected && !isOnBase
 
-  // User chooses the deploy amount. Strategy returns block selection +
-  // suggested amount (rendered in the recommendation panel as a reference).
-  // Round-ending pre-flight: at 35s we block new MINE clicks so the user has
-  // enough headroom to (a) sign USDC, (b) review the recommendation, (c)
-  // sign + broadcast deploy before the round closes. The auto-broadcast at
-  // 10s catches the tail end if review takes too long.
-  const PRE_PAYMENT_MIN_SECONDS = 35
+  // Flow: pay USDC first, THEN review/adjust the suggested amount, THEN deploy.
+  // The pre-pay screen shows no amount input; it appears post-pay prefilled
+  // with decision.amountFormatted so the user can either accept or override.
+  // 25s pre-payment gate gives the pay+confirm+deploy chain room to land
+  // before the round closes. Auto-broadcast at T-10s safety nets users who
+  // linger in the confirm step.
+  const PRE_PAYMENT_MIN_SECONDS = 25
   const AUTO_DEPLOY_AT_SECONDS = 10
+
   const ethVal = parseFloat(ethAmount) || 0
   const tooLate = roundTimeRemaining > 0 && roundTimeRemaining < PRE_PAYMENT_MIN_SECONDS
   const alreadyDeployed = hasDeployedThisRound
   const insufficientUsdc = isConnected && userUsdcBalance < usdcCost
-  const insufficientEth = isConnected && ethVal > 0 && ethVal > userEthBalance - 0.001
-  const noEth = ethVal === 0
-
-  // awaiting-confirm is the only mid-flight state where the input AND the
-  // action button are both interactive — user is reviewing the suggestion
-  // and choosing the final amount before broadcasting.
   const inConfirmPhase = x402Step === 'awaiting-confirm'
-  const isBusy = x402Step !== 'idle' && x402Step !== 'error' && !inConfirmPhase
-  const canMine = isConnected && !alreadyDeployed && !tooLate && !insufficientUsdc && !insufficientEth && !noEth && !isBusy && !depositsPaused
+  const insufficientEth = inConfirmPhase && isConnected && ethVal > 0 && ethVal > userEthBalance - 0.001
+  const noEth = inConfirmPhase && ethVal === 0
+
+  // isBusy excludes inConfirmPhase — input + button stay interactive while
+  // the user reviews/edits the prefilled amount.
+  const isBusy = x402Step !== 'idle' && x402Step !== 'error' && x402Step !== 'done' && !inConfirmPhase
+
+  // Pre-pay screen requires only USDC + chain. Post-pay (confirm phase) adds
+  // the ETH amount checks.
+  const canMine = isConnected && !alreadyDeployed && !tooLate && !insufficientUsdc && !isBusy && !depositsPaused
+    && (!inConfirmPhase || (!insufficientEth && !noEth))
 
   const handleMax = () => {
     const max = Math.max(0, userEthBalance - 0.001)
     setEthAmount(max > 0 ? max.toFixed(6) : '0')
   }
-  const handleUseSuggested = () => {
-    if (decision?.fire && decision.amountFormatted) {
-      setEthAmount(decision.amountFormatted)
-    }
-  }
 
-  // Auto-fill: when entering confirm phase with an empty input, prefill with
-  // the strategy's suggested amount. User can still override before deploy.
+  // Auto-fill the input with the strategy's suggested amount the moment we
+  // enter the confirm phase. User can still override before clicking DEPLOY.
   useEffect(() => {
-    if (inConfirmPhase && decision?.fire && (ethAmount === '' || ethAmount === '0') && decision.amountFormatted) {
+    if (inConfirmPhase && decision?.fire && decision.amountFormatted) {
       setEthAmount(decision.amountFormatted)
     }
-  }, [inConfirmPhase, decision, ethAmount, setEthAmount])
+    // Only fire on entering confirm phase, not on every ethAmount change.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inConfirmPhase, decision])
 
-  // Auto-broadcast: if user lingers in confirm phase past the auto-deploy
-  // threshold, fire the deploy with whatever's in the input. The orchestrator
-  // re-checks chain + single-flights so this is safe to fire-and-forget.
+  // Safety net: if the user is still in confirm phase at T-10s, fire the
+  // deploy with whatever's in the input. The orchestrator single-flights
+  // and re-checks chain so this is safe.
   useEffect(() => {
     if (inConfirmPhase && roundTimeRemaining > 0 && roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS) {
       onX402Mine?.({ ethAmount })
@@ -636,7 +632,7 @@ function X402Tab({
       case 'awaiting-confirm': return ethVal > 0 ? `DEPLOY ${ethAmount} ETH` : 'ENTER AMOUNT'
       case 'signing-deploy': return 'SIGN DEPLOY...'
       case 'broadcasting': return 'BROADCASTING...'
-      case 'done': return decision?.fire ? 'DEPLOYED' : 'RECOMMENDATION DELIVERED'
+      case 'done': return decision?.fire ? 'DEPLOYED' : 'ROUND SKIPPED'
       case 'error': return `RETRY ($${usdcCost.toFixed(2)} USDC)`
       default: return `MINE FOR $${usdcCost.toFixed(2)} USDC`
     }
@@ -652,8 +648,6 @@ function X402Tab({
     }
   })()
 
-  const stale = stalenessSec !== null && stalenessSec > 15
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Intro */}
@@ -661,58 +655,35 @@ function X402Tab({
         <div>
           <span style={s.infoTitle}>X402 PER-CALL MINING</span>
           <span style={s.infoText}>
-            Pay ${usdcCost.toFixed(2)} USDC to have {agentName} pick the optimal blocks for this round. You choose how much ETH to deploy. The fee is non-refundable, including when the recommendation is to skip the round.
+            Pay ${usdcCost.toFixed(2)} USDC and {agentName} picks the blocks for this round. After paying, set your deploy amount (prefilled with the agent&apos;s suggestion) and confirm. The fee is non-refundable.
           </span>
         </div>
       </div>
 
-      {/* ETH input */}
-      <div>
-        <div style={s.inputHeader}>
-          <span style={s.inputLabel}>ETH To Deploy</span>
-          <span style={s.inputBalance}>Balance: {userEthBalance.toFixed(4)} ETH</span>
-        </div>
-        <div style={s.inputWrap}>
-          <input
-            type="text"
-            inputMode="decimal"
-            placeholder="0.00"
-            value={ethAmount}
-            onChange={e => {
-              const v = e.target.value
-              if (/^\d*\.?\d*$/.test(v)) setEthAmount(v)
-            }}
-            disabled={isBusy}
-            style={s.input}
-          />
-          <div style={s.inputRight}>
-            {decision?.fire && (
-              <button
-                onClick={handleUseSuggested}
-                disabled={isBusy}
-                style={{ ...s.maxBtn, marginRight: 4 }}
-                title={`Math-optimal amount for ${decision.expectedRoiPct.toFixed(2)}% expected ROI`}
-              >
-                USE SUGGESTED
-              </button>
-            )}
-            <button onClick={handleMax} disabled={isBusy} style={s.maxBtn}>MAX</button>
-            <span style={s.inputUnit}>ETH</span>
+      {/* ETH input — only visible after USDC payment lands */}
+      {inConfirmPhase && (
+        <div>
+          <div style={s.inputHeader}>
+            <span style={s.inputLabel}>ETH To Deploy</span>
+            <span style={s.inputBalance}>Balance: {userEthBalance.toFixed(4)} ETH</span>
           </div>
-        </div>
-        {decision?.fire && (
-          <span style={{ ...s.inputBalance, marginTop: 4, display: 'block' }}>
-            Strategy suggests {decision.amountFormatted} ETH for the math-optimal {decision.expectedRoiPct.toFixed(2)}% expected ROI.
-          </span>
-        )}
-      </div>
-
-      {/* Summary */}
-      {ethVal > 0 && (
-        <div style={s.summaryRow}>
-          <span style={s.summaryText}>
-            Deploy <strong>{ethAmount} ETH</strong> through {agentName} for <strong>${usdcCost.toFixed(2)} USDC</strong>
-          </span>
+          <div style={s.inputWrap}>
+            <input
+              type="text"
+              inputMode="decimal"
+              placeholder="0.00"
+              value={ethAmount}
+              onChange={e => {
+                const v = e.target.value
+                if (/^\d*\.?\d*$/.test(v)) setEthAmount(v)
+              }}
+              style={s.input}
+            />
+            <div style={s.inputRight}>
+              <button onClick={handleMax} style={s.maxBtn}>MAX</button>
+              <span style={s.inputUnit}>ETH</span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -737,7 +708,7 @@ function X402Tab({
         <div style={s.warningBanner}>
           <span style={s.warningIcon}>&#9888;</span>
           <span style={s.warningText}>
-            Less than 20 seconds left this round. Wait for the next one — the strategy needs time to compute and broadcast.
+            Less than {PRE_PAYMENT_MIN_SECONDS} seconds left this round. Wait for the next one so the pay and deploy can finish before it closes.
           </span>
         </div>
       )}
@@ -793,74 +764,49 @@ function X402Tab({
         </div>
       )}
 
-      {/* Recommendation panel — surfaces once decision lands */}
-      {decision && (decision.fire || x402Step === 'done' || x402Step === 'awaiting-confirm') && (
+      {/* Confirm-phase countdown — only while reviewing the prefilled amount */}
+      {inConfirmPhase && decision?.fire && roundTimeRemaining > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: 12,
+            padding: '8px 12px',
+            borderRadius: 8,
+            background:
+              roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
+                ? 'rgba(240,179,11,0.18)'
+                : 'rgba(0,100,255,0.14)',
+            border:
+              roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
+                ? '1px solid rgba(240,179,11,0.5)'
+                : '1px solid rgba(0,100,255,0.35)',
+          }}
+        >
+          <span style={{ ...s.infoText, fontWeight: 600 }}>
+            {roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
+              ? 'Auto-deploying now...'
+              : `Auto-deploys in ${Math.max(0, roundTimeRemaining - AUTO_DEPLOY_AT_SECONDS)}s`}
+          </span>
+          <span style={{ ...s.infoText, fontSize: 10, opacity: 0.7 }}>
+            Round ends in {roundTimeRemaining}s
+          </span>
+        </div>
+      )}
+
+      {/* Result panel — minimal, no strategy reveal */}
+      {x402Step === 'done' && decision && (
         <div style={s.infoBanner}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
             <span style={s.infoTitle}>
-              {decision.fire ? 'STRATEGY: DEPLOY' : 'STRATEGY: SKIP THIS ROUND'}
+              {decision.fire ? 'DEPLOYED' : 'AGENT SKIPPED THIS ROUND'}
             </span>
-            <span style={s.infoText}>{decision.reason}</span>
-            {/* Countdown — only while awaiting user confirm. Shows seconds
-                until the auto-broadcast safety net fires. */}
-            {inConfirmPhase && decision.fire && roundTimeRemaining > 0 && (
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  marginTop: 4,
-                  padding: '6px 10px',
-                  borderRadius: 8,
-                  background:
-                    roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
-                      ? 'rgba(240,179,11,0.18)'
-                      : 'rgba(0,100,255,0.14)',
-                  border:
-                    roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
-                      ? '1px solid rgba(240,179,11,0.5)'
-                      : '1px solid rgba(0,100,255,0.35)',
-                }}
-              >
-                <span style={{ ...s.infoText, fontWeight: 600 }}>
-                  {roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS
-                    ? 'Auto-deploying now...'
-                    : `Auto-deploys in ${Math.max(0, roundTimeRemaining - AUTO_DEPLOY_AT_SECONDS)}s`}
-                </span>
-                <span style={{ ...s.infoText, fontSize: 10, opacity: 0.7 }}>
-                  Round ends in {roundTimeRemaining}s
-                </span>
-              </div>
-            )}
-            {/* Detail rows only meaningful on fire:true — for skip recommendations
-                amountWei is "0" and the blocks list is just "what it WOULD have
-                picked", which can read as a contradictory instruction. */}
-            {decision.fire && (
-              <>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, marginTop: 4 }}>
-                  <span style={s.infoText}>
-                    Suggested: <strong>{decision.amountFormatted} ETH</strong>
-                  </span>
-                  <span style={s.infoText}>
-                    Expected ROI: <strong>{decision.expectedRoiPct.toFixed(2)}%</strong>
-                  </span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
-                  <span style={s.infoText}>
-                    Blocks: <strong>{decision.blocks.length} / 25</strong>
-                  </span>
-                  {decision.timing && 'roundId' in decision.timing && (
-                    <span style={s.infoText}>
-                      Round: <strong>#{decision.timing.roundId}</strong>
-                    </span>
-                  )}
-                </div>
-                <span style={{ ...s.infoText, fontSize: 10, opacity: 0.6, marginTop: 2 }}>
-                  Strategy suggested {decision.amountFormatted} ETH for the math-optimal {decision.expectedRoiPct.toFixed(2)}% expected ROI. You deployed your own chosen amount; actual ROI will scale to that size. Expected ROI is a statistical expectation, not a guarantee.
-                </span>
-              </>
-            )}
+            <span style={s.infoText}>
+              {decision.fire
+                ? `Your deploy is on-chain. The $${usdcCost.toFixed(2)} USDC fee was consumed.`
+                : `The agent chose not to deploy this round. The $${usdcCost.toFixed(2)} USDC fee was consumed.`}
+            </span>
             {txHash && (
               <a
                 href={`https://basescan.org/tx/${txHash}`}
@@ -875,22 +821,12 @@ function X402Tab({
         </div>
       )}
 
-      {/* Staleness warning — if the EV math was applied to an old grid */}
-      {stale && decision?.fire && (
-        <div style={s.warningBanner}>
-          <span style={s.warningIcon}>&#9888;</span>
-          <span style={s.warningText}>
-            Grid snapshot was {stalenessSec}s old when the strategy computed. Expected ROI may not reflect current grid state.
-          </span>
-        </div>
-      )}
-
       {/* Failure disclosure */}
       {x402Step === 'error' && (
         <div style={s.warningBanner}>
           <span style={s.warningIcon}>&#9888;</span>
           <span style={s.warningText}>
-            The flow failed. Retrying will charge another ${usdcCost.toFixed(2)} USDC. Paid calls are non-refundable — if you signed the USDC payment but the deploy did not land on-chain, that fee is consumed. Check your wallet for the deploy tx before retrying.
+            The flow failed. Retrying will charge another ${usdcCost.toFixed(2)} USDC. Paid calls are non-refundable. If you signed the USDC payment but the deploy did not land on-chain, that fee is consumed. Check your wallet for the deploy tx before retrying.
           </span>
         </div>
       )}

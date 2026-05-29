@@ -19,7 +19,6 @@ import {
   payAndFetchDecision,
   assertSafeStrategyDecision,
   withBuilderCodeSuffix,
-  gridStalenessSeconds,
   X402ClientError,
   type StrategyDecision,
 } from '@/lib/x402Client'
@@ -1355,7 +1354,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         hasDeployedThisRound={parseFloat(x402RoundInfo?.userDeployedFormatted ?? '0') > 0}
         x402Decision={x402Decision}
         x402TxHash={x402TxHash}
-        x402StalenessSec={x402Decision ? gridStalenessSeconds(x402Decision) : null}
       />
 
       <VaultStatsModal

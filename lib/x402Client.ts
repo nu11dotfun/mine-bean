@@ -223,7 +223,16 @@ export async function payAndFetchDecision({
 }: PayAndFetchArgs): Promise<StrategyDecision> {
   // USDC has 6 decimals on Base.
   const maxAtomic = BigInt(Math.floor(maxPaymentUsdc * 1_000_000))
-  const paidFetch = wrapFetchWithPayment(fetch, walletClient, maxAtomic)
+  // x402-fetch's Signer type requires `account` to be non-undefined. Viem's
+  // WalletClient generic types `account` as `Account | undefined`. The
+  // orchestrator guarantees a bound account before invoking this function
+  // (pre-flight checks for walletClient + address), so the assertion is a
+  // runtime no-op — it only satisfies TypeScript's narrower view.
+  const paidFetch = wrapFetchWithPayment(
+    fetch,
+    walletClient as Parameters<typeof wrapFetchWithPayment>[1],
+    maxAtomic,
+  )
 
   const body = JSON.stringify({ strategy, ...(params ? { params } : {}) })
 

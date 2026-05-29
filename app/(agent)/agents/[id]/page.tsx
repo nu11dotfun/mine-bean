@@ -446,18 +446,9 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       return
     }
     if (!isOnBase) { switchToBase(); return }
-    // Parse user's deploy amount BEFORE paying USDC. Junk = bail w/o $0.10.
-    let userValueWei: bigint
-    try {
-      userValueWei = parseEther(ethAmount)
-    } catch {
-      console.warn('[x402] invalid ethAmount, bailing pre-payment', ethAmount)
-      return
-    }
-    if (userValueWei <= BigInt(0)) {
-      console.warn('[x402] ethAmount must be > 0, bailing pre-payment')
-      return
-    }
+    // Pre-pay screen has no ETH input — the user picks the deploy amount in
+    // the awaiting-confirm step after USDC settles. handleX402Deploy re-parses
+    // and validates the amount before broadcasting.
     x402InFlightRef.current = true
     x402AbortRef.current = false
     setX402Decision(null)

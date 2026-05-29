@@ -426,32 +426,45 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
   const x402InFlightRef = React.useRef(false)
   const x402AbortRef = React.useRef(false)
 
-  const handleX402Mine = async () => {
+  // Phase 1: pay USDC + fetch recommendation. Pauses at 'awaiting-confirm'
+  // so the user can either click "USE SUGGESTED" to fill the input with the
+  // math-optimal amount or type their own, then click DEPLOY (which routes
+  // back here and dispatches to handleX402Deploy via the awaiting-confirm
+  // branch at the top).
+  const handleX402Mine = async ({ ethAmount }: { ethAmount: string }) => {
     if (x402InFlightRef.current) {
       console.warn('[x402] already in-flight, ignoring re-entrant call')
       return
     }
+    // Confirm-phase click means "broadcast deploy" — route to phase 2.
+    // Keeps the X402Tab's onX402Mine prop agnostic to the orchestrator's
+    // two-step split.
+    if (x402Step === 'awaiting-confirm') {
+      return handleX402Deploy({ ethAmount })
+    }
     if (!walletClient || !address || !agent) {
-      // Pre-flight failure: no payment has occurred yet, so do NOT set 'error'
-      // (which would surface the "fee consumed" banner). Leave step at 'idle'
-      // and bail silently — the UI's button pre-flight should have blocked
-      // the click in the first place.
       console.warn('[x402] wallet not ready — handler called before pre-flight settled')
       return
     }
     if (!isOnBase) { switchToBase(); return }
+    // Parse user's deploy amount BEFORE paying USDC. Junk = bail w/o $0.10.
+    let userValueWei: bigint
+    try {
+      userValueWei = parseEther(ethAmount)
+    } catch {
+      console.warn('[x402] invalid ethAmount, bailing pre-payment', ethAmount)
+      return
+    }
+    if (userValueWei <= BigInt(0)) {
+      console.warn('[x402] ethAmount must be > 0, bailing pre-payment')
+      return
+    }
     x402InFlightRef.current = true
     x402AbortRef.current = false
     setX402Decision(null)
     setX402TxHash(null)
     try {
       setX402Step('signing-payment')
-      // The dev's endpoint resolves apiAgentId-style strings to strategy ids.
-      // agents.ts uses 'antiwinner' (no hyphen) for the contract-side id; the
-      // x402 spec wants 'anti-winner' (hyphenated). Map here so we don't need
-      // to touch agents.ts (which feeds other surfaces). beanpot-hunter is
-      // intentionally NOT exposed via x402 — its tab is gated upstream by
-      // agent.x402Enabled === false in lib/agents.ts.
       const strategy = mapAgentIdToStrategy(agent.apiAgentId)
       const decision = await payAndFetchDecision({ walletClient, strategy })
       if (x402AbortRef.current) {
@@ -459,38 +472,66 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
         return
       }
       setX402Decision(decision)
-
-      // fire:false → recommendation is "skip this round". Show it via the
-      // 'done' step so the X402Tab can render the reason + ROI without
-      // prompting a deploy signature. No broadcast happens.
+      // fire:false → "skip this round". Step goes to 'done' so the panel
+      // renders the reason without prompting another sig.
       if (!decision.fire) {
         setX402Step('done')
         return
       }
+      // fire:true → pause at 'awaiting-confirm'. User reviews + chooses
+      // amount, then clicks DEPLOY which re-enters handleX402Mine and
+      // routes to handleX402Deploy.
+      setX402Step('awaiting-confirm')
+    } catch (e) {
+      if (e instanceof X402ClientError) {
+        console.error('[x402] client error', e.code, e.message, e.details)
+      } else {
+        console.error('[x402] unexpected error', e)
+      }
+      if (!x402AbortRef.current) setX402Step('error')
+    } finally {
+      x402InFlightRef.current = false
+    }
+  }
 
-      // Re-check chain before prompting the deploy signature. User may have
-      // switched networks between signing USDC and now; if so, sendTransaction
-      // would throw ChainMismatchError and the USDC fee is lost with no
-      // clear user feedback.
+  // Phase 2: broadcast the deploy with the user's chosen amount + strategy's
+  // blocks. Called from handleX402Mine when the click happens at
+  // 'awaiting-confirm'.
+  const handleX402Deploy = async ({ ethAmount }: { ethAmount: string }) => {
+    if (x402InFlightRef.current) return
+    if (!walletClient || !address || !agent || !x402Decision || !x402Decision.fire) {
+      console.warn('[x402] deploy phase invoked without a fire:true decision')
+      return
+    }
+    let userValueWei: bigint
+    try {
+      userValueWei = parseEther(ethAmount)
+    } catch {
+      console.warn('[x402] invalid ethAmount at deploy phase', ethAmount)
+      return
+    }
+    if (userValueWei <= BigInt(0)) {
+      console.warn('[x402] ethAmount must be > 0 at deploy phase')
+      return
+    }
+    x402InFlightRef.current = true
+    try {
+      // Re-check chain right before deploy sig. User may have switched
+      // networks between USDC sig and clicking DEPLOY.
       if (!isOnBase) {
-        console.error('[x402] chain switched after payment — bailing')
+        console.error('[x402] chain switched between phase 1 and 2 — bailing')
         setX402Step('error')
         return
       }
-      // Client-side safety net. Throws X402ClientError on mismatch which the
-      // catch handles. Validates to/selector/value/blocks (suffix is checked
-      // separately via withBuilderCodeSuffix below).
-      assertSafeStrategyDecision(decision)
-      // ensure ERC-8021 attribution lands regardless of whether dev's server
-      // already appended the suffix. Idempotent — no-ops if suffix is present.
-      const dataWithSuffix = withBuilderCodeSuffix(decision.tx!.data)
+      assertSafeStrategyDecision(x402Decision)
+      const dataWithSuffix = withBuilderCodeSuffix(x402Decision.tx!.data)
 
       setX402Step('signing-deploy')
       const txHash = await sendTransactionAsync({
         chainId: base.id,
-        to: decision.tx!.to,
+        to: x402Decision.tx!.to,
         data: dataWithSuffix,
-        value: BigInt(decision.tx!.value),
+        value: userValueWei,
       })
       if (x402AbortRef.current) {
         console.warn('[x402] aborted after broadcast')
@@ -499,8 +540,7 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
       setX402Step('broadcasting')
       setX402TxHash(txHash)
       console.log('[x402] deploy tx submitted', txHash)
-      // Optimistic deploy lock — see ratchet comment below.
-      setX402RoundInfo(prev => prev ? { ...prev, userDeployedFormatted: decision.amountFormatted } : prev)
+      setX402RoundInfo(prev => prev ? { ...prev, userDeployedFormatted: ethAmount } : prev)
       setX402Step('done')
       refetchUsdc()
       // Refresh round info. Ratchet on userDeployedFormatted: the backend

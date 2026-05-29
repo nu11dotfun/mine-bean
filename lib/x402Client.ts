@@ -121,23 +121,18 @@ export function assertSafeStrategyDecision(decision: StrategyDecision): void {
     )
   }
 
-  // 3. value matches the quoted amountWei
-  let valueBig: bigint
-  let amountBig: bigint
+  // 3. value sanity — must be parseable as bigint. We do NOT pin it to
+  // decision.amountWei because the user provides their own deploy amount
+  // upstream; the strategy's amountWei is shown as a reference but the
+  // broadcast uses parseEther(userInput). The value check the broadcast
+  // actually relies on is comparing wagmi's call value against the user's
+  // typed amount, which happens at the orchestrator level.
   try {
-    valueBig = BigInt(tx.value)
-    amountBig = BigInt(decision.amountWei)
+    BigInt(tx.value)
   } catch {
     throw new X402ClientError(
       'UNSAFE_CALLDATA_VALUE',
-      `Could not parse tx.value or amountWei as bigint. value=${tx.value} amountWei=${decision.amountWei}`,
-    )
-  }
-  if (valueBig !== amountBig) {
-    throw new X402ClientError(
-      'UNSAFE_CALLDATA_VALUE',
-      `tx.value (${valueBig}) does not match quoted amountWei (${amountBig}).`,
-      { txValue: tx.value, amountWei: decision.amountWei },
+      `Could not parse tx.value as bigint. value=${tx.value}`,
     )
   }
 

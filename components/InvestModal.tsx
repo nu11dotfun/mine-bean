@@ -595,9 +595,16 @@ function X402Tab({
     setEthAmount(max > 0 ? max.toFixed(6) : '0')
   }
 
+  // Trim the strategy's full-precision wei string down to 6 decimals for
+  // both display and input value. Sub-microether differences are invisible
+  // at any plausible ETH price and the long decimals were making the UI ugly.
+  const optimalAmountDisplay = decision?.fire && decision.amountFormatted
+    ? parseFloat(decision.amountFormatted).toFixed(6)
+    : ''
+
   const handleUseOptimal = () => {
-    if (decision?.fire && decision.amountFormatted) {
-      setEthAmount(decision.amountFormatted)
+    if (optimalAmountDisplay) {
+      setEthAmount(optimalAmountDisplay)
     }
   }
 
@@ -617,7 +624,7 @@ function X402Tab({
     if (inConfirmPhase && roundTimeRemaining > 0 && roundTimeRemaining <= AUTO_DEPLOY_AT_SECONDS) {
       const fallback = ethAmount && ethVal > 0
         ? ethAmount
-        : (decision?.fire ? decision.amountFormatted : '')
+        : optimalAmountDisplay
       if (fallback) onX402Mine?.({ ethAmount: fallback })
     }
   }, [inConfirmPhase, roundTimeRemaining, onX402Mine, ethAmount, ethVal, decision])
@@ -670,7 +677,7 @@ function X402Tab({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
               <span style={s.infoTitle}>OPTIMAL AMOUNT</span>
               <span style={s.infoText}>
-                {decision.amountFormatted} ETH for a potential gain of ~{decision.expectedRoiPct.toFixed(2)}%.
+                {optimalAmountDisplay} ETH for a potential gain of ~{decision.expectedRoiPct.toFixed(2)}%.
               </span>
               <button
                 onClick={handleUseOptimal}
@@ -687,7 +694,7 @@ function X402Tab({
                   cursor: 'pointer',
                 }}
               >
-                USE OPTIMAL ({decision.amountFormatted} ETH)
+                USE OPTIMAL ({optimalAmountDisplay} ETH)
               </button>
             </div>
           </div>
@@ -825,7 +832,7 @@ function X402Tab({
           <span style={{ ...s.infoText, fontSize: 11, opacity: 0.85 }}>
             {ethVal > 0
               ? `When the round ends, we'll deploy your ${ethAmount} ETH automatically if you haven't clicked DEPLOY.`
-              : `Leave the amount blank and we'll auto-deploy the optimal ${decision.amountFormatted} ETH when the round closes.`}
+              : `Leave the amount blank and we'll auto-deploy the optimal ${optimalAmountDisplay} ETH when the round closes.`}
           </span>
         </div>
       )}

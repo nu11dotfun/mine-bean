@@ -1,8 +1,15 @@
 // Client helper for the x402 paid mining tier.
 //
 // The dev hosts the x402 paywall at api.minebean.com/api/strategy/decide.
-// We POST { strategy, params } via x402-fetch; the library handles the
+// We POST { strategy, params } via @x402/fetch (v2); the library handles the
 // 402 → sign USDC EIP-3009 → retry-with-X-PAYMENT dance transparently.
+//
+// Backend migrated to x402 v2 in Q2 2026. v2 differences vs v1:
+//   - challenge moved from response body to `payment-required` header
+//   - package namespace: x402-fetch → @x402/fetch + @x402/evm
+//   - network ids are CAIP-2 ('eip155:8453' instead of 'base')
+//   - wrapFetchWithPayment no longer accepts a maxAtomic param — we enforce
+//     the per-call USDC cap via SelectPaymentRequirements instead.
 //
 // Successful response shape is documented in ~/Desktop/X402_API.md. Two
 // principal cases: `fire: true` (math says deploy, server returns a ready-
@@ -10,9 +17,20 @@
 
 import type { WalletClient } from 'viem'
 import { decodeAbiParameters, toFunctionSelector, concat } from 'viem'
-import { wrapFetchWithPayment } from 'x402-fetch'
+import {
+  wrapFetchWithPayment,
+  x402Client,
+  type PaymentRequirements,
+  type SelectPaymentRequirements,
+} from '@x402/fetch'
+import { ExactEvmScheme, type ClientEvmSigner } from '@x402/evm'
 import { CONTRACTS, BUILDER_CODE_SUFFIX } from '@/lib/contracts'
 import { STRATEGY_API_URL, type StrategyId } from '@/lib/x402/config'
+
+// Base mainnet CAIP-2 identifier — the only network the server quotes payment
+// requirements on. Hardcoded to neutralize the risk of a malicious server
+// trying to redirect payment to a different chain we haven't authorized.
+const EXPECTED_NETWORK = 'eip155:8453' as const
 
 // keccak256("deploy(uint8[])").slice(0,10) — frozen at module load.
 const DEPLOY_SELECTOR = toFunctionSelector('function deploy(uint8[] blockIds) payable')
@@ -218,16 +236,54 @@ export async function payAndFetchDecision({
 }: PayAndFetchArgs): Promise<StrategyDecision> {
   // USDC has 6 decimals on Base.
   const maxAtomic = BigInt(Math.floor(maxPaymentUsdc * 1_000_000))
-  // x402-fetch's Signer type requires `account` to be non-undefined. Viem's
-  // WalletClient generic types `account` as `Account | undefined`. The
-  // orchestrator guarantees a bound account before invoking this function
-  // (pre-flight checks for walletClient + address), so the assertion is a
-  // runtime no-op — it only satisfies TypeScript's narrower view.
-  const paidFetch = wrapFetchWithPayment(
-    fetch,
-    walletClient as Parameters<typeof wrapFetchWithPayment>[1],
-    maxAtomic,
-  )
+
+  // v2 dropped the maxAtomic param from wrapFetchWithPayment; the per-call
+  // USDC cap now lives in a SelectPaymentRequirements callback. We pick the
+  // first requirement that is (a) on Base mainnet via CAIP-2, (b) the exact
+  // scheme (EIP-3009 USDC), and (c) at or below our cap. Any deviation
+  // throws BEFORE the wallet prompts to sign, so a compromised server can't
+  // burn the user for an unbounded amount.
+  const selectPaymentRequirements: SelectPaymentRequirements = (_v, requirements) => {
+    const ok = (requirements as PaymentRequirements[]).find((r) => {
+      if (r.network !== EXPECTED_NETWORK) return false
+      if (r.scheme !== 'exact') return false
+      try {
+        return BigInt(r.amount) <= maxAtomic
+      } catch {
+        return false
+      }
+    })
+    if (!ok) {
+      throw new X402ClientError(
+        'PAYMENT_TOO_LARGE',
+        `No acceptable payment requirement. cap=${maxPaymentUsdc} USDC on ${EXPECTED_NETWORK}`,
+        { requirements, maxAtomic: maxAtomic.toString() },
+      )
+    }
+    return ok
+  }
+
+  // ExactEvmScheme expects a ClientEvmSigner with a FLAT `.address` and a
+  // `signTypedData(msg)` that takes no account arg. Wagmi's WalletClient
+  // doesn't match either: its address lives at `.account.address`, and viem's
+  // signTypedData requires the account in args. Wrap it.
+  if (!walletClient.account?.address) {
+    throw new X402ClientError('PAYMENT_FAILED', 'walletClient has no bound account')
+  }
+  const account = walletClient.account
+  const signer: ClientEvmSigner = {
+    address: account.address,
+    // The scheme calls signer.signTypedData({ domain, types, primaryType, message }).
+    // Forward to viem's WalletClient with the bound account spliced back in.
+    // Cast through unknown because ClientEvmSigner uses Record<string, unknown>
+    // for the typed-data shape while viem expects a narrower TypedDataDefinition.
+    signTypedData: (msg) =>
+      walletClient.signTypedData({ account, ...msg } as unknown as Parameters<typeof walletClient.signTypedData>[0]),
+  }
+  const client = new x402Client(selectPaymentRequirements)
+    .register(EXPECTED_NETWORK, new ExactEvmScheme(signer))
+
+  const paidFetch = wrapFetchWithPayment(fetch, client)
 
   const body = JSON.stringify({ strategy, ...(params ? { params } : {}) })
 

@@ -9,6 +9,7 @@ import MobileControls from '@/components/MobileControls'
 import BottomNav from '@/components/BottomNav'
 import LandingPage from '@/components/LandingPage'
 import ClaimRewards from '@/components/ClaimRewards'
+import RoastingAprBanner from '@/components/RoastingAprBanner'
 import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { parseEther } from 'viem'
@@ -157,6 +158,7 @@ if (!showMining) {
           <MobileStatsBar userAddress={address} />
           <MiningGrid userAddress={address} />
           <MobileControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
+          <RoastingAprBanner userAddress={address} />
           <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
         <BottomNav currentPage="mine" />
@@ -185,6 +187,7 @@ if (!showMining) {
         </div>
         <div style={styles.controlsSection}>
           <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
+          <RoastingAprBanner userAddress={address} />
           <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
       </div>

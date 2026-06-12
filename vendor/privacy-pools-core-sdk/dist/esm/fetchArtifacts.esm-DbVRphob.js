@@ -1,3 +1,18 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:92b37e05e89c20f18f5a1eb1f02bc46dbf8a816cefd68b4571ce19fa696c78d2
-size 500
+import { F as FetchArtifact } from './index-DkNRxKxP.js';
+import 'viem/accounts';
+import 'buffer';
+import 'assert';
+import 'viem';
+import 'viem/chains';
+
+async function fetchVersionedArtifact(artifactUrl) {
+    const res = await fetch(artifactUrl);
+    if (res.status !== 200) {
+        throw new FetchArtifact(artifactUrl);
+    }
+    const aBuf = await res.arrayBuffer();
+    return new Uint8Array(aBuf);
+}
+
+export { fetchVersionedArtifact };
+//# sourceMappingURL=fetchArtifacts.esm-DbVRphob.js.map

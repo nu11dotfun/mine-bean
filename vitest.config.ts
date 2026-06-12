@@ -18,6 +18,10 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, '.'),
+      // The privacy-pools SDK's ESM build has a node-only `import("fs")`
+      // branch that vite cannot resolve under jsdom; tests use the browser
+      // path only.
+      fs: path.resolve(__dirname, 'test/stubs/fs.ts'),
     },
   },
 })

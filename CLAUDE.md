@@ -4,13 +4,16 @@
 
 Gamified mining protocol on Base. Users compete in 60-second rounds on a 5×5 grid of blocks, deploying ETH to earn BEAN tokens and ETH rewards. Built with Next.js 14 (App Router), React 18, TypeScript, and Wagmi/RainbowKit for wallet integration.
 
+Includes **Private Mode** (desktop): anonymous grid deploys via a forked 0xbow Privacy Pool — main wallet deposits publicly, a wallet-derived subaccount is funded through a ZK relayer withdrawal and plays with its own key. See "Private Mode" under Architecture Notes.
+
 ## Tech Stack
 
 - **Framework:** Next.js 14.2.3 (App Router)
-- **UI:** React 18.3.1, TypeScript 5
-- **Web3:** Wagmi 2.8.0, Viem 2.9.20, RainbowKit 2.1.2
+- **UI:** React 18.3.1, TypeScript 5 (target ES2020 — bigint literals)
+- **Web3:** Wagmi 2.8.0, Viem ^2.22.14, RainbowKit 2.1.2
 - **State:** TanStack React Query 5.28.4, useState, custom window events
 - **Styling:** Inline React styles (no CSS framework). Dark theme `#0a0a0a`, accent `#F0B90B`
+- **Privacy/ZK:** `@0xbow/privacy-pools-core-sdk` (local `file:../privacy-pools-core/packages/sdk` — matches deployed contracts; npm version does NOT), `@zk-kit/lean-imt`, `maci-crypto`, `@scure/bip39`. All loaded via dynamic `import()` — snarkjs lives in a lazy ~1.7MB async chunk, never the entry bundle.
 
 ## Project Structure
 
@@ -53,6 +56,7 @@ components/
   WalletButton.tsx    — Wallet connection with balance display
   BeanLogo.tsx        — Logo SVG components
   AboutPage.tsx       — About content with expandable sections
+  PrivateModePanel.tsx — Private mode panel inside SidebarControls (subaccount address/balance, pool note status, key-backup gate, deposit form, funding progress, cash-out, rescan)
 
 lib/
   api.ts            — Backend API helpers (apiFetch, apiMutate). Base URL via NEXT_PUBLIC_API_URL env var (default https://api.minebean.com)
@@ -63,11 +67,24 @@ lib/
   types.ts          — Typed window event interfaces and global WindowEventMap declarations
   useProfileResolver.ts — Hook for batch-resolving wallet addresses to profile data (username, pfp)
   supabase.ts       — Supabase client (anon key, cache: 'no-store' to bypass Next.js fetch cache). Used only by Next.js API routes for profile storage.
-  providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, SSEProvider, UserDataProvider, RoundTimerProvider)
+  providers.tsx     — Web3Provider (Wagmi, RainbowKit, React Query, PrivacyProvider, SSEProvider, UserDataProvider, RoundTimerProvider). SSE/UserData providers receive `usePrivacy().effectiveAddress` (subaccount when private mode is on, else connected wallet)
   wagmi.ts          — Chain config (Base mainnet + testnet)
   agents.ts         — Agent metadata (AGENTS array: id, apiAgentId, name, strategy, walletAddress, initialFunding, status)
   agentData.ts      — Agent stats computation (fetchAgentStats for individual agent pages, AgentStats/RoundData types, sparkline/PnL calculation)
   abis/             — Contract ABI JSON files (GridMining, AutoMiner, Bean, Treasury, ERC20, Staking)
+  privacy/          — Private mode (Privacy Pools integration — see "Private Mode" under Architecture Notes)
+    subaccount.ts       — Subaccount EOA key derivation from a one-time main-wallet signature
+    keys.ts             — Deposit-secret master key derivation (same signature, domain-separated KDF → BIP-39 → SDK generateMasterKeys)
+    config.ts           — Privacy pool addresses, scope, gas buffer, ABI fragments
+    notes.ts            — localStorage deposit-note cache (no secrets stored)
+    relayerClient.ts    — Typed client for the privacy relayer (/info, /state/leaves, /asp/proof, /relay) via Next.js rewrite
+    circuits.ts         — Lazy PrivacyPoolSDK singleton, LazyCircuits (withdraw-only artifacts), prefetchArtifacts with progress
+    deposit.ts          — Precommitment prep + Deposited-event → note extraction (commitment sanity check)
+    withdrawal.ts       — Browser ZK withdrawal proof pipeline (LeanIMT state proof, ASP proof, context, prove + offline verify)
+    proofCache.ts       — sessionStorage cache for the pre-generated withdrawal proof (staleness-checked on roots)
+    subaccountClient.ts — viem clients for subaccount-signed txs (deploy builder suffix; ETH+ERC20 cashout pool deposits, ERC20 approve), ETH+BEAN balance polling, pool fee/min read, gas estimates, isContractAccount (smart-account detection)
+    rescan.ts           — Recovery: rebuild notes from chain logs + derived keys, spent check via pool nullifierHashes
+    PrivacyContext.tsx  — PrivacyProvider/usePrivacy: funding state machine, background proving watcher, ensureFunded()
 
 components/
   AgentHeader.tsx     — Agent subdomain top nav
@@ -77,12 +94,15 @@ components/
 ## Commands
 
 ```bash
-npm run dev       # Development server
-npm run build     # Production build
-npm start         # Production server
-npm run lint      # Linter
-npx vitest run    # Run test suite
+npm run dev            # Development server
+npm run build          # Production build
+npm start              # Production server
+npm run lint           # Linter
+npx vitest run         # Run test suite
+npm run artifacts:copy # Copy ZK proving artifacts from ../privacy-pools-core into public/artifacts/
 ```
+
+**Node version:** the vite 7 / vitest 3 toolchain requires Node ≥ 20.19. If the shell defaults to Node 18, prefix commands with `export PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH"`.
 
 ## Conventions
 
@@ -103,15 +123,21 @@ npx vitest run    # Run test suite
 | Staking     | `0xfe177128Df8d336cAf99F787b72183D1E68Ff9c2` |
 | BEAN/ETH LP | `0xd7e5522c9cc3682c960afada6adde0f8116580f2ad2cef08c197faf625e53842` |
 
+**Privacy Pools (forked 0xbow, deployed unmodified on Base — ONE Entrypoint, TWO pools routed by scope):**
+
+- **Addresses, scopes, and deploy blocks are NOT duplicated in this doc** — they change on every redeploy, so the code is the single source of truth. Pool/Entrypoint **addresses** live in `lib/contracts.ts` (`CONTRACTS.PrivacyEntrypoint`, `CONTRACTS.PrivacyPoolETH`, `CONTRACTS.PrivacyPoolBEAN`); swap an address there. The per-pool **scopes** and **deploy blocks** live in `lib/privacy/config.ts` (`POOL_SCOPE`/`BEAN_POOL_SCOPE`, `POOL_DEPLOY_BLOCK`/`BEAN_POOL_DEPLOY_BLOCK`), which imports the addresses from `CONTRACTS`. The `PoolConfig` descriptors (`ETH_POOL`/`BEAN_POOL`/`POOLS`/`poolFor`) and ABI fragments also live in `config.ts`.
+- **ETH pool:** native ETH. **BEAN pool:** ERC20 BEAN (`CONTRACTS.Bean`, 18 dec). Each pool's **minimum deposit** and **vetting fee** are read live from `Entrypoint.assetConfig(asset)` on enable (with `MIN_DEPOSIT_WEI` in `config.ts` as the fallback) — never hardcoded, so they track whatever the live deployment enforces.
+- **Routing:** ONE global ASP root (postman maintains a single approved-set tree over both pools); each pool has its OWN state (commitment) tree. A withdrawal is routed to a pool by its **scope**; its state proof comes from THAT pool's leaves (`/state/leaves?pool=eth|bean`). Deposit secrets are scope-bound, so ETH and BEAN keep independent per-pool index sequences.
+
 **ABI source:** `lib/abis/GridMining.json` is extracted from Hardhat artifacts (`hardhat/artifacts/contracts/GridMining.sol/GridMining.json`). Includes `AlreadyDeployedThisRound` custom error, `ResetRequested` event, and `topMinerSeed`/`winnersDeployed` fields in `RoundSettled` event.
 
 ## Integration Status
 
 ### Connected to Backend + Smart Contract
-- **app/page.tsx** — Orchestrates deploy and claim flows. Uses wagmi `useWriteContract` to call `GridMining.deploy(uint8[] blockIds)` payable, `GridMining.claimETH()`, and `GridMining.claimBEAN()`. On deploy tx success, dispatches `userDeployed` window event for optimistic block tracking. Passes `onDeploy`, `onClaimETH`, `onClaimBEAN` callbacks to child components. Mounts `<BeanpotCelebration />` and `<CountdownCelebration />` (desktop layout only). **Hydration-safe:** `showMining` state initializes as `false`, then reads `sessionStorage('bean_visited')` in a `useEffect` to avoid SSR/client mismatch.
+- **app/(main)/page.tsx** — Orchestrates deploy and claim flows. Uses wagmi `useWriteContract` to call `GridMining.deploy(uint8[] blockIds)` payable, `GridMining.claimETH()`, and `GridMining.claimBEAN()`. On deploy tx success, dispatches `userDeployed` window event for optimistic block tracking. Passes `onDeploy`, `onClaimETH`, `onClaimBEAN` callbacks to child components. Mounts `<BeanpotCelebration />` and `<CountdownCelebration />` (desktop layout only). **Hydration-safe:** `showMining` state initializes as `false`, then reads `localStorage('bean_visited')` in a `useEffect` to avoid SSR/client mismatch. **Private mode routing:** when `usePrivacy().enabled`, deploy/claim handlers branch — `await privacy.ensureFunded(...)` then `privacy.sendPrivateTx(...)` (subaccount-signed, builder suffix) instead of wagmi `writeContract`; `userAddress` props receive `effectiveAddress` (desktop components only). AutoMiner/Agent handlers are never private-routed.
 - **BeanpotCelebration.tsx** — Uses `subscribeGlobal('roundTransition')` via SSE directly (no window event dependency). Triggers celebration (canvas-confetti + Web Audio API sound + "BEANPOT HIT" text overlay) when `settled.beanpotAmount > 0`. Handles hex string amounts from backend via `BigInt()` conversion. Sound respects `bean_muted` localStorage flag. Text auto-hides after 6 seconds.
 - **MiningGrid.tsx** — Fetches `GET /api/round/current?user=` on mount (with wallet address when connected), uses `useSSE()` to subscribe to global events (`deployed`, `roundSettled`, `gameStarted`) and user events (`autoMineExecuted`). Dispatches `roundData`, `roundDeployed`, and `roundSettled` window events. Tracks `userDeployedBlocks` (blocks user already deployed to this round) via `GET /api/user/:address/history?type=deploy&roundId=X` on load and optimistic `userDeployed` events. Deployed blocks are visually marked (green border + ✓) and unclickable. **One deploy per round:** `hasDeployedThisRound` boolean locks ALL grid blocks after the first deploy — set `true` on `userDeployed` event or when backend history shows existing deploys, reset to `false` in `resetForNewRound()`. The `selectAllBlocks` listener is also ignored when `hasDeployedThisRound` is true. **AutoMiner grid lock:** When in auto mode (`autoMode.enabled`), all grid cells are disabled to prevent manual selection.
-- **SidebarControls.tsx** — Receives round data (beanpot, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Timer from `useRoundTimer()` context. Uses `useSSE()` to subscribe to user events (`autoMineExecuted`, `configDeactivated`, `stopped`) for AutoMiner real-time updates. Fetches ETH and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (perBlock >= MIN_DEPLOY_PER_BLOCK, blocks > 0, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. **Input is per-block amount** — total is calculated as `perBlock × selectedBlocks`.
+- **SidebarControls.tsx** — Receives round data (beanpot, round number, total deployed, user deployed) via `roundData`/`roundDeployed`/`roundSettled` window events from MiningGrid. Timer from `useRoundTimer()` context. Uses `useSSE()` to subscribe to user events (`autoMineExecuted`, `configDeactivated`, `stopped`) for AutoMiner real-time updates. Fetches ETH and BEAN prices from `GET /api/stats` every 30s. Phase (counting/eliminating/winner) driven by backend events, not a local timer. Deploy button enabled only when `canDeploy` (perBlock >= MIN_DEPLOY_PER_BLOCK, blocks > 0, timer > 0, phase === "counting", `userDeployed === 0`). When `hasDeployed` (userDeployed > 0), button shows "✓ Deployed" and is disabled. **Input is per-block amount** — total is calculated as `perBlock × selectedBlocks`. **Private mode:** a yellow PRIVATE toggle above the mode tabs enables/disables private mode and renders `PrivateModePanel`. The toggle is disabled for smart accounts (`privacy.isSmartAccount`). While enabled, AUTO/AGENT tabs are locked; the deploy button reads "Back up key first" until the key is exported, then "Deploy Privately" (or "Funding…" while the withdrawal is in flight); spendable balance = subaccount balance + unspent pool note − `SUBACCOUNT_GAS_BUFFER` (imported from `lib/privacy/config.ts` and converted to ETH, NOT a hardcoded literal — single source of truth with `ensureFunded`).
 - **MobileControls.tsx** — Same as SidebarControls but mobile layout. Uses `useSSE()` for user event subscriptions. Phase-aware deploy button with same `canDeploy` logic. Tracks `userDeployed` via `roundData` and `roundDeployed` window events (matches `user` field against connected `userAddress` prop). Shows "✓ Deployed" when locked.
 - **MobileStatsBar.tsx** — Receives beanpot, total deployed, and user deployed via `roundData`/`roundDeployed` window events. Timer from `useRoundTimer()` context.
 - **ClaimRewards.tsx** — Uses shared `useUserData()` context for rewards data (no local fetching or SSE subscriptions). Shows ETH rewards, unroasted BEAN, roasted BEAN separately. Conditionally rendered — hidden when all rewards are zero. Claim buttons call `onClaimETH`/`onClaimBEAN` callbacks from page.tsx.
@@ -327,13 +353,13 @@ After a successful PUT, **ProfilePage calls `patchProfile(fields)`** from `useUs
 
 The app uses a centralized SSE provider to maintain exactly **2 connections** per browser session (1 global + 1 user) instead of per-component connections that caused connection stacking and 429 rate limit errors.
 
-**Provider setup in `lib/providers.tsx`:**
+**Provider setup in `lib/providers.tsx`:** (`PrivacyProvider` wraps `SSEWrapper`, which passes the privacy-aware effective address — the subaccount while private mode is on — to both providers)
 ```tsx
 function SSEWrapper({ children }: { children: React.ReactNode }) {
-  const { address } = useAccount()
+  const { effectiveAddress } = usePrivacy()
   return (
-    <SSEProvider userAddress={address}>
-      <UserDataProvider userAddress={address}>
+    <SSEProvider userAddress={effectiveAddress}>
+      <UserDataProvider userAddress={effectiveAddress}>
         <RoundTimerProvider>
           {children}
         </RoundTimerProvider>
@@ -412,6 +438,76 @@ Centralized countdown timer that calibrates against actual chain `block.timestam
 **Hook:** `useRoundTimer()` returns `{ timeRemaining, endTime, roundId }`
 
 **Consumers:** SidebarControls, MobileControls, MobileStatsBar, CountdownCelebration
+
+### Private Mode (`lib/privacy/` + `PrivateModePanel.tsx`) — desktop only, first pass
+
+Lets a user deploy to GridMining anonymously via a forked 0xbow Privacy Pool: the main wallet's link to deploys is broken by routing funds `main → pool → subaccount`, where the subaccount (a viem `PrivateKeyAccount` derived in-browser) signs deploy/claim txs itself. **Cash-out is the funding flow in REVERSE — the subaccount deposits into the pool and a ZK withdrawal sends the asset to main; it is NEVER a direct `subaccount → main` transfer** (that public edge would destroy unlinkability). Both **ETH and BEAN** cash out this way, each through its own pool (two independent "Withdraw" actions). On the grid page the subaccount only earns BEAN (no BEAN deposit form here — a future staking page may add private BEAN deposits).
+
+```
+FUNDING:  main ──deposit (public)──► POOL ──relayer withdraw (ZK)──► SUBACCOUNT (plays GridMining)
+  │ signs ONE message (never broadcast)
+CASHOUT:  SUBACCOUNT ──deposit (sub-signed)──► POOL ──relayer withdraw (ZK)──► main
+```
+
+Every private value move = a pool deposit then a proof-based withdrawal. The two legs differ only by depositor/recipient. The pool charges a **vetting fee (read live from `Entrypoint.assetConfig` per asset, not hardcoded) on EVERY deposit**, so a full round-trip pays it twice plus gas; the note records the post-fee committed value, so withdrawal math stays correct.
+
+**Key derivation (published spec, v1) — everything wallet-derived, nothing random, no server storage:**
+- Message: `buildDerivationMessage(mainAddress, 1)` (subaccount.ts), signed via `personal_sign` — local only, NEVER broadcast or sent anywhere.
+- Subaccount key: `keccak256(signature)`.
+- Deposit master keys: `entropy = keccak256(signature ‖ utf8("BEAN/privacy/deposit-keys/v1"))` → BIP-39 mnemonic (24 words, english) → SDK `generateMasterKeys`. Per-deposit secrets: `generateDepositSecrets(keys, scope, depositIndex)`; withdrawal change secrets: `generateWithdrawalSecrets(keys, label, 0)`.
+- Recovery = reconnect + re-sign → same keys. Notes are re-discoverable from chain (`rescan.ts`). Never change a version's domain string — add a new version.
+
+**Flow:**
+0. **Eligibility** — private mode is **EOA-only**, guarded two ways: (a) `isContractAccount(main)` (`getBytecode` non-empty) flags *deployed* smart accounts on connect — the toggle is disabled with an EOA note, and `enablePrivateMode` re-checks; (b) **after signing, `recoverMessageAddress(message, signature) === main`** — a smart account's signature can never `ecrecover` to its own contract address (only an EOA's does), which catches **counterfactual / not-yet-deployed** smart wallets the bytecode check misses, plus any passkey/ERC-1271/ERC-6492 signature (not a recoverable ECDSA sig). The check runs BEFORE deriving, so no unreproducible subaccount is ever created. Rationale: smart accounts (ERC-4337 / passkey wallets like Coinbase Smart Wallet) sign non-deterministically and change signature format on deployment (ERC-6492 wrapper drops), so the subaccount can't be re-derived — supporting them would strand funds. No false positives for real EOAs (their sig always recovers to themselves, encoding-agnostic).
+1. **Enable** (PRIVATE toggle in SidebarControls) → one signature popup derives both keys. Secrets live in a `useRef` in `PrivacyContext` — memory only, dropped on disable/disconnect/account-switch. Cached subaccount address (`bean_privacy_subaddr_v1_<main>`) detects non-deterministic wallets (mismatch → hard error; `isDeterminismAssumedSafe` warns — see "Determinism" below).
+1b. **Key backup gate (one-time per device)** — before ANY funds enter, the panel forces a backup: "Download key file" writes a `.txt` (subaccount key + address + instructions) via `exportPrivateKey()`, then "I've saved it" → `confirmExported()` sets `bean_privacy_exported_v1_<main>`. `depositToPool` and `ensureFunded` throw `NeedsExportError` until set; the deploy button reads "Back up key first". Device-local on purpose — re-prompting on a new device / cleared storage is fail-safe (only the user's own funds are at stake, no adversary). A "Export key" link in the panel re-downloads later.
+2. **Deposit** (panel form, main wallet, public) → `Entrypoint.deposit{value}(precommitment)` → decode pool `Deposited` event from the receipt → store note `{label, value, commitment, depositIndex, spent, txHash}` in localStorage (`bean_privacy_notes_v1_<main>`). v1 invariant: max ONE unspent note; deposit form disabled while one exists. **Minimum deposit** enforced both in the panel (button disabled + hint) and in `depositToPool` (clear throw) — the Entrypoint reverts below `assetConfig.minimumDepositAmount` (0.001 ETH on this deployment). The live minimum is read on enable into `minDepositWei`, falling back to `MIN_DEPOSIT_WEI` (config.ts). Then poll ASP approval (postman publishes ~15s).
+3. **Background proving watcher** (in PrivacyContext, ~60s cycle): once the note is approved, prefetch artifacts (one-time ~20MB, byte-progress in panel) and pre-generate the FULL-VALUE withdrawal proof (recipient = subaccount, amount = note value — nothing about the deploy enters the proof). Cached in sessionStorage (`bean_privacy_proof_v1_<main>`, contains no secrets). Staleness: proof binds a state root (moves on ANY pool activity) and ASP root (moves on every approval) — watcher re-proves silently when either drifts.
+4. **Deploy** → `ensureFunded(value)`: **flushes the pool on deploy** — if an unspent funding note exists, relay the cached proof (`POST /relay`) → wait receipt → mark note spent (ONLY after success) → wait for funds → deploy, **even when the subaccount already has enough balance** (so pooled funds are never left stranded). Only when there is NO note does it use the fast path (subaccount balance must cover, else `NeedsDepositError`). Exception for round-safety: a note that isn't ASP-approved yet does NOT block a subaccount that already covers the deploy — it deploys now and flushes on a later deploy. The deploy itself is `subaccount.GridMining.deploy` via `sendContractWithSuffix` (builder suffix appended manually — wagmi `dataSuffix` equivalent). Typical deploy-time cost: relay tx + deploy tx (~5–10s). If the round rolls over mid-funding, it stops at `funded` and the user re-deploys (never auto-deploys into an unintended round). Claims use `ensureFunded(0)` (gas only).
+5. **Cash out** (panel: separate "Withdraw ETH" / "Withdraw BEAN" buttons → confirm → `PrivacyContext.cashOut(asset)`) — subaccount → pool → main, resumable per pool. **ETH:** (1) deposit `subBalance − gasReserve` into the ETH pool (`depositFromSubaccount`, no suffix); (2) poll ASP; (3) prove **inline** `recipient = main`; (4) relay (ETH scope) → mark spent. **BEAN** (ERC20, its own pool): (1a) `approve(Entrypoint, beanBalance)` and **await the receipt** (depositing before the approve mines reverts `ERC20InsufficientAllowance` on the stale-allowance simulate); (1b) `depositErc20FromSubaccount` the FULL BEAN balance into the BEAN pool → note tagged `{pool:'bean'}`; (2) poll ASP (same global tree); (3) prove inline routed to the BEAN pool (scope + `/state/leaves?pool=bean`); (4) relay with the **BEAN scope** → BEAN at main → mark spent. BEAN gas (approve + deposit) is paid in ETH from the subaccount; the withdrawal itself is relayer-paid. Both flows: interrupted-after-deposit leaves an unspent per-pool cashout note (funds safe) and retry **resumes from approval** (`getUnspentCashoutNote(main, pool)`). A pool with <2 leaves can't prove — guarded with a clear message (pools seeded at launch).
+
+**Funding state machine:** `idle | deriving | depositing | awaiting-approval | proving | relaying | funded | error` — drives the panel's status strip; failures keep the note unspent and offer retry; relay reverts clear the proof cache (stale-root suspicion).
+
+**Cashout state machine (separate):** `cashoutStatus: idle | approving | depositing | awaiting-approval | proving | relaying | done | error` + `cashoutDetail` + `cashoutAsset: 'eth'|'bean'|null`, kept distinct from funding `status` so the panel never conflates them. `ethCashoutInFlight`/`beanCashoutInFlight` (an unspent cashout note exists for that pool) drive the per-asset "funds safe in pool — retry to finish" banner and "Resume" button. `approving` is the BEAN-only ERC20 approve step.
+
+**Identity switch:** while enabled, `usePrivacy().effectiveAddress` = subaccount, threaded through providers.tsx into SSEProvider + UserDataProvider, and from page.tsx into MiningGrid/SidebarControls/ClaimRewards/RoastingAprBanner + `useBalance`. The game UI works unchanged, just "as" the subaccount. Mobile components stay on the main address (the toggle is desktop-only).
+
+**Constants (`config.ts`):** `SUBACCOUNT_GAS_BUFFER = 0.0003 ETH` — headroom the subaccount keeps so it can self-pay gas for its own deploy/claim txs (it never gets a main-funded top-up). Deliberately ~10x actual Base gas to absorb spikes; raise/lower here only. The deploy button (`SUBACCOUNT_GAS_BUFFER_ETH` derived from it) and `ensureFunded` (`requiredWei + SUBACCOUNT_GAS_BUFFER`) both read this one value, so they can't drift. `MIN_DEPOSIT_WEI = 0.001 ETH` is the fallback when the live `assetConfig.minimumDepositAmount` read fails. (Cashout's deposit gas is estimated separately via `estimateDepositGasReserve`, not this buffer — the cashout withdrawal is relayer-paid.)
+
+**Determinism & recovery (the load-bearing crypto fact):** the subaccount key is `keccak256(personal_sign(message))` AND the deposit master keys derive from the SAME signature. An ECDSA signature is a function of `(key, message, nonce)`; RFC 6979 makes the nonce deterministic so the signature reproduces on any device. Essentially all mainstream wallets (MetaMask/Coinbase/Rabby/Ledger/Trezor/Rainbow/Frame) use RFC 6979 + Ethereum's canonical low-s/`v`, so **cross-device "just works" — same wallet + same message → same subaccount, with zero stored state.** The message itself is a pure function of (constant version, lowercased main address) + fixed ASCII literals, so it's byte-identical everywhere (never edit a version's literals — add a new version).
+
+The ONE failure mode is a wallet that signs with a *random* nonce (non-RFC-6979). Then re-derivation yields a different key — and because BOTH the subaccount key and the deposit secrets come from that one signature, **there is no fallback: a non-deterministic wallet with no backup = permanent loss** (even ragequit needs the signature-derived secrets). We can't force a wallet to be deterministic, so the design makes re-derivation non-load-bearing: smart accounts are blocked outright (step 0), and every user must export a key backup before funding (step 1b) — so recovery on any device is "import the key," independent of determinism. `bean_privacy_subaddr_v1_<main>` caches the first-derived address and hard-errors on same-device mismatch; the `isDeterminismAssumedSafe` allowlist warning is a secondary, conservative nudge (it fires for any unlisted connector — "unverified", not "known bad" — and can't see through WalletConnect). The export gate is the real guarantee. (Deliberately NO sign-twice probe — product decision.)
+
+**Note model (`notes.ts`):** `PrivateNote` carries `purpose: 'funding' | 'cashout'`, `depositor: 'main' | 'subaccount'`, and `pool: 'eth' | 'bean'` (all optional/back-compat → default `funding`/`main`/`eth`; `notePurpose()`/`notePool()` resolve). `getUnspentNote` returns FUNDING notes only — the deposit-form invariant and the background watcher (which proves a withdrawal to the SUBACCOUNT) must never pick up a cashout note that withdraws to MAIN. `getUnspentCashoutNote(main, pool)` tracks the in-flight cashout per pool for resume. `nextDepositIndex(main, pool)` is **per-pool** — secrets are scope-bound, so ETH and BEAN keep independent index sequences.
+
+**Recovery nuance:** the pool records `depositors[label] = msg.sender` and `ragequit` checks the original depositor. Funding notes are ragequit-recoverable via **main**; cashout notes via the **subaccount** key (both derive from the same signature → still fully recoverable). `rescan.ts` therefore scans `Deposited` for **both** `_depositor ∈ {main, subaccount}` and tags recovered notes accordingly.
+
+**Hard rules:**
+- EOA-only — smart accounts (contract bytecode at main) are blocked; their signatures aren't deterministically reproducible.
+- The user MUST back up the subaccount key before funds enter (export gate) — both keys derive from one signature, so without a backup a non-deterministic signer = unrecoverable funds.
+- Subaccount is funded ONLY from the pool — never from main (a single main → subaccount transfer links the identities forever).
+- Cashout goes THROUGH the pool (deposit + ZK withdrawal), NEVER a direct `subaccount → main` transfer.
+- The derivation signature and derived keys never leave the browser — no logging, POSTing, or persisting. The export gate writes the key ONLY to a user-initiated local `.txt` download.
+- AUTO/AGENT tabs are locked in private mode (those contracts are msg.sender-keyed to main).
+- Honest claim: deposits + the final withdrawal are public; the cash-out withdrawal lands at main with no direct link, but amount/timing still correlate in a small set. Privacy = the pool's anonymity set — don't overclaim while it's small (disclosure line in the panel).
+
+**Proof pipeline (`withdrawal.ts`, mirrors `privacy-pools-core/packages/contracts/scripts/pp-sdk.mjs`):** `proveNoteWithdrawal` routes by `note.pool` — same circuit, only the scope + state leaves differ between ETH and BEAN.
+- State proof: LeanIMT (`@zk-kit/lean-imt` + maci-crypto poseidon) over the note's pool commitments from `GET /state/leaves?pool=<key>`. **Capture `depth = siblings.length` BEFORE padding siblings to 32** — the SDK's own `generateMerkleProof` pads but loses depth; don't use it. **A pool with <2 leaves can't prove** (depth-0 single-leaf → witness gen fails); guarded with a clear message (pools seeded at launch).
+- ASP proof: served pre-built by the relayer per label from the ONE global tree (same endpoint for both pools); map strings → bigint, `aspTreeDepth = depth`.
+- Context: SDK `calculateContext(withdrawal, pool.scope)` = keccak256(abi.encode((processooor, data), scope)) % SNARK field — binds the recipient AND pool so the relayer can't redirect. `ProvenWithdrawal.scope` is sent in the `/relay` body to select the pool.
+- Withdrawal struct: `{ processooor: ENTRYPOINT, data: abi.encode((recipient, feeRecipient, relayFeeBPS=0)) }`. **`feeRecipient` must NOT be the Entrypoint — set it to `recipient`.** For ETH, `Entrypoint.relay` runs `_transfer(feeRecipient, fee)` even when fee==0, and a 0-value call into the Entrypoint reverts → `NativeAssetTransferFailed`; for BEAN it's an ERC20 `safeTransfer` (no native gotcha) but feeRecipient still can't be `address(0)`. `recipient` works for both.
+- **BEAN deposit (cashout): `approve(Entrypoint, amount)` then AWAIT the receipt before `Entrypoint.deposit(asset, amount, precommitment)`** (the ERC20 overload) — depositing on a stale allowance reverts `ERC20InsufficientAllowance`.
+- `sdk.proveWithdrawal` then `sdk.verifyWithdrawal` offline — an unverified proof is never relayed. Output normalized to decimal strings (no BigInt in JSON).
+
+**Artifacts:** committed in `public/artifacts/` (all six files; `npm run artifacts:copy` re-copies from the sibling repo). Served with `Cache-Control: immutable` (next.config headers). `LazyCircuits` overrides the SDK's eager all-circuits download to fetch ONLY the withdraw circuit (~20MB); commitment artifacts (~3MB) stay untouched until a ragequit feature exists. Never bundled, never fetched on page load — the watcher prefetches after ASP approval.
+
+**Relayer access:** the relayer is part of the main backend at `api.minebean.com`, mounted at `/privacy/*` (nginx → internal port 8787; same origin/CORS as `apiFetch`). `RELAYER_BASE` defaults to `${API_BASE}/privacy` (from `lib/api.ts`); override with `NEXT_PUBLIC_RELAYER_URL` for local dev (e.g. `http://localhost:8787` — note the local relayer serves the endpoints at the root with no `/privacy` prefix). Endpoints: `/info`, `/health`, `/state/leaves?pool=eth|bean`, `/asp/proof?label=`, `/asp/leaves`, `POST /relay`. The frontend NEVER submits withdrawals itself.
+
+**ASP publish race (avoid `IncorrectASPRoot`):** the postman keeps an IN-MEMORY ASP tree (advances as new deposits are approved) and a separate ON-CHAIN root committed periodically via `Entrypoint.updateRoot`. `/info` exposes both as `aspRoot` (in-memory) and `publishedRoot` (on-chain, mirrors `Entrypoint.latestRoot()`). `/asp/proof` builds its merkle proof against the in-memory tree, but `relay` checks the proof against the on-chain root — so using a proof against the in-memory root before publish reverts `IncorrectASPRoot()`. The frontend MUST wait until `aspProof.root === info.publishedRoot` before proving/relaying. `pollAspProofPublished(label)` in `relayerClient.ts` handles both phases (approval → publish), and is used by `ensureFunded`, `cashOut`, and the background watcher. The watcher only pre-proves against a published root (`info.publishedRoot === asp.root`). **Even after this, the postman can publish a NEW root during the ~10–30s proof-gen window**, stale-ing the proof we're about to relay. `ensureFunded` and `cashOut` wrap the asp-gate→prove→relay steps in a **retry loop (up to 3 attempts)**, keyed off `isAspRootMismatch(error)` (regex on `IncorrectASPRoot`). On a mismatch revert: clear the cached proof (if any), refetch against the now-current published root, re-prove, and re-relay. Note remains unspent throughout; funds stay safe in the pool.
+
+**Webpack/TS notes:** client builds need node-builtin fallbacks (`fs`, `readline`, etc. → false in next.config) for snarkjs. tsconfig targets ES2020 (bigint literals). Don't annotate viem clients for Base with generic `PublicClient`/`WalletClient` types — Base's OP-stack chain formatters make them incompatible; use inferred types (`SubaccountClient = ReturnType<typeof createSubaccountClient>`).
+
+**Recovery (`rescan.ts`):** for EACH pool (ETH + BEAN), an `eth_getLogs` for that pool's `Deposited` events with `_depositor ∈ {main, subaccount}` (OR-matched on the indexed topic) from that pool's deploy block, matching recomputed precommitments per the pool's scope (each pool has its own index sequence), tagging each note funding/cashout by depositor and `pool` by which pool emitted it, spent check via that pool's `nullifierHashes(poseidon1(nullifier))`. Exposed as `privacy.rescan()` (passes both addresses) + "Rescan deposits" link in the panel.
 
 ### Global Page (`/global`)
 
@@ -880,3 +976,47 @@ Returns service status for MongoDB, blockchain, and cache subsystems.
 | Default (`/api/*`) | 60 req/min/IP |
 | Strict (user, rewards, automine) | 5 req/min/IP |
 | SSE connections | 10 per IP, 1000 total |
+
+---
+
+## Privacy Relayer API Reference
+
+The relayer (source at `../Backend/privacy-relayer`, Express + viem + PP SDK) is deployed as part of the main backend at `api.minebean.com`, mounted at `/privacy/*` (nginx → internal port 8787) — same origin/CORS as `apiFetch`, NO Next.js rewrite. `RELAYER_BASE` (`lib/privacy/config.ts`) defaults to `${API_BASE}/privacy`; override with `NEXT_PUBLIC_RELAYER_URL` for local dev (e.g. `http://localhost:8787`, which serves these paths at the root with no `/privacy` prefix). All numeric fields cross this boundary as decimal strings — never raw BigInt in JSON. Typed client: `lib/privacy/relayerClient.ts`. Endpoint paths below are relative to `RELAYER_BASE`.
+
+#### `GET /info`
+Both pools + current global ASP root. Used as a health check when enabling private mode.
+```json
+{ "entrypoint": "0x…", "pools": [{ "key": "eth", "address": "0x…", "scope": "string" }, { "key": "bean", … }], "aspRoot": "string", "approved": 0 }
+```
+
+#### `GET /state/leaves?pool=eth|bean`
+That pool's commitments in insertion order (from `LeafInserted` events), as bigint strings. No pagination. **Pass `?pool=bean` for BEAN withdrawals** (defaults to `eth`). The frontend builds the state Merkle proof from these (LeanIMT + poseidon).
+```json
+{ "pool": "eth", "leaves": ["string", ...] }
+```
+
+#### `GET /asp/proof?label=<label>`
+ASP membership proof for a deposit label — ONE global tree, same endpoint for ETH and BEAN labels. Returns **400 `label not approved yet`** until the postman publishes the label (~every 15s after deposit) — `pollAspProof` in the client retries on exactly that message.
+```json
+{ "root": "string", "depth": 1, "index": 0, "siblings": ["string", ...32 padded] }
+```
+
+#### `POST /relay`
+Submits the withdrawal on-chain via `Entrypoint.relay` (relayer pays gas). **`scope` selects the pool** — pass the BEAN scope for BEAN withdrawals (defaults to ETH if omitted). Body carries the raw snarkjs groth16 output — the relayer/SDK handle solidity formatting (pi_b coordinate swap, hex padding).
+```json
+{
+  "withdrawal": { "processooor": "0x…", "data": "0x…" },
+  "proof": { "proof": { "pi_a": [...], "pi_b": [...], "pi_c": [...], "protocol": "groth16", "curve": "bn128" }, "publicSignals": [...] },
+  "scope": "string"
+}
+```
+Response: `{ "hash": "0x…" }` (withdrawal tx hash). Errors: `{ "error": "…" }` with 400.
+
+---
+
+## Testing Notes
+
+- **Node ≥ 20.19 required** for vitest (vite 7). Shell may default to Node 18 — prefix with `export PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH"`.
+- `vitest.config.ts` aliases `fs` to `test/stubs/fs.ts` — the PP SDK's ESM build contains a node-only `import("fs")` branch vite can't resolve under jsdom.
+- `lib/privacy/keys.test.ts` and `deposit.test.ts` warm the SDK in a `beforeAll` (60s timeout) — the first dynamic import + HD/poseidon init can blow the 5s default under parallel full-suite load.
+- **Pre-existing failures (as of June 2026):** ~47 failures in suites untouched by private mode (StakePage, MiningGrid, MiningTable, Header, ClaimRewards, GlobalStats, MinersPanel, UserDataContext, contracts.test) — missing wagmi hook mocks (`useSwitchChain`, `useSignMessage`), `test/setup.ts`'s bare `global.fetch = vi.fn()`, and assertions that drifted from the UI. Not regressions; baseline before claiming breakage. `page.test.tsx` and `SidebarControls.test.tsx` were repaired and show the correct mock patterns (including the `usePrivacy` mock).

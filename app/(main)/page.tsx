@@ -12,9 +12,11 @@ import ClaimRewards from '@/components/ClaimRewards'
 import RoastingAprBanner from '@/components/RoastingAprBanner'
 import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { base } from 'wagmi/chains'
-import { parseEther } from 'viem'
-import { useState, useEffect, useCallback } from 'react'
+import { parseEther, type Abi } from 'viem'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { CONTRACTS, BUILDER_CODE_SUFFIX } from '@/lib/contracts'
+import { usePrivacy } from '@/lib/privacy/PrivacyContext'
+import { useRoundTimer } from '@/lib/RoundTimerContext'
 import BeanpotCelebration from '@/components/BeanpotCelebration'
 import CountdownCelebration from '@/components/CountdownCelebration'
 import AgentConfigDrawer from '@/components/AgentConfigDrawer'
@@ -22,7 +24,16 @@ import type { CustomAgent } from '@/lib/customAgents'
 
 export default function Home() {
   const { address, isConnected } = useAccount()
-  const { data: balance } = useBalance({ address })
+  const privacy = usePrivacy()
+  // In private mode the subaccount is the app's identity: balance, grid data,
+  // rewards, and deploys all follow it instead of the connected wallet.
+  const effectiveAddress = privacy.effectiveAddress ?? address
+  const { data: balance } = useBalance({ address: effectiveAddress })
+  const { roundId } = useRoundTimer()
+  const roundIdRef = useRef(roundId)
+  useEffect(() => {
+    roundIdRef.current = roundId
+  }, [roundId])
   const [isMobile, setIsMobile] = useState(false)
   const [showMining, setShowMining] = useState(false)
   const [mounted, setMounted] = useState(false)
@@ -71,6 +82,36 @@ useEffect(() => {
 
   const handleDeploy = useCallback((amount: number, blockIds: number[]) => {
     if (!isConnected || blockIds.length === 0 || amount <= 0) return
+    if (privacy.enabled) {
+      // Private path: top up the subaccount from the pool if needed (relay of
+      // the pre-generated proof), then deploy signed by the subaccount.
+      const value = parseEther(amount.toString())
+      const startRound = roundIdRef.current
+      void (async () => {
+        try {
+          await privacy.ensureFunded(value)
+          if (roundIdRef.current !== startRound) {
+            // Round rolled over while funding — funds are at the subaccount
+            // now; the user re-deploys instantly. Never auto-deploy into a
+            // round the user didn't aim at.
+            return
+          }
+          await privacy.sendPrivateTx({
+            address: CONTRACTS.GridMining.address,
+            abi: CONTRACTS.GridMining.abi as Abi,
+            functionName: 'deploy',
+            args: [blockIds],
+            value,
+          })
+          window.dispatchEvent(new CustomEvent("userDeployed", {
+            detail: { blockIds }
+          }))
+        } catch {
+          // Surfaced through privacy.error / status in the panel.
+        }
+      })()
+      return
+    }
     writeContract({
       chainId: base.id,
       address: CONTRACTS.GridMining.address,
@@ -86,10 +127,27 @@ useEffect(() => {
         }))
       }
     })
-  }, [isConnected, writeContract])
+  }, [isConnected, writeContract, privacy])
 
   const handleClaimETH = useCallback(() => {
     if (!isConnected) return
+    if (privacy.enabled) {
+      void (async () => {
+        try {
+          // Claims are nonpayable — just make sure the subaccount can pay gas.
+          await privacy.ensureFunded(0n)
+          await privacy.sendPrivateTx({
+            address: CONTRACTS.GridMining.address,
+            abi: CONTRACTS.GridMining.abi as Abi,
+            functionName: 'claimETH',
+            args: [],
+          })
+        } catch {
+          // Surfaced through privacy.error.
+        }
+      })()
+      return
+    }
     writeContract({
       chainId: base.id,
       address: CONTRACTS.GridMining.address,
@@ -98,10 +156,26 @@ useEffect(() => {
       args: [],
       dataSuffix: BUILDER_CODE_SUFFIX,
     })
-  }, [isConnected, writeContract])
+  }, [isConnected, writeContract, privacy])
 
   const handleClaimBEAN = useCallback(() => {
     if (!isConnected) return
+    if (privacy.enabled) {
+      void (async () => {
+        try {
+          await privacy.ensureFunded(0n)
+          await privacy.sendPrivateTx({
+            address: CONTRACTS.GridMining.address,
+            abi: CONTRACTS.GridMining.abi as Abi,
+            functionName: 'claimBEAN',
+            args: [],
+          })
+        } catch {
+          // Surfaced through privacy.error.
+        }
+      })()
+      return
+    }
     writeContract({
       chainId: base.id,
       address: CONTRACTS.GridMining.address,
@@ -110,7 +184,7 @@ useEffect(() => {
       args: [],
       dataSuffix: BUILDER_CODE_SUFFIX,
     })
-  }, [isConnected, writeContract])
+  }, [isConnected, writeContract, privacy])
 
   const handleAutoActivate = useCallback((strategyId: number, numRounds: number, numBlocks: number, depositAmount: bigint, blockMask: number) => {
     if (!isConnected) return
@@ -183,12 +257,12 @@ if (!showMining) {
       <div style={styles.container}>
         <MinersPanel />
         <div style={styles.gridSection}>
-          <MiningGrid userAddress={address} />
+          <MiningGrid userAddress={effectiveAddress} />
         </div>
         <div style={styles.controlsSection}>
-          <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
-          <RoastingAprBanner userAddress={address} />
-          <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
+          <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={effectiveAddress} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
+          <RoastingAprBanner userAddress={effectiveAddress} />
+          <ClaimRewards userAddress={effectiveAddress} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
         </div>
       </div>
       <AgentConfigDrawer

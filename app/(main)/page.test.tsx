@@ -30,6 +30,7 @@ vi.mock('wagmi', () => ({
   useBalance: (...args: any[]) => mockUseBalance(...args),
   useWriteContract: (...args: any[]) => mockUseWriteContract(...args),
   useWaitForTransactionReceipt: () => ({ isSuccess: false, isLoading: false, data: undefined }),
+  useSwitchChain: () => ({ switchChain: vi.fn(), isPending: false }),
   WagmiProvider: ({ children }: any) => children,
 }))
 
@@ -74,6 +75,22 @@ vi.mock('@/lib/UserDataContext', () => ({
   UserDataProvider: ({ children }: any) => children,
 }))
 
+// Mock PrivacyContext — defaults to private mode OFF (public deploy path).
+const mockEnsureFunded = vi.fn(async () => undefined)
+const mockSendPrivateTx = vi.fn(async () => '0xprivatetx')
+const privacyState: any = {
+  enabled: false,
+  effectiveAddress: undefined,
+  subBalance: 0n,
+  proofState: 'none',
+  ensureFunded: mockEnsureFunded,
+  sendPrivateTx: mockSendPrivateTx,
+}
+vi.mock('@/lib/privacy/PrivacyContext', () => ({
+  usePrivacy: () => privacyState,
+  PrivacyProvider: ({ children }: any) => children,
+}))
+
 // Mock all child components and capture their props
 let capturedLandingPageProps: any = null
 let capturedMiningGridProps: any = null
@@ -97,6 +114,10 @@ vi.mock('@/components/MiningGrid', () => ({
     capturedMiningGridProps = props
     return <div data-testid="mining-grid">Mining Grid</div>
   },
+}))
+
+vi.mock('@/components/AgentConfigDrawer', () => ({
+  default: () => null,
 }))
 
 vi.mock('@/components/SidebarControls', () => ({
@@ -152,6 +173,14 @@ describe('Home Page', () => {
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks()
+    // page.tsx persists 'bean_visited' in localStorage; clear so every test
+    // starts at the landing page.
+    window.localStorage.clear()
+    // Private mode off by default.
+    privacyState.enabled = false
+    privacyState.effectiveAddress = undefined
+    privacyState.subBalance = 0n
+    privacyState.proofState = 'none'
     capturedLandingPageProps = null
     capturedMiningGridProps = null
     capturedSidebarControlsProps = null
@@ -256,13 +285,13 @@ describe('Home Page', () => {
     capturedSidebarControlsProps.onDeploy(amount, blockIds)
 
     expect(mockWriteContract).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         address: CONTRACTS.GridMining.address,
         abi: CONTRACTS.GridMining.abi,
         functionName: 'deploy',
         args: [blockIds],
         value: parseEther(amount.toString()),
-      },
+      }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
       })
@@ -368,12 +397,14 @@ describe('Home Page', () => {
     // Call handleClaimETH via captured props
     capturedClaimRewardsProps.onClaimETH()
 
-    expect(mockWriteContract).toHaveBeenCalledWith({
-      address: CONTRACTS.GridMining.address,
-      abi: CONTRACTS.GridMining.abi,
-      functionName: 'claimETH',
-      args: [],
-    })
+    expect(mockWriteContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: CONTRACTS.GridMining.address,
+        abi: CONTRACTS.GridMining.abi,
+        functionName: 'claimETH',
+        args: [],
+      })
+    )
   })
 
   it('calls writeContract with claimBEAN when handleClaimBEAN is called', async () => {
@@ -400,12 +431,14 @@ describe('Home Page', () => {
     // Call handleClaimBEAN via captured props
     capturedClaimRewardsProps.onClaimBEAN()
 
-    expect(mockWriteContract).toHaveBeenCalledWith({
-      address: CONTRACTS.GridMining.address,
-      abi: CONTRACTS.GridMining.abi,
-      functionName: 'claimBEAN',
-      args: [],
-    })
+    expect(mockWriteContract).toHaveBeenCalledWith(
+      expect.objectContaining({
+        address: CONTRACTS.GridMining.address,
+        abi: CONTRACTS.GridMining.abi,
+        functionName: 'claimBEAN',
+        args: [],
+      })
+    )
   })
 
   it('calls writeContract with AutoMiner.setConfig when handleAutoActivate is called', async () => {
@@ -435,16 +468,16 @@ describe('Home Page', () => {
     const numBlocks = 5
     const depositAmount = parseEther('1.0')
 
-    capturedSidebarControlsProps.onAutoActivate(strategyId, numRounds, numBlocks, depositAmount)
+    capturedSidebarControlsProps.onAutoActivate(strategyId, numRounds, numBlocks, depositAmount, 0)
 
     expect(mockWriteContract).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         address: CONTRACTS.AutoMiner.address,
         abi: CONTRACTS.AutoMiner.abi,
         functionName: 'setConfig',
-        args: [strategyId, numRounds, numBlocks],
+        args: [strategyId, numRounds, numBlocks, 0],
         value: depositAmount,
-      },
+      }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
       })
@@ -519,12 +552,12 @@ describe('Home Page', () => {
     capturedSidebarControlsProps.onAutoStop()
 
     expect(mockWriteContract).toHaveBeenCalledWith(
-      {
+      expect.objectContaining({
         address: CONTRACTS.AutoMiner.address,
         abi: CONTRACTS.AutoMiner.abi,
         functionName: 'stop',
         args: [],
-      },
+      }),
       expect.objectContaining({
         onSuccess: expect.any(Function),
       })
@@ -706,5 +739,100 @@ describe('Home Page', () => {
     capturedSidebarControlsProps.onDeploy(0, [0, 1, 2])
 
     expect(mockWriteContract).not.toHaveBeenCalled()
+  })
+
+  describe('private mode', () => {
+    const SUB = '0x9999999999999999999999999999999999999999' as `0x${string}`
+
+    beforeEach(() => {
+      privacyState.enabled = true
+      privacyState.effectiveAddress = SUB
+      mockUseAccount.mockReturnValue({
+        address: '0x1234567890123456789012345678901234567890' as `0x${string}`,
+        isConnected: true,
+        isConnecting: false,
+        isDisconnected: false,
+        connector: undefined,
+        chain: undefined,
+        status: 'connected',
+      })
+    })
+
+    async function startMining() {
+      render(<Home />)
+      capturedLandingPageProps.onStartMining()
+      await waitFor(() => {
+        expect(screen.getByTestId('sidebar-controls')).toBeInTheDocument()
+      })
+    }
+
+    it('threads the subaccount as userAddress to child components', async () => {
+      await startMining()
+      expect(capturedMiningGridProps.userAddress).toBe(SUB)
+      expect(capturedSidebarControlsProps.userAddress).toBe(SUB)
+      expect(capturedClaimRewardsProps.userAddress).toBe(SUB)
+    })
+
+    it('routes deploy through ensureFunded + sendPrivateTx, not wagmi', async () => {
+      await startMining()
+      capturedSidebarControlsProps.onDeploy(0.001, [1, 2, 3])
+
+      await waitFor(() => {
+        expect(mockSendPrivateTx).toHaveBeenCalledWith(
+          expect.objectContaining({
+            address: CONTRACTS.GridMining.address,
+            functionName: 'deploy',
+            args: [[1, 2, 3]],
+            value: parseEther('0.001'),
+          })
+        )
+      })
+      expect(mockEnsureFunded).toHaveBeenCalledWith(parseEther('0.001'))
+      expect(mockWriteContract).not.toHaveBeenCalled()
+    })
+
+    it('dispatches userDeployed after a private deploy', async () => {
+      const eventListener = vi.fn()
+      window.addEventListener('userDeployed', eventListener)
+      await startMining()
+      capturedSidebarControlsProps.onDeploy(0.001, [4])
+
+      await waitFor(() => {
+        expect(eventListener).toHaveBeenCalled()
+      })
+      expect(eventListener.mock.calls[0][0].detail).toEqual({ blockIds: [4] })
+      window.removeEventListener('userDeployed', eventListener)
+    })
+
+    it('does not deploy when funding fails', async () => {
+      mockEnsureFunded.mockRejectedValueOnce(new Error('relayer down'))
+      await startMining()
+      capturedSidebarControlsProps.onDeploy(0.001, [1])
+
+      await waitFor(() => {
+        expect(mockEnsureFunded).toHaveBeenCalled()
+      })
+      expect(mockSendPrivateTx).not.toHaveBeenCalled()
+      expect(mockWriteContract).not.toHaveBeenCalled()
+    })
+
+    it('routes claims through the subaccount with a gas-only funding check', async () => {
+      await startMining()
+      capturedClaimRewardsProps.onClaimETH()
+      await waitFor(() => {
+        expect(mockSendPrivateTx).toHaveBeenCalledWith(
+          expect.objectContaining({ functionName: 'claimETH' })
+        )
+      })
+      expect(mockEnsureFunded).toHaveBeenCalledWith(0n)
+
+      capturedClaimRewardsProps.onClaimBEAN()
+      await waitFor(() => {
+        expect(mockSendPrivateTx).toHaveBeenCalledWith(
+          expect.objectContaining({ functionName: 'claimBEAN' })
+        )
+      })
+      expect(mockWriteContract).not.toHaveBeenCalled()
+    })
   })
 })

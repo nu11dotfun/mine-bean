@@ -33,6 +33,62 @@ vi.mock('@rainbow-me/rainbowkit', () => ({
   useConnectModal: () => ({ openConnectModal: mockOpenConnectModal }),
 }))
 
+vi.mock('wagmi', () => ({
+  useAccount: () => ({
+    address: '0x1234567890abcdef1234567890abcdef12345678',
+    isConnected: true,
+    connector: { id: 'metaMask' },
+  }),
+  useSwitchChain: () => ({ switchChain: vi.fn(), isPending: false }),
+}))
+
+vi.mock('@/lib/useIsOnBase', () => ({
+  useIsOnBase: () => ({ isOnBase: true, isSwitching: false, switchToBase: vi.fn() }),
+}))
+
+// Privacy context — mutable state object, reset in beforeEach.
+const mockEnablePrivateMode = vi.fn(async () => undefined)
+const mockDisablePrivateMode = vi.fn()
+const privacyState: any = {}
+const defaultPrivacyState = () => ({
+  enabled: false,
+  status: 'idle',
+  statusDetail: '',
+  error: null,
+  subaccountAddress: null,
+  effectiveAddress: undefined,
+  notes: [],
+  unspentNote: undefined,
+  subBalance: 0n,
+  proofState: 'none',
+  artifactProgress: null,
+  determinismWarning: false,
+  isSmartAccount: false,
+  hasExported: true,
+  vettingFeeBps: 50,
+  minDepositWei: 1000000000000000n,
+  subBeanBalance: 0n,
+  cashoutStatus: 'idle',
+  cashoutDetail: '',
+  cashoutAsset: null,
+  ethCashoutInFlight: false,
+  beanCashoutInFlight: false,
+  enablePrivateMode: mockEnablePrivateMode,
+  disablePrivateMode: mockDisablePrivateMode,
+  exportPrivateKey: vi.fn(() => ({ fileName: 'k.txt', content: 'key' })),
+  confirmExported: vi.fn(),
+  depositToPool: vi.fn(async () => undefined),
+  ensureFunded: vi.fn(async () => undefined),
+  sendPrivateTx: vi.fn(async () => '0xhash'),
+  cashOut: vi.fn(async () => undefined),
+  retry: vi.fn(),
+  refresh: vi.fn(async () => undefined),
+  rescan: vi.fn(async () => undefined),
+})
+vi.mock('@/lib/privacy/PrivacyContext', () => ({
+  usePrivacy: () => privacyState,
+}))
+
 const mockTimerValue = { timeRemaining: 45, endTime: Math.floor(Date.now() / 1000) + 45, roundId: '100' }
 
 vi.mock('@/lib/RoundTimerContext', () => ({
@@ -77,6 +133,13 @@ describe('SidebarControls', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockApiFetch.mockReset()
+
+    // Reset privacy mock to disabled defaults
+    Object.keys(privacyState).forEach((k) => delete privacyState[k])
+    Object.assign(privacyState, defaultPrivacyState())
+
+    // Component fetches the ETH price from Binance with raw fetch.
+    ;(global.fetch as any).mockResolvedValue({ json: async () => ({}) })
 
     // Reset timer mock
     mockTimerValue.timeRemaining = 45
@@ -863,7 +926,7 @@ describe('SidebarControls', () => {
     fireEvent.change(input, { target: { value: '0.05' } })
 
     // Total would be 0.05 × 5 = 0.25, which exceeds balance of 0.1
-    const deployButton = screen.getByText('Deploy')
+    const deployButton = screen.getByText('Insufficient Funds')
     expect(deployButton).toBeDisabled()
   })
 
@@ -886,12 +949,12 @@ describe('SidebarControls', () => {
     const input = screen.getByDisplayValue('0')
     fireEvent.change(input, { target: { value: '0.001' } })
 
-    // Set strategy to All (25 blocks)
-    expect(screen.getByText('x25')).toBeInTheDocument()
+    // Strategy defaults to All (25 blocks)
+    expect(screen.getByText('All')).toBeInTheDocument()
 
     // Set rounds to 10
     const roundsInputs = screen.getAllByDisplayValue('1')
-    const roundsInput = roundsInputs.find(el => (el as HTMLInputElement).type === 'number' && (el as HTMLInputElement).max === '100')
+    const roundsInput = roundsInputs.find(el => (el as HTMLInputElement).type === 'number' && (el as HTMLInputElement).max === '100000')
     fireEvent.change(roundsInput!, { target: { value: '10' } })
 
     // Total blocks = 25 × 10 = 250
@@ -959,12 +1022,12 @@ describe('SidebarControls', () => {
     const input = screen.getByDisplayValue('0')
     fireEvent.change(input, { target: { value: '0.001' } })
 
-    // Set strategy to All (25 blocks) - should already be default
-    expect(screen.getByText('x25')).toBeInTheDocument()
+    // Strategy defaults to All (25 blocks)
+    expect(screen.getByText('All')).toBeInTheDocument()
 
     // Set rounds to 5
     const roundsInputs = screen.getAllByDisplayValue('1')
-    const roundsInput = roundsInputs.find(el => (el as HTMLInputElement).type === 'number' && (el as HTMLInputElement).max === '100')
+    const roundsInput = roundsInputs.find(el => (el as HTMLInputElement).type === 'number' && (el as HTMLInputElement).max === '100000')
     fireEvent.change(roundsInput!, { target: { value: '5' } })
 
     // Click Activate AutoMiner
@@ -978,7 +1041,8 @@ describe('SidebarControls', () => {
       1, // strategyId (All)
       5, // numRounds
       25, // numBlocks
-      expect.any(BigInt) // depositAmount
+      expect.any(BigInt), // depositAmount
+      0 // blockMask (All strategy)
     )
   })
 
@@ -1056,5 +1120,169 @@ describe('SidebarControls', () => {
     const quickBtn1 = screen.getAllByText('+1')[0]
     fireEvent.click(quickBtn1)
     expect(input).toHaveValue('1.11000')
+  })
+
+  describe('private mode', () => {
+    const renderConnected = () =>
+      render(
+        <SidebarControls
+          isConnected={true}
+          userAddress="0x1234567890abcdef1234567890abcdef12345678"
+          userBalance={1.0}
+          onDeploy={mockOnDeploy}
+          onAutoActivate={mockOnAutoActivate}
+          onAutoStop={mockOnAutoStop}
+        />
+      )
+
+    it('renders the private toggle and enables on click', () => {
+      renderConnected()
+      const toggle = screen.getByTestId('private-toggle')
+      expect(toggle).toBeInTheDocument()
+      fireEvent.click(toggle)
+      expect(mockEnablePrivateMode).toHaveBeenCalled()
+    })
+
+    it('disables on click when already enabled', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      renderConnected()
+      fireEvent.click(screen.getByTestId('private-toggle'))
+      expect(mockDisablePrivateMode).toHaveBeenCalled()
+    })
+
+    it('blocks the toggle for smart accounts and shows the EOA note', () => {
+      privacyState.isSmartAccount = true
+      renderConnected()
+      fireEvent.click(screen.getByTestId('private-toggle'))
+      expect(mockEnablePrivateMode).not.toHaveBeenCalled()
+      expect(screen.getByText(/requires a standard \(EOA\) wallet/i)).toBeInTheDocument()
+    })
+
+    it('shows the key-backup prompt and disables deploy until exported', () => {
+      privacyState.enabled = true
+      privacyState.hasExported = false
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      renderConnected()
+
+      expect(screen.getByTestId('private-export-prompt')).toBeInTheDocument()
+
+      fireEvent(window, new CustomEvent('roundData', {
+        detail: { roundId: '1', endTime: Date.now() / 1000 + 60, totalDeployedFormatted: '0', userDeployedFormatted: '0' },
+      }))
+      fireEvent(window, new CustomEvent('blocksChanged', { detail: { blocks: [0], count: 1 } }))
+      const input = screen.getByDisplayValue('0')
+      fireEvent.change(input, { target: { value: '0.01' } })
+
+      const btn = screen.getByText('Back up key first')
+      expect(btn).toBeDisabled()
+    })
+
+    it('confirms the backup after downloading the key file', () => {
+      privacyState.enabled = true
+      privacyState.hasExported = false
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      // jsdom lacks URL.createObjectURL — stub it for the download.
+      ;(URL as any).createObjectURL = vi.fn(() => 'blob:x')
+      ;(URL as any).revokeObjectURL = vi.fn()
+      renderConnected()
+
+      // "I've saved it" is disabled until the file is downloaded.
+      const done = screen.getByTestId('private-export-done')
+      expect(done).toBeDisabled()
+      fireEvent.click(screen.getByTestId('private-export-download'))
+      expect(privacyState.exportPrivateKey).toHaveBeenCalled()
+      expect(screen.getByTestId('private-export-done')).not.toBeDisabled()
+      fireEvent.click(screen.getByTestId('private-export-done'))
+      expect(privacyState.confirmExported).toHaveBeenCalled()
+    })
+
+    it('shows the private panel and locks Auto/Agent tabs while enabled', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      renderConnected()
+
+      expect(screen.getByTestId('private-mode-panel')).toBeInTheDocument()
+
+      // Clicking Auto must NOT switch modes (manual Deploy button persists)
+      fireEvent.click(screen.getByText('Auto'))
+      expect(screen.getByText('Deploy Privately')).toBeInTheDocument()
+    })
+
+    it('offers Withdraw ETH and Withdraw BEAN; BEAN routes cashOut("bean")', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      privacyState.subBalance = 10n ** 18n // ETH for gas
+      privacyState.subBeanBalance = 5n * 10n ** 18n // 5 BEAN
+      renderConnected()
+
+      expect(screen.getByTestId('private-bean-balance')).toHaveTextContent('5.0000 BEAN')
+      const beanBtn = screen.getByTestId('private-cashout-bean-btn')
+      expect(beanBtn).not.toBeDisabled()
+      fireEvent.click(beanBtn)
+      // Confirm step → confirm → cashOut('bean')
+      fireEvent.click(screen.getByTestId('private-cashout-bean-confirm'))
+      expect(privacyState.cashOut).toHaveBeenCalledWith('bean')
+    })
+
+    it('warns that withdrawing ETH strands BEAN, but still allows it', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      privacyState.subBalance = 10n ** 18n
+      privacyState.subBeanBalance = 3n * 10n ** 18n
+      renderConnected()
+
+      fireEvent.click(screen.getByTestId('private-cashout-eth-btn'))
+      expect(screen.getByTestId('private-strand-warning')).toBeInTheDocument()
+      fireEvent.click(screen.getByTestId('private-cashout-eth-confirm'))
+      expect(privacyState.cashOut).toHaveBeenCalledWith('eth')
+    })
+
+    it('labels the deploy button "Deploy Privately" and counts the pool note as balance', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      // Subaccount empty, but a 0.5 ETH note is pooled.
+      privacyState.unspentNote = {
+        label: '1', value: '500000000000000000', commitment: '2',
+        depositIndex: 0, spent: false, txHash: '0x', createdAt: 1,
+      }
+      render(
+        <SidebarControls
+          isConnected={true}
+          userAddress="0x9999999999999999999999999999999999999999"
+          userBalance={0}
+          onDeploy={mockOnDeploy}
+        />
+      )
+
+      fireEvent(window, new CustomEvent('roundData', {
+        detail: { roundId: '1', endTime: Date.now() / 1000 + 60, totalDeployedFormatted: '0', userDeployedFormatted: '0' },
+      }))
+      fireEvent(window, new CustomEvent('blocksChanged', { detail: { blocks: [0, 1], count: 2 } }))
+      const input = screen.getByDisplayValue('0')
+      fireEvent.change(input, { target: { value: '0.01' } })
+
+      // 0.02 total > 0 wallet balance, but covered by the 0.5 pool note.
+      const btn = screen.getByText('Deploy Privately')
+      expect(btn).not.toBeDisabled()
+    })
+
+    it('shows "Funding…" and disables deploy while the withdrawal is in flight', () => {
+      privacyState.enabled = true
+      privacyState.subaccountAddress = '0x9999999999999999999999999999999999999999'
+      privacyState.status = 'relaying'
+      privacyState.statusDetail = 'Funding your private account…'
+      renderConnected()
+
+      fireEvent(window, new CustomEvent('roundData', {
+        detail: { roundId: '1', endTime: Date.now() / 1000 + 60, totalDeployedFormatted: '0', userDeployedFormatted: '0' },
+      }))
+      fireEvent(window, new CustomEvent('blocksChanged', { detail: { blocks: [0] , count: 1 } }))
+      const input = screen.getByDisplayValue('0')
+      fireEvent.change(input, { target: { value: '0.01' } })
+
+      const btn = screen.getByText('Funding…')
+      expect(btn).toBeDisabled()
+    })
   })
 })

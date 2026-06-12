@@ -13,6 +13,12 @@ import NewAgentPicker from './NewAgentPicker'
 import type { CustomAgent } from '@/lib/customAgents'
 import { useAccount } from 'wagmi'
 import { useIsOnBase } from '@/lib/useIsOnBase'
+import { usePrivacy } from '@/lib/privacy/PrivacyContext'
+import { SUBACCOUNT_GAS_BUFFER } from '@/lib/privacy/config'
+import PrivateModePanel from './PrivateModePanel'
+
+/** Gas buffer in ETH (float), derived from the wei constant so they can't drift. */
+const SUBACCOUNT_GAS_BUFFER_ETH = Number(SUBACCOUNT_GAS_BUFFER) / 1e18
 
 const EthLogo = ({ size = 18 }: { size?: number }) => (
     <img
@@ -77,7 +83,33 @@ export default function SidebarControls({
 }: SidebarControlsProps) {
     const { openConnectModal } = useConnectModal()
     const { isOnBase, isSwitching, switchToBase } = useIsOnBase()
+    const privacy = usePrivacy()
     const [mode, setMode] = useState<"manual" | "auto" | "agent">("manual")
+
+    // Private mode forces Manual — Auto/Agent are msg.sender-keyed to the
+    // main wallet and would link identities.
+    useEffect(() => {
+        if (privacy.enabled) {
+            setMode("manual")
+            window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: false, strategy: null } }))
+        }
+    }, [privacy.enabled])
+
+    const togglePrivateMode = () => {
+        if (privacy.enabled) {
+            privacy.disablePrivateMode()
+            return
+        }
+        if (!isConnected) {
+            openConnectModal?.()
+            return
+        }
+        // Smart accounts can't deterministically re-derive the subaccount.
+        if (privacy.isSmartAccount) return
+        privacy.enablePrivateMode().catch(() => {
+            // Surfaced via privacy.error in the panel.
+        })
+    }
     const [agentPickerOpen, setAgentPickerOpen] = useState(false)
     const [hoveredMode, setHoveredMode] = useState<string | null>(null)
     const [perBlock, setPerBlock] = useState("0")
@@ -330,8 +362,26 @@ const handleSelectClick = () => {
     const perBlockAmount = parseFloat(perBlock) || 0
     const manualTotal = perBlockAmount * selectedBlockCount
     const hasDeployed = userDeployed > 0
-    const exceedsBalance = manualTotal > userBalance
-    const canDeploy = perBlockAmount >= MIN_DEPLOY_PER_BLOCK && selectedBlockCount > 0 && !exceedsBalance && timer > 0 && phase === "counting" && !hasDeployed
+    // In private mode the spendable balance is the subaccount balance plus
+    // the unspent pool note (it gets withdrawn at deploy time), minus a gas
+    // buffer the subaccount must keep for its own transactions.
+    const poolNoteEth =
+        privacy.enabled && privacy.unspentNote ? parseFloat(privacy.unspentNote.value) / 1e18 : 0
+    // In private mode read the subaccount balance from PrivacyContext (polled +
+    // refreshed after funding/cashout), NOT the wagmi `userBalance` prop —
+    // wagmi's useBalance doesn't watch the subaccount (it's funded by a relayer
+    // tx the connected wallet never sees), so that prop goes stale until a page
+    // reload, which is what made the button misread "Insufficient Funds".
+    const subEth = Number(privacy.subBalance) / 1e18
+    const availableBalance = privacy.enabled
+        ? Math.max(0, subEth + poolNoteEth - SUBACCOUNT_GAS_BUFFER_ETH)
+        : userBalance
+    const exceedsBalance = manualTotal > availableBalance
+    const privateFundingBusy =
+        privacy.enabled && ["proving", "relaying", "awaiting-approval", "depositing", "deriving"].includes(privacy.status)
+    // In private mode the key must be backed up before any deploy.
+    const needsKeyBackup = privacy.enabled && !privacy.hasExported
+    const canDeploy = perBlockAmount >= MIN_DEPLOY_PER_BLOCK && selectedBlockCount > 0 && !exceedsBalance && timer > 0 && phase === "counting" && !hasDeployed && !privateFundingBusy && !needsKeyBackup
 
     // Auto mode calculations
     const autoNumBlocks = blockSelection === "all" ? 25 : blockSelection === "select" ? selectedBlockCount : autoBlocks
@@ -432,6 +482,74 @@ const handleSelectClick = () => {
             </div>
 
             <div style={styles.controlsCard}>
+                {/* Private mode toggle */}
+                {!autoMinerActive && (
+                    <div
+                        onClick={togglePrivateMode}
+                        data-testid="private-toggle"
+                        title={privacy.isSmartAccount ? "Private mode requires a standard (EOA) wallet" : undefined}
+                        style={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            padding: "10px 14px",
+                            marginBottom: privacy.isSmartAccount ? 4 : 10,
+                            background: privacy.enabled ? "rgba(240,185,11,0.08)" : "rgba(255,255,255,0.03)",
+                            border: `1px solid ${privacy.enabled ? "rgba(240,185,11,0.6)" : "rgba(255,255,255,0.06)"}`,
+                            boxShadow: privacy.enabled ? "inset 0 0 8px rgba(240,185,11,0.15)" : "none",
+                            borderRadius: 10,
+                            cursor: privacy.isSmartAccount ? "not-allowed" : "pointer",
+                            opacity: privacy.isSmartAccount ? 0.45 : 1,
+                            transition: "all 0.15s ease",
+                            userSelect: "none" as const,
+                        }}
+                    >
+                        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={privacy.enabled ? "#F0B90B" : "#888"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                            </svg>
+                            <span style={{ fontSize: 13, fontWeight: 500, color: privacy.enabled ? "#fff" : "#bbb" }}>Private Mode</span>
+                            {privacy.enabled && privacy.proofState === "ready" && (
+                                <span style={{ fontSize: 10, color: "#3fb950", fontFamily: "'Space Mono', monospace" }}>ready</span>
+                            )}
+                        </div>
+                        <div
+                            style={{
+                                width: 32,
+                                height: 18,
+                                borderRadius: 9,
+                                background: privacy.enabled ? "#F0B90B" : "rgba(255,255,255,0.1)",
+                                position: "relative",
+                                transition: "background 0.15s ease",
+                            }}
+                        >
+                            <div
+                                style={{
+                                    position: "absolute",
+                                    top: 2,
+                                    left: privacy.enabled ? 16 : 2,
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: "50%",
+                                    background: privacy.enabled ? "#0a0a0a" : "#fff",
+                                    transition: "left 0.15s ease",
+                                }}
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Smart-account block note */}
+                {!autoMinerActive && privacy.isSmartAccount && (
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", marginBottom: 10, lineHeight: 1.4 }}>
+                        Private mode requires a standard (EOA) wallet — smart accounts can&apos;t deterministically recover the private account.
+                    </div>
+                )}
+
+                {/* Private account panel */}
+                {!autoMinerActive && privacy.enabled && <PrivateModePanel />}
+
                 {/* Mode toggle - hidden when AutoMiner is active */}
                 {!autoMinerActive && (
                     <div style={styles.modeToggle}>
@@ -455,8 +573,11 @@ const handleSelectClick = () => {
                                 ...styles.modeBtn,
                                 ...(mode === "auto" ? styles.modeBtnActive : {}),
                                 ...(hoveredMode === "auto" && mode !== "auto" ? styles.modeBtnHover : {}),
+                                ...(privacy.enabled ? styles.modeBtnLocked : {}),
                             }}
+                            title={privacy.enabled ? "Not available in private mode" : undefined}
                             onClick={() => {
+                                if (privacy.enabled) return
                                 setMode("auto")
                                 window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: true, strategy: blockSelection } }))
                             }}
@@ -470,8 +591,11 @@ const handleSelectClick = () => {
                                 ...styles.modeBtn,
                                 ...(mode === "agent" ? styles.modeBtnActive : {}),
                                 ...(hoveredMode === "agent" && mode !== "agent" ? styles.modeBtnHover : {}),
+                                ...(privacy.enabled ? styles.modeBtnLocked : {}),
                             }}
+                            title={privacy.enabled ? "Not available in private mode" : undefined}
                             onClick={() => {
+                                if (privacy.enabled) return
                                 setMode("agent")
                                 // AGENT mode shouldn't drive the grid like AutoMiner does.
                                 window.dispatchEvent(new CustomEvent("autoMinerMode", { detail: { enabled: false, strategy: null } }))
@@ -660,7 +784,7 @@ const handleSelectClick = () => {
                                 onClick={() => onDeploy?.(manualTotal, selectedBlockIds)}
                                 disabled={!canDeploy}
                             >
-                                {hasDeployed ? "✓ Deployed" : exceedsBalance ? "Insufficient Funds" : phase === "counting" ? "Deploy" : phase === "eliminating" ? "Settling..." : "Winner!"}
+                                {hasDeployed ? "✓ Deployed" : needsKeyBackup ? "Back up key first" : privateFundingBusy ? "Funding…" : exceedsBalance ? "Insufficient Funds" : phase === "counting" ? (privacy.enabled ? "Deploy Privately" : "Deploy") : phase === "eliminating" ? "Settling..." : "Winner!"}
                             </button>
                         )}
                     </>
@@ -955,6 +1079,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     modeBtnActive: {
         background: "rgba(255, 255, 255, 0.12)",
         color: "#fff",
+    },
+    modeBtnLocked: {
+        opacity: 0.35,
+        cursor: "not-allowed",
     },
     modeBtnHover: {
         background: "rgba(255, 255, 255, 0.06)",

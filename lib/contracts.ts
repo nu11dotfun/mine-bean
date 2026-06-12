@@ -36,6 +36,21 @@ export const CONTRACTS = {
   AgentVaultV1: {
     abi: AgentVaultV1ABI, // Legacy vault ABI (withdrawETH takes uint256 param)
   },
+  // Privacy Pools (forked 0xbow). One Entrypoint serves both pools; each pool
+  // also has a scope + deploy block that live alongside the address in
+  // `lib/privacy/config.ts` (it imports the addresses from here). Update an
+  // address by editing it here; bump the matching scope/deploy block there.
+  PrivacyEntrypoint: {
+    address: '0x0018ce3Ad6863e9687112F030F66d3E46D8790eF' as `0x${string}`,
+    // Full ABI not used directly — privacy/config.ts ships the function/event
+    // fragments it actually needs (deposit overloads, assetConfig, Deposited).
+  },
+  PrivacyPoolETH: {
+    address: '0x0F2b73C568742Fbc34A37FB78Dc1CBCfAcc41f90' as `0x${string}`,
+  },
+  PrivacyPoolBEAN: {
+    address: '0x47C7D846dD8F13303AFF2c167cD5034b90416d65' as `0x${string}`,
+  },
 } as const
 
 // Below values are used by frontend validations to avoid users submitting tx's that will revert due to contract limits.

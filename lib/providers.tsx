@@ -9,6 +9,7 @@ import sdk from '@farcaster/miniapp-sdk'
 import { SSEProvider } from './SSEContext'
 import { UserDataProvider } from './UserDataContext'
 import { RoundTimerProvider } from './RoundTimerContext'
+import { PrivacyProvider, usePrivacy } from './privacy/PrivacyContext'
 
 import '@rainbow-me/rainbowkit/styles.css'
 
@@ -30,10 +31,12 @@ function FarcasterAutoConnect({ children }: { children: React.ReactNode }) {
 }
 
 function SSEWrapper({ children }: { children: React.ReactNode }) {
-  const { address } = useAccount()
+  // In private mode the subaccount becomes the app's identity: SSE user
+  // events, rewards, and round data all follow it instead of the main wallet.
+  const { effectiveAddress } = usePrivacy()
   return (
-    <SSEProvider userAddress={address}>
-      <UserDataProvider userAddress={address}>
+    <SSEProvider userAddress={effectiveAddress}>
+      <UserDataProvider userAddress={effectiveAddress}>
         <RoundTimerProvider>
           {children}
         </RoundTimerProvider>
@@ -67,7 +70,9 @@ export function Web3Provider({ children }: { children: React.ReactNode }) {
           modalSize="compact"
         >
           <FarcasterAutoConnect>
-            <SSEWrapper>{children}</SSEWrapper>
+            <PrivacyProvider>
+              <SSEWrapper>{children}</SSEWrapper>
+            </PrivacyProvider>
           </FarcasterAutoConnect>
         </RainbowKitProvider>
       </QueryClientProvider>

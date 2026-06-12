@@ -510,9 +510,6 @@ const handleSelectClick = () => {
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                             </svg>
                             <span style={{ fontSize: 13, fontWeight: 500, color: privacy.enabled ? "#fff" : "#bbb" }}>Private Mode</span>
-                            {privacy.enabled && privacy.proofState === "ready" && (
-                                <span style={{ fontSize: 10, color: "#3fb950", fontFamily: "'Space Mono', monospace" }}>ready</span>
-                            )}
                         </div>
                         <div
                             style={{

@@ -26,6 +26,7 @@ export default function PrivateModePanel() {
     const [copied, setCopied] = useState(false)
     const [confirming, setConfirming] = useState<'eth' | 'bean' | null>(null)
     const [exportDownloaded, setExportDownloaded] = useState(false)
+    const [showDisclosure, setShowDisclosure] = useState(false)
 
     const sub = privacy.subaccountAddress
     const truncated = sub ? `${sub.slice(0, 6)}…${sub.slice(-4)}` : ''
@@ -133,7 +134,7 @@ export default function PrivateModePanel() {
                                 {privacy.status === 'awaiting-approval'
                                     ? 'awaiting approval'
                                     : privacy.proofState === 'ready'
-                                      ? 'ready'
+                                      ? ''
                                       : 'preparing…'}
                             </span>
                         </>
@@ -196,12 +197,6 @@ export default function PrivateModePanel() {
                     {privacy.statusDetail}
                 </div>
             )}
-            {privacy.status === 'funded' && !busy && (
-                <div style={{ ...styles.statusStrip, color: '#3fb950', borderColor: 'rgba(63,185,80,0.3)' }}>
-                    Private account funded. Deploy when ready.
-                </div>
-            )}
-
             {/* Cashout progress strip */}
             {cashingOut && privacy.cashoutDetail && (
                 <div style={styles.statusStrip}>
@@ -211,7 +206,7 @@ export default function PrivateModePanel() {
             )}
             {privacy.cashoutStatus === 'done' && (
                 <div style={{ ...styles.statusStrip, color: '#3fb950', borderColor: 'rgba(63,185,80,0.3)' }}>
-                    {privacy.cashoutAsset === 'bean' ? 'BEAN' : 'ETH'} cashed out to your main wallet ✓
+                    {privacy.cashoutAsset === 'bean' ? 'BEAN' : 'ETH'} withdrawal successful
                 </div>
             )}
             {(privacy.ethCashoutInFlight || privacy.beanCashoutInFlight) && !cashingOut && privacy.cashoutStatus !== 'done' && (
@@ -351,9 +346,14 @@ export default function PrivateModePanel() {
             )}
 
             <div style={styles.disclosure}>
-                The deposit and the final withdrawal both route through the pool, so there is no
-                direct main-to-private link. Amounts and timing still correlate in a small
-                anonymity set, so privacy grows with pool usage.{' '}
+                <span
+                    style={styles.infoTrigger}
+                    onClick={() => setShowDisclosure((v) => !v)}
+                    data-testid="private-disclosure-toggle"
+                >
+                    ⓘ How privacy works
+                </span>
+                {' · '}
                 <span style={styles.rescanLink} onClick={handleRescan} data-testid="private-rescan">
                     {rescanning ? 'Rescanning…' : 'Rescan deposits'}
                 </span>
@@ -364,6 +364,13 @@ export default function PrivateModePanel() {
                             Export key
                         </span>
                     </>
+                )}
+                {showDisclosure && (
+                    <div style={styles.disclosurePopover} data-testid="private-disclosure-text">
+                        The deposit and the final withdrawal both route through the pool, so there
+                        is no direct main-to-private link. Amounts and timing still correlate in a
+                        small anonymity set, so privacy grows with pool usage.
+                    </div>
                 )}
             </div>
         </div>
@@ -594,5 +601,19 @@ const styles: { [key: string]: React.CSSProperties } = {
         color: 'rgba(240,185,11,0.7)',
         cursor: 'pointer',
         textDecoration: 'underline',
+    },
+    infoTrigger: {
+        color: 'rgba(240,185,11,0.7)',
+        cursor: 'pointer',
+    },
+    disclosurePopover: {
+        marginTop: 6,
+        background: 'rgba(0,0,0,0.4)',
+        border: '1px solid rgba(255,255,255,0.1)',
+        borderRadius: 8,
+        padding: '8px 10px',
+        fontSize: 10,
+        color: 'rgba(255,255,255,0.55)',
+        lineHeight: 1.5,
     },
 }

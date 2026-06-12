@@ -13,7 +13,7 @@
     "artifacts:copy": "mkdir -p public/artifacts && cp ../privacy-pools-core/packages/circuits/build/withdraw/withdraw_js/withdraw.wasm ../privacy-pools-core/packages/circuits/build/commitment/commitment_js/commitment.wasm ../privacy-pools-core/packages/circuits/trusted-setup/final-keys/withdraw.zkey ../privacy-pools-core/packages/circuits/trusted-setup/final-keys/withdraw.vkey ../privacy-pools-core/packages/circuits/trusted-setup/final-keys/commitment.zkey ../privacy-pools-core/packages/circuits/trusted-setup/final-keys/commitment.vkey public/artifacts/"
   },
   "dependencies": {
-    "@0xbow/privacy-pools-core-sdk": "file:../privacy-pools-core/packages/sdk",
+    "@0xbow/privacy-pools-core-sdk": "file:./vendor/privacy-pools-core-sdk",
     "@farcaster/miniapp-sdk": "^0.2.3",
     "@rainbow-me/rainbowkit": "^2.1.2",
     "@scure/bip39": "^1.4.0",

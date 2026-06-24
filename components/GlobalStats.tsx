@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react"
 import BeanLogo from './BeanLogo'
 import { apiFetch } from '../lib/api'
+import AnalyticsChart, { ChartLine } from './analytics/AnalyticsChart'
+import { fetchNetEmissions, NetEmissionsResponse } from '../lib/analyticsData'
 
 // API response interfaces
 interface PeriodEmission {
@@ -48,8 +50,6 @@ interface TreasuryStatsResponse {
 // Contract constant
 const MAX_SUPPLY = 3_000_000
 
-type PeriodKey = '7D' | '14D'
-
 interface GlobalStatsProps {
     isMobile?: boolean
 }
@@ -58,14 +58,11 @@ export default function GlobalStats({
     isMobile = false,
 }: GlobalStatsProps) {
     const [mounted, setMounted] = useState(false)
-    const [selectedPeriod, setSelectedPeriod] = useState<PeriodKey>('7D')
     const [data, setData] = useState<{
         circulatingSupply: number
         burnedTotal: number
         protocolRevenue: number
         totalMinted: number
-        emissions: BeanEmissions
-        burns: BeanBurns
     } | null>(null)
 
     useEffect(() => {
@@ -86,8 +83,6 @@ export default function GlobalStats({
                     burnedTotal: parseFloat(treasuryRes.totalBurnedFormatted),
                     protocolRevenue: parseFloat(treasuryRes.totalVaultedFormatted),
                     totalMinted: parseFloat(statsRes.totalMintedFormatted),
-                    emissions: statsRes.beanEmissions || {},
-                    burns: statsRes.beanBurns || {},
                 })
             } catch (err) {
                 console.error('Failed to fetch stats:', err)
@@ -130,10 +125,6 @@ export default function GlobalStats({
         return null
     }
 
-    // Compute period values from real API data
-    const { periodBurned, periodMinted, periodNet, isDeflationary } = computePeriod(selectedPeriod, data)
-    const periods: PeriodKey[] = ['7D', '14D']
-
     if (isMobile) {
         return (
             <div style={styles.mobileWrapper}>
@@ -161,19 +152,9 @@ export default function GlobalStats({
                     ))}
                 </div>
 
-                {/* Deflationary Tracker - Mobile */}
+                {/* Net emissions per round */}
                 <div style={{ marginTop: 16 }}>
-                    <TrackerCard
-                        periods={periods}
-                        selectedPeriod={selectedPeriod}
-                        setSelectedPeriod={setSelectedPeriod}
-                        periodBurned={periodBurned}
-                        periodMinted={periodMinted}
-                        periodNet={periodNet}
-                        isDeflationary={isDeflationary}
-                        hasData={!!data}
-                        isMobile={true}
-                    />
+                    <NetEmissionsCard isMobile={true} />
                 </div>
             </div>
         )
@@ -207,19 +188,9 @@ export default function GlobalStats({
                 ))}
             </div>
 
-            {/* Deflationary Tracker - Desktop */}
+            {/* Net emissions per round */}
             <div style={styles.trackerSection}>
-                <TrackerCard
-                    periods={periods}
-                    selectedPeriod={selectedPeriod}
-                    setSelectedPeriod={setSelectedPeriod}
-                    periodBurned={periodBurned}
-                    periodMinted={periodMinted}
-                    periodNet={periodNet}
-                    isDeflationary={isDeflationary}
-                    hasData={!!data}
-                    isMobile={false}
-                />
+                <NetEmissionsCard isMobile={false} />
             </div>
         </div>
     )
@@ -227,96 +198,46 @@ export default function GlobalStats({
 
 // ── Helpers ──
 
-function computePeriod(period: PeriodKey, data: { totalMinted: number; burnedTotal: number; circulatingSupply: number; emissions: BeanEmissions; burns: BeanBurns } | null) {
-    if (!data) {
-        return { periodBurned: 0, periodMinted: 0, periodNet: 0, isDeflationary: false }
-    }
+function NetEmissionsCard({ isMobile }: { isMobile: boolean }) {
+    const [net, setNet] = useState<NetEmissionsResponse | null>(null)
+    const [state, setState] = useState<'loading' | 'live' | 'empty'>('loading')
 
-    const key = period.toLowerCase() as '7d' | '14d'
-    const periodMinted = data.emissions[key]?.minted ?? 0
-    const periodBurned = data.burns[key]?.burnt ?? 0
+    useEffect(() => {
+        fetchNetEmissions().then((r) => {
+            if (r && r.points && r.points.length) {
+                setNet(r)
+                setState('live')
+            } else {
+                setState('empty')
+            }
+        })
+    }, [])
 
-    // Sign convention: negative = deflationary (burns > emissions), positive = inflationary
-    const periodNet = periodMinted - periodBurned
-    const isDeflationary = periodNet < 0
-    return { periodBurned, periodMinted, periodNet, isDeflationary }
-}
-
-function TrackerCard({ periods, selectedPeriod, setSelectedPeriod, periodBurned, periodMinted, periodNet, isDeflationary, hasData, isMobile }: {
-    periods: PeriodKey[]
-    selectedPeriod: PeriodKey
-    setSelectedPeriod: (p: PeriodKey) => void
-    periodBurned: number
-    periodMinted: number
-    periodNet: number
-    isDeflationary: boolean
-    hasData: boolean
-    isMobile: boolean
-}) {
-    const boxStyle: React.CSSProperties = {
-        background: 'rgba(255, 255, 255, 0.04)',
-        backdropFilter: 'blur(20px)',
-        border: '1px solid rgba(255, 255, 255, 0.08)',
-        borderRadius: 12,
-        padding: isMobile ? '12px 10px' : '24px 20px',
-        textAlign: 'center' as const,
-    }
+    const pts = net?.points ?? []
+    const lines: ChartLine[] = [
+        { values: pts.map((p) => p.ma20), color: '#0052FF', width: 2, fill: true, name: '20-round average' },
+        { values: pts.map((p) => p.ma100), color: '#ffffff', width: 2.5, name: '100-round average' },
+    ]
+    const latestMa100 = [...pts].reverse().find((p) => p.ma100 != null)?.ma100 ?? null
 
     return (
-        <div>
-            {/* Period toggle row */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 12, marginBottom: isMobile ? 12 : 16 }}>
-                {periods.map(p => (
-                    <button
-                        key={p}
-                        onClick={() => setSelectedPeriod(p)}
-                        style={{
-                            padding: isMobile ? '6px 12px' : '8px 16px',
-                            borderRadius: 50,
-                            border: selectedPeriod === p ? '1px solid rgba(255,255,255,0.15)' : '1px solid rgba(255,255,255,0.06)',
-                            fontSize: isMobile ? 12 : 13,
-                            fontWeight: 500,
-                            cursor: 'pointer',
-                            background: selectedPeriod === p ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
-                            color: selectedPeriod === p ? '#fff' : 'rgba(255,255,255,0.35)',
-                            transition: 'all 0.15s ease',
-                        }}
-                    >
-                        {p}
-                    </button>
-                ))}
-            </div>
-
-            {/* Three stat boxes in a row - same style as the protocol stat boxes above */}
-            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 1fr 1fr' : 'repeat(3, 1fr)', gap: isMobile ? 8 : 16 }}>
-                {/* Burned */}
-                <div style={boxStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
-                        <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? Math.floor(periodBurned).toLocaleString() : ' - '}</span>
-                    </div>
-                    <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Burned</div>
-                </div>
-
-                {/* Emitted */}
-                <div style={boxStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
-                        <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? Math.floor(periodMinted).toLocaleString() : ' - '}</span>
-                    </div>
-                    <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Emitted</div>
-                </div>
-
-                {/* Net */}
-                <div style={boxStyle}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: isMobile ? 5 : 8, fontSize: isMobile ? 15 : 22, fontWeight: 600, color: '#fff', marginBottom: isMobile ? 4 : 10 }}>
-                        <BeanLogo size={isMobile ? 14 : 20} />
-                        <span>{hasData ? `${periodNet >= 0 ? '+' : '-'}${Math.floor(Math.abs(periodNet)).toLocaleString()}` : ' - '}</span>
-                    </div>
-                    <div style={{ fontSize: isMobile ? 10 : 14, color: '#999' }}>Net Change</div>
-                </div>
-            </div>
-        </div>
+        <AnalyticsChart
+            title="Net BEAN emissions per round"
+            headline={latestMa100 != null ? `${latestMa100 >= 0 ? '+' : ''}${latestMa100.toFixed(2)} BEAN/round` : undefined}
+            lines={lines}
+            pointLabels={pts.map((p) => `Round ${p.roundId.toLocaleString()}`)}
+            valueFormat={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(2)}`}
+            zeroLine
+            height={isMobile ? 200 : 260}
+            loading={state === 'loading'}
+            empty={state === 'empty'}
+            emptyText="No data yet"
+            legend={[
+                { color: '#0052FF', label: '20-round average' },
+                { color: '#ffffff', label: '100-round average' },
+            ]}
+            footnote="BEAN emitted per round minus buyback potential from protocol fees. Below zero is deflationary."
+        />
     )
 }
 

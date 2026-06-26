@@ -5,6 +5,7 @@ import BeanLogo from './BeanLogo'
 import { apiFetch } from '../lib/api'
 import AnalyticsChart, { ChartLine } from './analytics/AnalyticsChart'
 import { fetchNetEmissions, NetEmissionsResponse } from '../lib/analyticsData'
+import { fetchX402Stats, X402Stats } from '../lib/x402Data'
 
 // API response interfaces
 interface PeriodEmission {
@@ -156,6 +157,11 @@ export default function GlobalStats({
                 <div style={{ marginTop: 16 }}>
                     <NetEmissionsCard isMobile={true} />
                 </div>
+
+                {/* x402 machine-native mining */}
+                <div style={{ marginTop: 16 }}>
+                    <X402Card isMobile={true} />
+                </div>
             </div>
         )
     }
@@ -191,6 +197,11 @@ export default function GlobalStats({
             {/* Net emissions per round */}
             <div style={styles.trackerSection}>
                 <NetEmissionsCard isMobile={false} />
+            </div>
+
+            {/* x402 machine-native mining */}
+            <div style={styles.trackerSection}>
+                <X402Card isMobile={false} />
             </div>
         </div>
     )
@@ -241,7 +252,107 @@ function NetEmissionsCard({ isMobile }: { isMobile: boolean }) {
     )
 }
 
+function X402Card({ isMobile }: { isMobile: boolean }) {
+    const [stats, setStats] = useState<X402Stats | null>(null)
+    const [state, setState] = useState<'loading' | 'live' | 'empty'>('loading')
+
+    useEffect(() => {
+        fetchX402Stats().then((r) => {
+            if (r) {
+                setStats(r)
+                setState('live')
+            } else {
+                setState('empty')
+            }
+        })
+    }, [])
+
+    // Hide entirely if the endpoint has no data yet, so the page never shows a
+    // broken or zeroed card.
+    if (state === 'empty') return null
+
+    const fmtCompact = (n: number) => {
+        if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M'
+        if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K'
+        return Math.round(n).toLocaleString()
+    }
+    const cards = [
+        { value: stats ? fmtCompact(stats.totalCalls) : '—', label: 'Transactions' },
+        { value: stats ? '$' + fmtCompact(stats.volumeUsd) : '—', label: 'Volume' },
+    ]
+
+    return (
+        <div>
+            <div style={styles.x402Header}>
+                <span style={styles.x402SectionTitle}>x402 Activity</span>
+                <span style={styles.x402Period}>All time</span>
+            </div>
+            <div
+                style={{
+                    ...styles.x402Grid,
+                    gridTemplateColumns: isMobile ? '1fr' : 'repeat(2, 1fr)',
+                }}
+            >
+                {cards.map((c, i) => (
+                    <div key={i} style={styles.x402Card}>
+                        <div style={styles.x402Label}>{c.label}</div>
+                        <div style={styles.x402Value}>{c.value}</div>
+                    </div>
+                ))}
+            </div>
+            <div style={styles.x402Footnote}>
+                Agents pay $0.10 per call through x402 to mine BEAN. Fees fund buybacks.
+            </div>
+        </div>
+    )
+}
+
 const styles: { [key: string]: React.CSSProperties } = {
+    x402Header: {
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        marginBottom: 16,
+    },
+    x402SectionTitle: {
+        fontSize: 18,
+        fontWeight: 600,
+        color: "#fff",
+    },
+    x402Period: {
+        fontSize: 12,
+        color: "#8597b0",
+        background: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+        borderRadius: 8,
+        padding: "6px 12px",
+    },
+    x402Grid: {
+        display: "grid",
+        gap: 12,
+    },
+    x402Card: {
+        background: "rgba(255,255,255,0.025)",
+        border: "1px solid rgba(255,255,255,0.07)",
+        borderRadius: 12,
+        padding: "18px 20px",
+    },
+    x402Label: {
+        fontSize: 13,
+        color: "#8597b0",
+    },
+    x402Value: {
+        fontSize: 28,
+        fontWeight: 600,
+        color: "#fff",
+        marginTop: 8,
+    },
+    x402Footnote: {
+        fontSize: 12,
+        color: "#5b6b85",
+        marginTop: 16,
+        lineHeight: 1.5,
+    },
     wrapper: {
         paddingTop: "40px",
         paddingBottom: "20px",

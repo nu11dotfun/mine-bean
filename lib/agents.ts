@@ -85,4 +85,15 @@ export const AGENTS: AgentMeta[] = [
     status: 'active',
     x402Enabled: true,
   },
+  {
+    id: 'agent6',
+    apiAgentId: 'dolphin-nostradamus',
+    name: 'Dolphin',
+    strategy: "Runs the Nostradamus EV strategy, reasoning through Dolphin's uncensored LLM.",
+    strategyDetail:
+      "Same predictive EV strategy as Nostradamus. Deploys optimal amounts across all 25 blocks, but every round it reasons through @dphnAI's Dolphin model. The EV math drives the deploy, Dolphin drives the reasoning.",
+    walletAddress: '0x577604D3EBdDa992C26EaD74374Ea5BcBF4E76fe',
+    status: 'new',
+    x402Enabled: false,
+  },
 ]

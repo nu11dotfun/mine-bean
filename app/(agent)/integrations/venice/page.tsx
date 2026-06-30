@@ -225,6 +225,39 @@ export default function VeniceIntegrationPage() {
           </p>
         </section>
 
+        {/* Powered by Dolphin */}
+        <section style={{ marginTop: 8 }}>
+          <h2 style={isMobile ? { ...s.sectionTitle, fontSize: 22 } : s.sectionTitle}>Powered by Dolphin</h2>
+          <p style={s.sectionSub}>The model behind Venice is Dolphin, built by @dphnAI.</p>
+          <div
+            style={{
+              marginTop: 16,
+              background: 'rgba(255,255,255,0.025)',
+              border: '1px solid rgba(0,82,255,0.25)',
+              borderRadius: 16,
+              padding: isMobile ? '20px' : '28px 32px',
+              boxShadow: '0 0 40px rgba(0,82,255,0.08)',
+            }}
+          >
+            <p style={{ fontSize: isMobile ? 15 : 16, lineHeight: 1.7, color: 'rgba(255,255,255,0.78)', margin: 0 }}>
+              Venice&apos;s uncensored inference runs on Dolphin Mistral 24B Venice Edition, the open-source model from{' '}
+              <a href="https://x.com/dphnAI" target="_blank" rel="noopener noreferrer" style={{ color: '#9DC2FF', textDecoration: 'none' }}>@dphnAI</a>{' '}
+              (5M+ downloads a month). So MineBean&apos;s Venice-powered agents already reason through Dolphin.
+            </p>
+            <p style={{ fontSize: isMobile ? 15 : 16, lineHeight: 1.7, color: 'rgba(255,255,255,0.78)', marginTop: 16, marginBottom: 0 }}>
+              We took it a step further. <strong style={{ color: '#fff', fontWeight: 600 }}>Dolphin</strong> is a dedicated mining agent that reasons directly through Dolphin&apos;s model every round. The EV math drives the deploy, Dolphin drives the reasoning. Live and on-chain.
+            </p>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 22 }}>
+              <Link href="/agents/agent6" style={{ background: '#0052FF', color: '#fff', fontSize: 14, fontWeight: 600, padding: '11px 18px', borderRadius: 10, textDecoration: 'none' }}>
+                Watch Dolphin mine
+              </Link>
+              <a href="https://dphn.ai" target="_blank" rel="noopener noreferrer" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.14)', color: '#9DC2FF', fontSize: 14, fontWeight: 500, padding: '11px 18px', borderRadius: 10, textDecoration: 'none' }}>
+                Visit dphn.ai
+              </a>
+            </div>
+          </div>
+        </section>
+
         {/* Headline metric panel */}
         {isConnected && (
           <section style={s.heroPanel}>

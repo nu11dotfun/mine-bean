@@ -33,17 +33,6 @@ const ERC20_BALANCE_ABI = [
 import VaultStatsModal from '@/components/VaultStatsModal'
 import AgentConfigDrawer from '@/components/AgentConfigDrawer'
 
-function StatusDot({ status }: { status: 'active' | 'paused' | 'new' }) {
-  const color = status === 'active' ? '#00C853' : status === 'new' ? '#0052FF' : 'rgba(255,255,255,0.25)'
-  const label = status === 'active' ? 'ONLINE' : status === 'new' ? 'DEPLOYING' : 'STANDBY'
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 11, color, fontWeight: 700, fontFamily: "'Space Mono', monospace", letterSpacing: '0.06em' }}>
-      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0, ...(status !== 'paused' ? { animation: 'pulse-glow 2s ease-in-out infinite' } : {}) }} />
-      {label}
-    </span>
-  )
-}
-
 function NeonCard({ children, style, fillHeight }: { children: React.ReactNode; style?: React.CSSProperties; fillHeight?: boolean }) {
   return (
     <div style={{
@@ -768,7 +757,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                 {/* Top */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <span style={s.agentId}>AGENT_{agentNum}</span>
-                  <StatusDot status={agent.status} />
                 </div>
 
                 {/* Name */}
@@ -822,29 +810,6 @@ export default function AgentProfilePage({ params }: { params: { id: string } })
                     </div>
                   ))}
                 </div>
-
-                {/* Invest button - coming soon for agents without vaults */}
-                {!agent.vaultAddress && (
-                  <>
-                    <div style={{ height: 1, background: 'rgba(255,255,255,0.06)' }} />
-                    <button
-                      disabled
-                      style={{
-                        width: '100%', padding: '14px 0',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        borderRadius: 10,
-                        background: 'rgba(255,255,255,0.02)',
-                        color: 'rgba(255,255,255,0.25)',
-                        fontSize: 14, fontWeight: 700,
-                        fontFamily: "'Space Mono', monospace", letterSpacing: '0.04em',
-                        cursor: 'not-allowed',
-                        opacity: 0.6,
-                      }}
-                    >
-                      INVEST - COMING SOON
-                    </button>
-                  </>
-                )}
 
                 {/* Invest button - only for agents with vaults */}
                 {agent.vaultAddress && (

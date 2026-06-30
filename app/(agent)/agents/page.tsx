@@ -17,7 +17,7 @@ export default function AgentsPage() {
 
   return (
     <div style={s.page}>
-      <style>{`
+      <style dangerouslySetInnerHTML={{ __html: `
         @keyframes agentGlowPulse { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
         .agent-row { position: relative; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1), background 0.35s ease, box-shadow 0.35s ease; }
         .agent-row::before {
@@ -36,44 +36,45 @@ export default function AgentsPage() {
         .agent-row:hover .agent-row-num { color: #3D8BFF; }
         .agent-row:hover .agent-row-title { text-shadow: 0 0 24px rgba(0,82,255,0.45); }
         .agent-row-arrow, .agent-row-num, .agent-row-title { transition: transform 0.35s ease, color 0.35s ease, text-shadow 0.35s ease; }
-      `}</style>
+      ` }} />
+
+      {/* Ambient blue glow. Clipped to the viewport edges (not the content column) so there is no visible seam. */}
+      <div style={s.glowLayer} aria-hidden="true">
+        <div style={s.glow1} />
+        <div style={s.glow2} />
+      </div>
 
       <AgentHeader currentPage="agents" />
 
       <main style={isMobile ? s.mainMobile : s.main}>
-        <div style={s.glow1} aria-hidden="true" />
-        <div style={s.glow2} aria-hidden="true" />
+        <div style={s.intro}>
+          <h1 style={isMobile ? { ...s.h1, fontSize: 30 } : s.h1}>Agents</h1>
+          <p style={s.sub}>Autonomous mining agents, each running its own strategy live on-chain.</p>
+        </div>
 
-        <div style={{ position: 'relative', zIndex: 1 }}>
-          <div style={s.intro}>
-            <h1 style={isMobile ? { ...s.h1, fontSize: 30 } : s.h1}>Agents</h1>
-            <p style={s.sub}>Autonomous mining agents, each running its own strategy live on-chain.</p>
-          </div>
-
-          <div style={s.list}>
-            {AGENTS.map((a, i) => {
-              const num = String(i + 1).padStart(2, '0')
-              const isDolphin = a.apiAgentId === 'dolphin-nostradamus'
-              return (
-                <Link key={a.id} href={`/agents/${a.id}`} className="agent-row" style={isMobile ? s.rowMobile : s.row}>
-                  <span className="agent-row-num" style={s.num}>{num}</span>
-                  <div style={s.rowMain}>
-                    <div style={s.titleWrap}>
-                      <span className="agent-row-title" style={isMobile ? { ...s.title, fontSize: 22 } : s.title}>{a.name}</span>
-                      {isDolphin && <span style={s.badge}>powered by @dphnAI</span>}
-                    </div>
-                    <p style={s.desc}>{a.strategy}</p>
+        <div style={s.list}>
+          {AGENTS.map((a, i) => {
+            const num = String(i + 1).padStart(2, '0')
+            const isDolphin = a.apiAgentId === 'dolphin-nostradamus'
+            return (
+              <Link key={a.id} href={`/agents/${a.id}`} className="agent-row" style={isMobile ? s.rowMobile : s.row}>
+                <span className="agent-row-num" style={s.num}>{num}</span>
+                <div style={s.rowMain}>
+                  <div style={s.titleWrap}>
+                    <span className="agent-row-title" style={isMobile ? { ...s.title, fontSize: 22 } : s.title}>{a.name}</span>
+                    {isDolphin && <span style={s.badge}>powered by @dphnAI</span>}
                   </div>
-                  <span className="agent-row-arrow" style={s.arrow} aria-hidden="true">
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </span>
-                </Link>
-              )
-            })}
-          </div>
+                  <p style={s.desc}>{a.strategy}</p>
+                </div>
+                <span className="agent-row-arrow" style={s.arrow} aria-hidden="true">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                    <polyline points="12 5 19 12 12 19" />
+                  </svg>
+                </span>
+              </Link>
+            )
+          })}
         </div>
       </main>
 
@@ -83,12 +84,14 @@ export default function AgentsPage() {
 }
 
 const s: { [key: string]: React.CSSProperties } = {
-  page: { fontFamily: "'Inter', -apple-system, sans-serif", minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent' },
-  main: { position: 'relative', overflow: 'hidden', maxWidth: 1100, margin: '0 auto', padding: '40px 60px 60px', flex: 1, width: '100%' },
-  mainMobile: { position: 'relative', overflow: 'hidden', padding: '24px 16px 90px', flex: 1, width: '100%' },
+  page: { fontFamily: "'Inter', -apple-system, sans-serif", minHeight: '100vh', display: 'flex', flexDirection: 'column', background: 'transparent', position: 'relative', zIndex: 0 },
 
-  glow1: { position: 'absolute', top: -120, left: -60, width: 520, height: 520, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,82,255,0.16) 0%, rgba(0,82,255,0.05) 40%, transparent 70%)', filter: 'blur(30px)', pointerEvents: 'none', zIndex: 0, animation: 'agentGlowPulse 7s ease-in-out infinite' },
-  glow2: { position: 'absolute', bottom: 20, right: -100, width: 460, height: 460, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,82,255,0.10) 0%, transparent 65%)', filter: 'blur(40px)', pointerEvents: 'none', zIndex: 0, animation: 'agentGlowPulse 9s ease-in-out infinite' },
+  glowLayer: { position: 'absolute', inset: 0, overflow: 'hidden', zIndex: -1, pointerEvents: 'none' },
+  glow1: { position: 'absolute', top: 30, left: 'calc(50% - 660px)', width: 600, height: 600, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,82,255,0.16) 0%, rgba(0,82,255,0.05) 40%, transparent 70%)', filter: 'blur(30px)', animation: 'agentGlowPulse 7s ease-in-out infinite' },
+  glow2: { position: 'absolute', top: 480, left: 'calc(50% + 160px)', width: 540, height: 540, borderRadius: '50%', background: 'radial-gradient(circle, rgba(0,82,255,0.10) 0%, transparent 65%)', filter: 'blur(40px)', animation: 'agentGlowPulse 9s ease-in-out infinite' },
+
+  main: { maxWidth: 1100, margin: '0 auto', padding: '40px 60px 60px', flex: 1, width: '100%' },
+  mainMobile: { padding: '24px 16px 90px', flex: 1, width: '100%' },
 
   intro: { marginBottom: 28 },
   h1: { fontSize: 40, fontWeight: 700, color: '#fff', margin: 0 },

@@ -1,7 +1,6 @@
 'use client'
 
 import Header from '@/components/Header'
-import MinersPanel from '@/components/MinersPanel'
 import MiningGrid from '@/components/MiningGrid'
 import SidebarControls from '@/components/SidebarControls'
 import MobileStatsBar from '@/components/MobileStatsBar'
@@ -10,6 +9,8 @@ import BottomNav from '@/components/BottomNav'
 import LandingPage from '@/components/LandingPage'
 import ClaimRewards from '@/components/ClaimRewards'
 import RoastingAprBanner from '@/components/RoastingAprBanner'
+import SidebarMinersLive from '@/components/SidebarMinersLive'
+import OverallLeaderboardPanel from '@/components/OverallLeaderboardPanel'
 import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { parseEther, type Abi } from 'viem'
@@ -254,8 +255,8 @@ if (!showMining) {
       <Header currentPage="mine" />
       <BeanpotCelebration />
       <CountdownCelebration />
+      <OverallLeaderboardPanel />
       <div style={styles.container}>
-        <MinersPanel />
         <div style={styles.gridSection}>
           <MiningGrid userAddress={effectiveAddress} />
         </div>
@@ -263,6 +264,9 @@ if (!showMining) {
           <SidebarControls isConnected={isConnected} userBalance={userBalance} userAddress={effectiveAddress} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
           <RoastingAprBanner userAddress={effectiveAddress} />
           <ClaimRewards userAddress={effectiveAddress} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
+          <div style={{ marginTop: 16 }}>
+            <SidebarMinersLive />
+          </div>
         </div>
       </div>
       <AgentConfigDrawer

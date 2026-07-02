@@ -100,7 +100,6 @@ let capturedClaimRewardsProps: any = null
 let _capturedHeaderProps: any = null
 let _capturedMobileStatsBarProps: any = null
 let _capturedBottomNavProps: any = null
-let _capturedMinersPanelProps: any = null
 
 vi.mock('@/components/LandingPage', () => ({
   default: (props: any) => {
@@ -162,13 +161,6 @@ vi.mock('@/components/BottomNav', () => ({
   },
 }))
 
-vi.mock('@/components/MinersPanel', () => ({
-  default: (props: any) => {
-    _capturedMinersPanelProps = props
-    return <div data-testid="miners-panel">Miners Panel</div>
-  },
-}))
-
 describe('Home Page', () => {
   beforeEach(() => {
     // Reset all mocks
@@ -189,7 +181,6 @@ describe('Home Page', () => {
     _capturedHeaderProps = null
     _capturedMobileStatsBarProps = null
     _capturedBottomNavProps = null
-    _capturedMinersPanelProps = null
 
     // Default mock values
     mockUseAccount.mockReturnValue({

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 
 export default function HelpButton() {
   const [open, setOpen] = useState(false)
@@ -9,6 +10,17 @@ export default function HelpButton() {
   const [showHowTo, setShowHowTo] = useState(false)
   const [showAgentModal, setShowAgentModal] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [onAgent, setOnAgent] = useState(false)
+  const pathname = usePathname()
+
+  // The Deploy-a-Mining-Agent button belongs only on the agent subdomain
+  // (agent.minebean.com), or the agent paths on localhost where there is no
+  // subdomain. The help ("?") button stays everywhere.
+  useEffect(() => {
+    const host = window.location.hostname
+    const agentPath = !!pathname && (pathname.startsWith('/agents') || pathname.startsWith('/beanbook') || pathname.startsWith('/integrations'))
+    setOnAgent(host.startsWith('agent.') || agentPath)
+  }, [pathname])
 
   const skillUrl = 'https://www.minebean.com/skill.md'
 
@@ -110,7 +122,8 @@ export default function HelpButton() {
         </div>
       )}
 
-      {/* Bot button */}
+      {/* Bot button — agent subdomain only */}
+      {onAgent && (
       <button onClick={() => setShowAgentModal(true)} style={{
         width: isMobile ? 28 : 36, height: isMobile ? 28 : 36, borderRadius: '50%',
         background: 'rgba(0,82,255,0.1)',
@@ -132,6 +145,7 @@ export default function HelpButton() {
           <path d="M4 12H2M22 12h-2"/>
         </svg>
       </button>
+      )}
 
       {open && (
         <div style={{

@@ -48,7 +48,7 @@ components/
   CountdownCelebration.tsx — Countdown celebration overlay
   HelpButton.tsx      — Help menu with how-to-play modal, sound mute toggle, links
   ProfilePage.tsx     — User profile (avatar upload, username, bio, portfolio display)
-  GlobalStats.tsx     — Protocol metrics (supply, burned, revenue)
+  analytics/          — /global tabbed analytics (sections, reusable charts, HeroStatCard, GlobalTop/GlobalTabs, StatsPanel, PriceChart)
   MiningTable.tsx     — Mining history table
   RevenueTable.tsx    — Protocol revenue breakdown
   LeaderboardTable.tsx— Top miners/stakers leaderboard
@@ -148,7 +148,7 @@ npm run artifacts:copy # Copy ZK proving artifacts from ../privacy-pools-core in
 - **MiningTable.tsx** — Fetches `GET /api/rounds?page=N&limit=12&settled=true` on mount. Supports two tabs: "Rounds" (all settled rounds) and "Beanpot" (rounds where beanpot was won, via `&beanpot=true`). Server-side pagination. Displays: Round ID, winning block, BEAN winner (address or "Split" badge based on `isSplit`), winner count, ETH deployed/vaulted/winnings, beanpot amount (or dash if 0), relative time. **Clickable rows:** Each row links to the fulfilment transaction on BaseScan (`txHash` field from API).
 - **RevenueTable.tsx** — Fetches `GET /api/treasury/buybacks?page=N&limit=12` on mount. Server-side pagination. Displays buyback transactions: Time (relative), ETH Spent, BEAN Burned, Yield Generated (BEAN to stakers). No tabs — only Buybacks view. **Clickable rows:** Each row links to the buyback transaction on BaseScan (`txHash` field from API).
 - **LeaderboardTable.tsx** — Fetches `GET /api/leaderboard/miners?period=all&limit=12`, `GET /api/leaderboard/stakers?limit=12`, and `GET /api/leaderboard/earners?limit=12` on mount in parallel. Three tabs: Miners (total ETH deployed), Stakers (total BEAN staked), Unroasted (unclaimed BEAN). Displays: Rank, Address (with profile picture if available), Value with icon (ETH or BEAN). **Clickable rows:** Each row links to the wallet address on BaseScan. Uses `useProfileResolver` to get both `profiles` map (for pfp) and `resolve` function (for username).
-- **GlobalStats.tsx** — Fetches `GET /api/stats` and `GET /api/treasury/stats` on mount. Displays: Max Supply (hardcoded 3M), Circulating Supply (`totalMintedFormatted`), Burned (`totalBurnedFormatted`), Protocol Revenue (`totalVaultedFormatted`).
+- **`/global` analytics** (`components/analytics/`) — Tabbed analytics dashboard (Revenue, Buyback & Burn, Token, Staking, Mining). Point-in-time figures via `lib/protocolSummary` (backend `/api/stats` + `/api/treasury/stats` + `/api/staking/stats`, Binance ETH, DexScreener); historical series from DefiLlama and a server-side Dune proxy (`app/api/dune`). See "Global Page" under Architecture Notes.
 - **app/stake/page.tsx** — Orchestrates staking contract interactions. Uses wagmi `useWriteContract` (2 instances) to handle the ERC20 approve→deposit chain: first `Bean.approve(Staking, amount)`, then `Staking.deposit(amount)` with optional `msg.value` for compound fee ETH. Chains transactions via `useWaitForTransactionReceipt` watching approval tx hash; on confirmation, fires deposit with stored `pendingApprovalAmount` and `pendingCompoundFee`. Also handles `Staking.withdraw(amount)`, `Staking.claimYield()`, and `Staking.compound()`. Reads BEAN balance via `useBalance({ token: CONTRACTS.Bean.address })`. Passes `onDeposit`, `onWithdraw`, `onClaimYield`, `onCompound` callbacks to StakePage component.
 - **StakePage.tsx** — Full staking interface connected to backend and smart contract. Fetches `GET /api/staking/stats` on mount for global stats (totalStaked, APR, TVL). Uses `useUserData()` for user stake info (`stakeInfo`, `refetchStakeInfo`) — no longer fetches `/api/staking/:address` directly. Uses `useSSE()` to subscribe to global `yieldDistributed` and user `stakeDeposited`/`stakeWithdrawn`/`yieldCompounded` events — triggers global stats re-fetch. Summary section shows Total Deposits, APR, TVL. Deposit/withdraw section shows BEAN balance, input field, and auto-compound settings (toggle + ETH input, default 0.006). User position card (visible when staked > 0) shows total staked, pending rewards, "Claim" and "Claim & Deposit" buttons. Info icons ('i') on all metrics open tooltip dialogues on hover (desktop) or click (mobile). Includes APR Calculator modal using real APR from backend. **Delayed re-fetch pattern:** Since `/api/staking/stats` is cached with 60s refresh on backend, SSE event handlers re-fetch immediately + again after 10s to catch cache updates.
 
@@ -511,15 +511,25 @@ The ONE failure mode is a wallet that signs with a *random* nonce (non-RFC-6979)
 
 ### Global Page (`/global`)
 
-The `/global` page displays protocol-wide statistics and historical data. Components render after client mount to prevent Next.js SSR hydration mismatches.
+The `/global` page is a Blockworks-style tabbed analytics dashboard. `app/(main)/global/page.tsx` renders `GlobalTop` (BEAN price chart + market-stats sidebar) above `GlobalTabs`, then one of five lazily-mounted sections. Components render after client mount to prevent Next.js SSR hydration mismatches.
 
-**Components:**
-| Component | Data Source | Status |
-|-----------|-------------|--------|
-| **GlobalStats** | `GET /api/stats`, `GET /api/treasury/stats` | ✅ Connected |
-| **MiningTable** | `GET /api/rounds` | ✅ Connected |
-| **RevenueTable** | `GET /api/treasury/buybacks` | ✅ Connected |
-| **LeaderboardTable** | `GET /api/leaderboard/miners`, `GET /api/leaderboard/stakers`, `GET /api/leaderboard/earners` | ✅ Connected |
+**Tabs / sections** (`components/analytics/sections/`):
+| Tab | Section | Content | Historical source |
+|-----|---------|---------|-------------------|
+| Revenue | FinancialsSection | Total Volume (time-weighted), protocol revenue all-time + 30D, revenue-over-time, daily ETH deployed | DefiLlama, Dune `mining-volume` x Binance daily ETH |
+| Buyback & Burn | BuybackBurnSection | Total Buybacks, Total Buyback Amount, % of supply bought back, daily buyback spend, cumulative burn, buyback-tx table | Dune `buyback-history`, RevenueTable |
+| Token | TokenSection | Circulating supply, FDV, max supply, net emissions, BEAN minted/emitted | DexScreener, Dune `mining-rewards` |
+| Staking | StakingSection | Total staked (USD), % of circulating staked, 7-day rolling APR, staked-over-time, daily yield, flows | backend `/api/staking`, Dune `staking-metrics` + `tvl-by-day` |
+| Mining | MiningSection | Settled-rounds + beanpot table | MiningTable (`/api/rounds`) |
+
+**Shared analytics infra:**
+- `components/analytics/AnalyticsChart` / `DuneSeriesChart` / `RevenueOverTimeChart` — reusable bar/line charts with unit (USD/ETH/BEAN) and granularity (Daily/Weekly/Monthly/Quarterly) dropdowns and a draggable brush window. A chip only renders when it has 2+ options (single-unit charts show none).
+- `components/analytics/AnalyticsUI` — `ChartFrame` chrome, `Dropdown`, two-line `ChartXAxis`, `SectionHeader`. `HeroStatCard` — large headline cards.
+- `lib/protocolSummary` — one cached fetch of point-in-time figures (backend `/api/stats` + `/api/treasury/stats` + `/api/staking/stats`, Binance ETH, DexScreener). **Circulating supply = DexScreener marketCap / price** (the true circulating, NOT on-chain `totalSupply`); market cap and FDV come straight from DexScreener.
+- `lib/defiLlama` (revenue), `lib/priceHistory` (GeckoTerminal OHLCV for the price chart), `lib/buybackTotals`, `lib/stakingApr` (7-day rolling APR), `lib/trueVolume` (Dune daily ETH x Binance daily price), `lib/timeBucket`, `lib/analyticsFormat`.
+- `app/api/dune/route.ts` — server-side Dune proxy; whitelists query IDs, reads `DUNE_API_KEY` (server-only env, **not** `NEXT_PUBLIC_`), caches results 1h. **Production must set `DUNE_API_KEY` in the host env or every Dune-backed card and chart goes blank.**
+
+MiningTable (Mining tab) and RevenueTable (Buyback & Burn tab) are unchanged; their data flows are documented below. LeaderboardTable is no longer mounted on `/global`.
 
 **Hydration Pattern:** Components using dynamic data (API fetches or `Math.random()`) must return `null` until after mount to prevent SSR/client mismatch:
 
@@ -582,20 +592,6 @@ if (!mounted) {
 | Miners | `/api/leaderboard/miners` | `totalDeployedFormatted` | ETH |
 | Stakers | `/api/leaderboard/stakers` | `stakedBalanceFormatted` | BEAN |
 | Unroasted | `/api/leaderboard/earners` | `unclaimedFormatted` | BEAN |
-
-**GlobalStats Data Flow:**
-1. Fetches both endpoints in parallel on mount:
-   - `GET /api/stats` for circulating supply (`totalSupplyFormatted`)
-   - `GET /api/treasury/stats` for burned and protocol revenue
-2. Max Supply is hardcoded (3,000,000 BEAN contract constant)
-
-**GlobalStats Column Mapping:**
-| Stat | Source | Field |
-|------|--------|-------|
-| Max Supply | Hardcoded | `3,000,000` |
-| Circulating Supply | `/api/stats` | `totalSupplyFormatted` |
-| Burned | `/api/treasury/stats` | `totalBurnedFormatted` |
-| Protocol Revenue | `/api/treasury/stats` | `totalVaultedFormatted` |
 
 ---
 
@@ -1019,4 +1015,4 @@ Response: `{ "hash": "0x…" }` (withdrawal tx hash). Errors: `{ "error": "…" 
 - **Node ≥ 20.19 required** for vitest (vite 7). Shell may default to Node 18 — prefix with `export PATH="$HOME/.nvm/versions/node/v22.22.0/bin:$PATH"`.
 - `vitest.config.ts` aliases `fs` to `test/stubs/fs.ts` — the PP SDK's ESM build contains a node-only `import("fs")` branch vite can't resolve under jsdom.
 - `lib/privacy/keys.test.ts` and `deposit.test.ts` warm the SDK in a `beforeAll` (60s timeout) — the first dynamic import + HD/poseidon init can blow the 5s default under parallel full-suite load.
-- **Pre-existing failures (as of June 2026):** ~47 failures in suites untouched by private mode (StakePage, MiningGrid, MiningTable, Header, ClaimRewards, GlobalStats, MinersPanel, UserDataContext, contracts.test) — missing wagmi hook mocks (`useSwitchChain`, `useSignMessage`), `test/setup.ts`'s bare `global.fetch = vi.fn()`, and assertions that drifted from the UI. Not regressions; baseline before claiming breakage. `page.test.tsx` and `SidebarControls.test.tsx` were repaired and show the correct mock patterns (including the `usePrivacy` mock).
+- **Pre-existing failures (as of June 2026):** ~47 failures in suites untouched by private mode (StakePage, MiningGrid, MiningTable, Header, ClaimRewards, MinersPanel, UserDataContext, contracts.test) — missing wagmi hook mocks (`useSwitchChain`, `useSignMessage`), `test/setup.ts`'s bare `global.fetch = vi.fn()`, and assertions that drifted from the UI. Not regressions; baseline before claiming breakage. `page.test.tsx` and `SidebarControls.test.tsx` were repaired and show the correct mock patterns (including the `usePrivacy` mock).

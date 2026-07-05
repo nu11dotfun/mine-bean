@@ -11,7 +11,7 @@ export interface DuneSeries {
   label: string
   color: string
   type: 'bar' | 'line'
-  agg?: 'sum' | 'last' // how to combine days within a bucket; 'sum' for flows, 'last' for balances
+  agg?: 'sum' | 'last' | 'count' // combine rows in a bucket: 'sum' flows, 'last' balances, 'count' rows
   cumulative?: boolean
   diff?: boolean       // day/period-over-period change (net flow from a balance column)
   fill?: boolean
@@ -39,6 +39,7 @@ export default function DuneSeriesChart({
   series,
   height,
   fullRange,
+  fillGaps,
   isMobile,
 }: {
   query: string
@@ -49,6 +50,7 @@ export default function DuneSeriesChart({
   series: DuneSeries[]
   height?: number
   fullRange?: boolean
+  fillGaps?: boolean
   isMobile: boolean
 }) {
   const [rows, setRows] = useState<Record<string, any>[] | null>(null)
@@ -77,8 +79,8 @@ export default function DuneSeriesChart({
 
   const pts = rows ?? []
   const buckets = useMemo(
-    () => bucketize(pts, (r) => new Date(r[dateKey]).getTime(), gran),
-    [rows, dateKey, gran],
+    () => bucketize(pts, (r) => new Date(r[dateKey]).getTime(), gran, fillGaps),
+    [rows, dateKey, gran, fillGaps],
   )
   // Stable references so the chart's brush window doesn't reset every render.
   const axisTimes = useMemo(() => buckets.map((b) => b.t), [buckets])
@@ -89,6 +91,7 @@ export default function DuneSeriesChart({
   for (const s of series) {
     const col = s.keys[unit] ?? Object.values(s.keys)[0]
     let vals = buckets.map((b) => {
+      if (s.agg === 'count') return b.rows.length
       const xs = b.rows.map((r) => num(r[col]))
       return s.agg === 'last' ? (xs.length ? xs[xs.length - 1] : 0) : xs.reduce((a, c) => a + c, 0)
     })

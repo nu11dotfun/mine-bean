@@ -9,6 +9,8 @@ import BuybackBurnSection from '@/components/analytics/sections/BuybackBurnSecti
 import TokenSection from '@/components/analytics/sections/TokenSection'
 import StakingSection from '@/components/analytics/sections/StakingSection'
 import MiningSection from '@/components/analytics/sections/MiningSection'
+import BeanpotSection from '@/components/analytics/sections/BeanpotSection'
+import LeaderboardSection from '@/components/analytics/sections/LeaderboardSection'
 import { useState, useEffect } from 'react'
 
 const TABS: GlobalTab[] = [
@@ -17,6 +19,8 @@ const TABS: GlobalTab[] = [
   { id: 'token', label: 'Token' },
   { id: 'staking', label: 'Staking' },
   { id: 'mining', label: 'Mining' },
+  { id: 'beanpot', label: 'Beanpot' },
+  { id: 'leaderboard', label: 'Leaderboard' },
 ]
 
 export default function Global() {
@@ -44,7 +48,9 @@ export default function Global() {
       case 'buyback': return <BuybackBurnSection isMobile={isMobile} />
       case 'token': return <TokenSection isMobile={isMobile} />
       case 'staking': return <StakingSection isMobile={isMobile} />
-      case 'mining': return <MiningSection />
+      case 'mining': return <MiningSection isMobile={isMobile} />
+      case 'beanpot': return <BeanpotSection isMobile={isMobile} />
+      case 'leaderboard': return <LeaderboardSection />
       default: return null
     }
   }

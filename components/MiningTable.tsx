@@ -381,6 +381,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     table: {
         width: "100%",
         borderCollapse: "collapse",
+        minWidth: 780,
+        whiteSpace: "nowrap",
     },
     th: {
         textAlign: "left" as const,

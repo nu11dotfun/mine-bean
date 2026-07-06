@@ -229,12 +229,14 @@ if (!showMining) {
     return (
       <div style={{ minHeight: '100vh', background: 'transparent', paddingBottom: '80px' }}>
         <Header currentPage="mine" isMobile={true} />
+        <OverallLeaderboardPanel />
         <div style={styles.mobileContainer}>
           <MobileStatsBar userAddress={address} />
           <MiningGrid userAddress={address} />
           <MobileControls isConnected={isConnected} userBalance={userBalance} userAddress={address} onDeploy={handleDeploy} onAutoActivate={handleAutoActivate} onAutoStop={handleAutoStop} />
           <RoastingAprBanner userAddress={address} />
           <ClaimRewards userAddress={address} onClaimETH={handleClaimETH} onClaimBEAN={handleClaimBEAN} />
+          <SidebarMinersLive />
         </div>
         <BottomNav currentPage="mine" />
         <AgentConfigDrawer

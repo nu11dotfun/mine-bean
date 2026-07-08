@@ -157,7 +157,7 @@ export default function AnalyticsChart({
   const xFor = (i: number) => (n <= 1 ? 0 : (i / (n - 1)) * W)
   const yFor = (v: number) => H - ((v - min) / range) * (H - PAD * 2) - PAD
   const ticks = niceTicks(min, max)
-  const fmtTick = (v: number) => (Math.abs(v) < 1e-9 ? '0' : v.toFixed(1))
+  const fmtTick = compactTick
   const barW = n > 1 ? Math.max(1, (W / n) * 0.6) : W * 0.4
 
   const pointsFor = (values: (number | null)[]) =>
@@ -334,6 +334,19 @@ function niceTicks(min: number, max: number, count = 4): number[] {
   const out: number[] = []
   for (let v = start; v <= max + step * 0.001; v += step) out.push(Number(v.toFixed(6)))
   return out
+}
+
+// Compact y-axis tick labels: 40000 → "40k", 4500 → "4.5k", 100 → "100", 0.002 → "0.002".
+function compactTick(v: number): string {
+  const a = Math.abs(v)
+  if (a < 1e-9) return '0'
+  const t = (x: number) => x.toFixed(1).replace(/\.0$/, '')
+  if (a >= 1e9) return t(v / 1e9) + 'B'
+  if (a >= 1e6) return t(v / 1e6) + 'M'
+  if (a >= 1e3) return t(v / 1e3) + 'k'
+  if (a >= 10) return v.toFixed(0)
+  if (a >= 1) return t(v)
+  return String(Number(v.toFixed(3)))
 }
 
 const styles: { [key: string]: React.CSSProperties } = {

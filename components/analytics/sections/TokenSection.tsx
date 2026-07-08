@@ -5,6 +5,10 @@ import { SectionHeader } from '../AnalyticsUI'
 import HeroStatCard from '../HeroStatCard'
 import NetEmissionsCard from '../NetEmissionsCard'
 import DuneSeriesChart from '../DuneSeriesChart'
+import PriceVsBtcChart from '../PriceVsBtcChart'
+import SupplyStats from '../SupplyStats'
+import CirculatingSupplyChart from '../CirculatingSupplyChart'
+import NetMintChart from '../NetMintChart'
 import { useProtocolSummary, BEAN_MAX_SUPPLY } from '@/lib/protocolSummary'
 import { fmtInt, fmtUsdCompact } from '@/lib/analyticsFormat'
 
@@ -37,8 +41,10 @@ export default function TokenSection({ isMobile }: { isMobile: boolean }) {
         <HeroStatCard title="Max Supply" value={fmtInt(BEAN_MAX_SUPPLY)} caption="BEAN" isMobile={isMobile} />
       </div>
 
+      <SupplyStats isMobile={isMobile} />
+
       <div style={{ marginBottom: isMobile ? 14 : 18 }}>
-        <NetEmissionsCard isMobile={isMobile} />
+        <CirculatingSupplyChart isMobile={isMobile} />
       </div>
 
       <div style={grid}>
@@ -50,14 +56,15 @@ export default function TokenSection({ isMobile }: { isMobile: boolean }) {
           height={H}
           isMobile={isMobile}
         />
-        <DuneSeriesChart
-          query="mining-rewards"
-          title="BEAN emitted daily"
-          description="BEAN minted to miners each day."
-          series={[{ keys: { BEAN: 'bean_allocated' }, label: 'BEAN emitted', color: '#4C82FF', type: 'bar', agg: 'sum' }]}
-          height={H}
-          isMobile={isMobile}
-        />
+        <NetMintChart isMobile={isMobile} />
+      </div>
+
+      <div style={{ marginTop: isMobile ? 14 : 18 }}>
+        <NetEmissionsCard isMobile={isMobile} />
+      </div>
+
+      <div style={{ marginTop: isMobile ? 14 : 18 }}>
+        <PriceVsBtcChart isMobile={isMobile} />
       </div>
     </div>
   )

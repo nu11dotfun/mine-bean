@@ -345,6 +345,7 @@ export default function ProfilePage() {
   const [historyTotals, setHistoryTotals] = useState<HistoryTotals | null>(null)
   const [expandedRound, setExpandedRound] = useState<Round | null>(null)
   const [page, setPage] = useState(0)
+  const [winnersOnly, setWinnersOnly] = useState(false)
 
   // Portfolio state (from API)
   const [stakeInfo, setStakeInfo] = useState<StakeInfo | null>(null)
@@ -631,12 +632,13 @@ export default function ProfilePage() {
   // Round history stats (from backend totals)
   const beanPriceEth = historyTotals ? parseFloat(historyTotals.beanPriceEth) || 0 : 0
   const rounds = deployHistory.map(e => entryToRound(e, beanPriceEth))
+  const filteredRounds = winnersOnly ? rounds.filter(r => r.isWin || r.isBeanpot) : rounds
   const totalPnl = historyTotals ? parseFloat(historyTotals.totalPNL) || 0 : 0
   const totalBean = historyTotals ? parseFloat(historyTotals.totalBEANWonFormatted) || 0 : 0
   const winRate = historyTotals && historyTotals.roundsPlayed > 0
     ? Math.round((historyTotals.roundsWon / historyTotals.roundsPlayed) * 100) : 0
-  const totalPages = Math.ceil(rounds.length / ROWS_PER_PAGE)
-  const pageRounds = rounds.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
+  const totalPages = Math.max(1, Math.ceil(filteredRounds.length / ROWS_PER_PAGE))
+  const pageRounds = filteredRounds.slice(page * ROWS_PER_PAGE, (page + 1) * ROWS_PER_PAGE)
 
   const truncatedAddress = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''
 
@@ -921,6 +923,23 @@ export default function ProfilePage() {
                   </div>}
                 </div>
               </div>
+              <div style={{ display: 'flex', marginBottom: 14 }}>
+                <div style={{ display: 'inline-flex', gap: 4, padding: 4, borderRadius: 50, background: 'rgba(255,255,255,0.03)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)', border: '1px solid rgba(90,140,255,0.45)', boxShadow: '0 0 22px rgba(0,82,255,0.28), inset 0 1px 0 rgba(255,255,255,0.07)' }}>
+                  {([['All', false], ['Wins', true]] as [string, boolean][]).map(([label, val]) => {
+                    const active = winnersOnly === val
+                    const winActive = active && val
+                    return (
+                      <button
+                        key={label}
+                        onClick={() => { setWinnersOnly(val); setPage(0) }}
+                        style={{ padding: '7px 20px', borderRadius: 50, fontSize: 13, fontWeight: winActive ? 800 : 600, letterSpacing: 0.2, cursor: 'pointer', fontFamily: 'inherit', border: 'none', transition: 'all 0.2s ease', background: winActive ? 'linear-gradient(180deg, #6ee7a0 0%, #34d374 100%)' : active ? 'rgba(255,255,255,0.1)' : 'transparent', color: winActive ? '#0a3a1e' : active ? '#fff' : 'rgba(255,255,255,0.45)', boxShadow: winActive ? '0 0 18px rgba(52,211,116,0.6), 0 1px 2px rgba(0,0,0,0.25)' : 'none', textShadow: winActive ? '0 1px 0 rgba(255,255,255,0.25)' : 'none' }}
+                      >
+                        {label}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
               <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr 80px 100px' : '1fr 130px 110px 110px 130px', padding: '10px 12px', borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 {(isMobile ? ['Round', 'BEAN', 'P&L'] : ['Round', 'Deployed', 'Won', 'BEAN', 'P&L']).map(h => (
                   <span key={h} style={{ fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.35)', textAlign: h === 'Round' ? 'left' : 'right' }}>{h}</span>
@@ -930,11 +949,11 @@ export default function ProfilePage() {
 
             {/* Rows */}
             <div style={{ flex: 1, overflow: 'auto', padding: isMobile ? '0 8px' : '0 32px' }}>
-              {rounds.length === 0 && (
+              {filteredRounds.length === 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, padding: '60px 0', textAlign: 'center' }}>
                   <BeanLogo size={36} />
-                  <p style={{ fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,0.5)', margin: 0 }}>You haven&apos;t participated in any rounds yet</p>
-                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', margin: 0 }}>Start mining to see your stats here</p>
+                  <p style={{ fontSize: 15, fontWeight: 500, color: 'rgba(255,255,255,0.5)', margin: 0 }}>{winnersOnly && rounds.length > 0 ? 'No winning rounds yet' : "You haven't participated in any rounds yet"}</p>
+                  <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.2)', margin: 0 }}>{winnersOnly && rounds.length > 0 ? 'Toggle off to see every round' : 'Start mining to see your stats here'}</p>
                 </div>
               )}
               {pageRounds.map(round => (
@@ -963,7 +982,7 @@ export default function ProfilePage() {
             </div>
 
             {/* Pagination */}
-            {rounds.length > 0 && <div style={{ padding: '16px 32px', flexShrink: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+            {filteredRounds.length > 0 && <div style={{ padding: '16px 32px', flexShrink: 0, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 12, borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0} style={{ width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', background: page === 0 ? 'transparent' : 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, cursor: page === 0 ? 'default' : 'pointer', color: page === 0 ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.6)', padding: 0 }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6"/></svg>
               </button>

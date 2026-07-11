@@ -10,6 +10,7 @@ interface BuybackEntry {
     spent: number
     burned: number
     yieldGenerated: number
+    costPerBean: number
     txHash: string
 }
 
@@ -49,13 +50,18 @@ const getRelativeTime = (timestamp: string): string => {
     return `${Math.floor(seconds / 86400)} days ago`
 }
 
-const transformBuyback = (b: BuybackFromAPI): BuybackEntry => ({
-    time: getRelativeTime(b.timestamp),
-    spent: parseFloat(b.ethSpentFormatted),
-    burned: parseFloat(b.beanBurnedFormatted),
-    yieldGenerated: parseFloat(b.beanToStakersFormatted),
-    txHash: b.txHash
-})
+const transformBuyback = (b: BuybackFromAPI): BuybackEntry => {
+    const spent = parseFloat(b.ethSpentFormatted)
+    const received = parseFloat(b.beanReceivedFormatted)
+    return {
+        time: getRelativeTime(b.timestamp),
+        spent,
+        burned: parseFloat(b.beanBurnedFormatted),
+        yieldGenerated: parseFloat(b.beanToStakersFormatted),
+        costPerBean: received > 0 ? spent / received : 0,
+        txHash: b.txHash
+    }
+}
 
 // Pagination icons
 const ChevronLeft = () => (
@@ -166,6 +172,7 @@ export default function RevenueTable() {
                             <th style={styles.thRight}>Spent</th>
                             <th style={styles.thRight}>Burned</th>
                             <th style={styles.thRight}>Yield Generated</th>
+                            <th style={styles.thRight}>Cost / BEAN</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,6 +206,12 @@ export default function RevenueTable() {
                                     <span style={styles.valueWithIcon}>
                                         <BeanLogo size={16} />
                                         {entry.yieldGenerated.toFixed(4)}
+                                    </span>
+                                </td>
+                                <td style={styles.tdRight}>
+                                    <span style={styles.valueWithIcon}>
+                                        <EthIcon />
+                                        {entry.costPerBean > 0 ? entry.costPerBean.toFixed(5) : '—'}
                                     </span>
                                 </td>
                             </tr>

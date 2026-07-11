@@ -59,6 +59,7 @@ export default function FinancialsSection({ isMobile }: { isMobile: boolean }) {
         description="ETH deployed into mining rounds each day."
         dateKey="day"
         series={[{ keys: { ETH: 'total_eth_deployed' }, label: 'ETH deployed', color: '#4C82FF', type: 'bar', agg: 'sum' }]}
+        movingAverages={[7, 30, 90]}
         height={isMobile ? 200 : 260}
         isMobile={isMobile}
       />

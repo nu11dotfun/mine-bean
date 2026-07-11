@@ -8,6 +8,7 @@ import DuneSeriesChart from '../DuneSeriesChart'
 import PriceVsBtcChart from '../PriceVsBtcChart'
 import SupplyStats from '../SupplyStats'
 import CirculatingSupplyChart from '../CirculatingSupplyChart'
+import DaysToMaxChart from '../DaysToMaxChart'
 import NetMintChart from '../NetMintChart'
 import { useProtocolSummary, BEAN_MAX_SUPPLY } from '@/lib/protocolSummary'
 import { fmtInt, fmtUsdCompact } from '@/lib/analyticsFormat'
@@ -45,6 +46,10 @@ export default function TokenSection({ isMobile }: { isMobile: boolean }) {
 
       <div style={{ marginBottom: isMobile ? 14 : 18 }}>
         <CirculatingSupplyChart isMobile={isMobile} />
+      </div>
+
+      <div style={{ marginBottom: isMobile ? 14 : 18 }}>
+        <DaysToMaxChart isMobile={isMobile} />
       </div>
 
       <div style={grid}>

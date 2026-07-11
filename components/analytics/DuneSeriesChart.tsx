@@ -28,6 +28,18 @@ function defaultFmt(v: number, unit: string): string {
   return Math.round(v).toLocaleString()
 }
 
+const MA_COLORS = ['#F5A623', '#C5D82D', '#2DD4BF']
+function movingAvg(vals: number[], win: number): (number | null)[] {
+  const out: (number | null)[] = []
+  let sum = 0
+  for (let i = 0; i < vals.length; i++) {
+    sum += vals[i]
+    if (i >= win) sum -= vals[i - win]
+    out.push(i >= win - 1 ? sum / win : null)
+  }
+  return out
+}
+
 // Dune-backed time-series chart with working unit (USD / ETH / ...) and
 // granularity (Daily / Weekly / Monthly / Quarterly) dropdowns.
 export default function DuneSeriesChart({
@@ -40,6 +52,7 @@ export default function DuneSeriesChart({
   height,
   fullRange,
   fillGaps,
+  movingAverages,
   isMobile,
 }: {
   query: string
@@ -51,6 +64,7 @@ export default function DuneSeriesChart({
   height?: number
   fullRange?: boolean
   fillGaps?: boolean
+  movingAverages?: number[]
   isMobile: boolean
 }) {
   const [rows, setRows] = useState<Record<string, any>[] | null>(null)
@@ -88,6 +102,7 @@ export default function DuneSeriesChart({
 
   const bars: ChartBar[] = []
   const lines: ChartLine[] = []
+  let primaryVals: number[] | null = null
   for (const s of series) {
     const col = s.keys[unit] ?? Object.values(s.keys)[0]
     let vals = buckets.map((b) => {
@@ -95,10 +110,18 @@ export default function DuneSeriesChart({
       const xs = b.rows.map((r) => num(r[col]))
       return s.agg === 'last' ? (xs.length ? xs[xs.length - 1] : 0) : xs.reduce((a, c) => a + c, 0)
     })
+    if (primaryVals === null) primaryVals = vals
     if (s.cumulative) { let acc = 0; vals = vals.map((v) => (acc += v)) }
     else if (s.diff) { let prev: number | null = null; vals = vals.map((v) => { const d = prev == null ? v : v - prev; prev = v; return d }) }
     if (s.type === 'bar') bars.push({ values: vals, color: s.color, name: s.label })
     else lines.push({ values: vals, color: s.color, name: s.label, width: 2, fill: s.fill })
+  }
+  // Moving-average overlays on the primary series (Daily view only, where the window maps to days).
+  const showMA = !!movingAverages && movingAverages.length > 0 && gran === 'Daily' && primaryVals != null
+  if (showMA && primaryVals) {
+    for (let i = 0; i < movingAverages!.length; i++) {
+      lines.push({ values: movingAvg(primaryVals, movingAverages![i]), color: MA_COLORS[i % MA_COLORS.length], width: 2, name: `${movingAverages![i]}D MA` })
+    }
   }
 
   return (
@@ -125,7 +148,10 @@ export default function DuneSeriesChart({
       loading={state === 'loading'}
       empty={state === 'empty'}
       emptyText="No data yet"
-      legend={series.map((s) => ({ color: s.color, label: s.label, shape: s.type === 'bar' ? 'bar' : 'line' }))}
+      legend={[
+        ...series.map((s) => ({ color: s.color, label: s.label, shape: (s.type === 'bar' ? 'bar' : 'line') as 'bar' | 'line' })),
+        ...(showMA ? movingAverages!.map((w, i) => ({ color: MA_COLORS[i % MA_COLORS.length], label: `${w}D MA`, shape: 'line' as const })) : []),
+      ]}
       isMobile={isMobile}
     />
   )

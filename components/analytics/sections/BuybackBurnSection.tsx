@@ -4,6 +4,8 @@ import React from 'react'
 import { SectionHeader } from '../AnalyticsUI'
 import HeroStatCard from '../HeroStatCard'
 import DuneSeriesChart from '../DuneSeriesChart'
+import AcquisitionCostChart from '../AcquisitionCostChart'
+import BuybackSupplyChart from '../BuybackSupplyChart'
 import RevenueTable from '@/components/RevenueTable'
 import { useProtocolSummary } from '@/lib/protocolSummary'
 import { useBuybackTotals } from '@/lib/buybackTotals'
@@ -58,6 +60,10 @@ export default function BuybackBurnSection({ isMobile }: { isMobile: boolean }) 
           height={H}
           isMobile={isMobile}
         />
+      </div>
+      <div style={grid}>
+        <AcquisitionCostChart isMobile={isMobile} />
+        <BuybackSupplyChart isMobile={isMobile} />
       </div>
       <RevenueTable />
     </div>

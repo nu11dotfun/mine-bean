@@ -21,7 +21,10 @@ export default function CirculatingSupplyChart({ isMobile }: { isMobile: boolean
   const labels = buckets.map((b) => bucketLabel(b.t, gran))
   const values = buckets.map((b) => (b.rows.length ? b.rows[b.rows.length - 1].circ : null))
 
-  const lines: ChartLine[] = [{ values, color: C, width: 2, fill: true, name: 'Circulating' }]
+  const lines: ChartLine[] = [
+    { values, color: C, width: 2, fill: true, name: 'Circulating' },
+    { values: values.map(() => BEAN_MAX_SUPPLY), color: 'rgba(255,255,255,0.35)', width: 1, name: 'Max supply' },
+  ]
   const mcapFdv = summary ? (summary.circulatingSupply / BEAN_MAX_SUPPLY) * 100 : null
 
   return (
@@ -45,6 +48,10 @@ export default function CirculatingSupplyChart({ isMobile }: { isMobile: boolean
       loading={!series || !summary}
       empty={!!series && !!summary && rows.length === 0}
       emptyText="No data yet"
+      legend={[
+        { color: C, label: 'Circulating', shape: 'line' },
+        { color: 'rgba(255,255,255,0.35)', label: 'Max supply', shape: 'line' },
+      ]}
       isMobile={isMobile}
     />
   )

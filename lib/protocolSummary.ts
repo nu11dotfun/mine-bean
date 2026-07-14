@@ -19,6 +19,7 @@ export const VAULT_FEE_RATIO = 0.095
 
 export interface ProtocolSummary {
   circulatingSupply: number
+  totalSupply: number
   totalMinted: number
   beanUsd: number
   ethUsd: number
@@ -130,6 +131,7 @@ async function load(): Promise<ProtocolSummary | null> {
     const burned30d = num(stats.beanBurns?.['30d']?.burnt)
     const data: ProtocolSummary = {
       circulatingSupply,
+      totalSupply: num(stats.totalSupplyFormatted),
       totalMinted: num(stats.totalMintedFormatted),
       beanUsd,
       ethUsd,

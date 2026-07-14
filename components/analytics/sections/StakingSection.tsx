@@ -6,6 +6,7 @@ import HeroStatCard from '../HeroStatCard'
 import DuneSeriesChart from '../DuneSeriesChart'
 import StakingApyChart from '../StakingApyChart'
 import PctStakedChart from '../PctStakedChart'
+import HolderTable from '../HolderTable'
 import { useProtocolSummary } from '@/lib/protocolSummary'
 import { useStaking7dYield } from '@/lib/stakingApr'
 import { fmtInt, fmtPct, fmtUsdCompact } from '@/lib/analyticsFormat'
@@ -98,6 +99,9 @@ export default function StakingSection({ isMobile }: { isMobile: boolean }) {
       <div style={{ ...grid, marginTop: isMobile ? 14 : 18 }}>
         <StakingApyChart isMobile={isMobile} />
         <PctStakedChart isMobile={isMobile} />
+      </div>
+      <div style={{ marginTop: isMobile ? 24 : 32 }}>
+        <HolderTable type="stakers" isMobile={isMobile} />
       </div>
     </div>
   )

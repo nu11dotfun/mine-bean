@@ -5,6 +5,7 @@ import { SectionHeader } from '../AnalyticsUI'
 import HeroStatCard from '../HeroStatCard'
 import DuneSeriesChart from '../DuneSeriesChart'
 import MiningTable from '@/components/MiningTable'
+import HolderTable from '../HolderTable'
 import { useMiningStats } from '@/lib/miningStats'
 import { fmtInt, fmtEth } from '@/lib/analyticsFormat'
 
@@ -43,6 +44,10 @@ export default function MiningSection({ isMobile }: { isMobile: boolean }) {
       </div>
 
       <MiningTable />
+
+      <div style={{ marginTop: isMobile ? 24 : 32 }}>
+        <HolderTable type="unroasted" isMobile={isMobile} />
+      </div>
     </div>
   )
 }

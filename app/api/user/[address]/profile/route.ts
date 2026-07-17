@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server'
 import { verifyMessage } from 'viem'
-import { supabase } from '@/lib/supabase'
+// Service-role client: profile writes must not depend on anon-key table access,
+// which is revoked once the profiles RLS lockdown migration runs.
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(_req: Request, { params }: { params: { address: string } }) {
   const address = (await params).address.toLowerCase()
 
-  const { data } = await supabase
+  const { data } = await supabaseAdmin
     .from('profiles')
     .select('username, bio, pfp_url, banner_url')
     .eq('wallet_address', address)
@@ -81,7 +83,7 @@ export async function PUT(req: Request, { params }: { params: { address: string 
   if (pfpUrl !== undefined) row.pfp_url = pfpUrl
   if (bannerUrl !== undefined) row.banner_url = bannerUrl
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('profiles')
     .upsert(row, { onConflict: 'wallet_address' })
 

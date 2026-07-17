@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function GET(request: Request) {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
@@ -53,7 +53,7 @@ export async function GET(request: Request) {
     const { data: twitterUser } = await userRes.json()
 
     // Save to Supabase
-    await supabase.from('social_connections').upsert({
+    await supabaseAdmin.from('social_connections').upsert({
       wallet_address: wallet.toLowerCase(),
       twitter_id: twitterUser.id,
       twitter_handle: twitterUser.username,

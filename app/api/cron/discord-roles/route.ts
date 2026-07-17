@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createPublicClient, http, fallback } from 'viem'
 import { base } from 'viem/chains'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { CONTRACTS } from '@/lib/contracts'
 
 const CRON_SECRET = process.env.CRON_SECRET
@@ -74,7 +74,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { data: connections, error } = await supabase
+  const { data: connections, error } = await supabaseAdmin
     .from('social_connections')
     .select('wallet_address, discord_id')
     .not('discord_id', 'is', null)

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { createPublicClient, http, fallback, parseAbi } from 'viem'
 import { base } from 'viem/chains'
 
@@ -108,7 +108,7 @@ export async function GET(req: Request) {
       const winningBlock = Number(log.args.winningBlock) + 1 // contract is 0-indexed
 
       // Skip if already announced
-      const { data: existing } = await supabase
+      const { data: existing } = await supabaseAdmin
         .from('beanpot_announcements')
         .select('round_id')
         .eq('round_id', roundId)
@@ -118,7 +118,7 @@ export async function GET(req: Request) {
 
       await postBeanpotEmbed(roundId, winningBlock, beanAmount, beanUsd)
 
-      await supabase.from('beanpot_announcements').insert({ round_id: roundId })
+      await supabaseAdmin.from('beanpot_announcements').insert({ round_id: roundId })
       console.log(`[beanpot cron] Announced beanpot for round #${roundId}`)
       announced++
     }

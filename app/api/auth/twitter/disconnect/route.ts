@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 
 export async function POST(request: Request) {
   const { wallet } = await request.json()
   if (!wallet) return NextResponse.json({ error: 'Missing wallet' }, { status: 400 })
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('social_connections')
     .update({ twitter_id: null, twitter_handle: null, updated_at: new Date().toISOString() })
     .eq('wallet_address', wallet.toLowerCase())

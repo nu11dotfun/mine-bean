@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { createPublicClient, http } from 'viem'
 import { base } from 'viem/chains'
-import { supabase } from '@/lib/supabase'
+import { supabaseAdmin } from '@/lib/supabaseAdmin'
 import { CONTRACTS } from '@/lib/contracts'
 
 const publicClient = createPublicClient({ chain: base, transport: http() })
@@ -117,7 +117,7 @@ export async function GET(request: Request) {
     }
 
     // Save to Supabase
-    await supabase.from('social_connections').upsert({
+    await supabaseAdmin.from('social_connections').upsert({
       wallet_address: wallet.toLowerCase(),
       discord_id: discordUser.id,
       discord_username: discordUser.username,

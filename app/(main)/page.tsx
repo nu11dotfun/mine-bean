@@ -11,6 +11,7 @@ import ClaimRewards from '@/components/ClaimRewards'
 import RoastingAprBanner from '@/components/RoastingAprBanner'
 import SidebarMinersLive from '@/components/SidebarMinersLive'
 import OverallLeaderboardPanel from '@/components/OverallLeaderboardPanel'
+import ChatPanel from '@/components/chat/ChatPanel'
 import { useAccount, useBalance, useWriteContract } from 'wagmi'
 import { base } from 'wagmi/chains'
 import { parseEther, type Abi } from 'viem'
@@ -258,6 +259,7 @@ if (!showMining) {
       <BeanpotCelebration />
       <CountdownCelebration />
       <OverallLeaderboardPanel />
+      <ChatPanel />
       <div style={styles.container}>
         <div style={styles.gridSection}>
           <MiningGrid userAddress={effectiveAddress} />
